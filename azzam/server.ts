@@ -14,8 +14,11 @@ async function startServer() {
   const PORT = 3000;
 
   // Middleware to support JSON parsing
-  app.use(express.json({ limit: "50mb" }));
-  app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+  // NOTE: PDF upload-analyze is now handled 100% client-side (see src/services/api.ts),
+  // so this limit only matters for OCR / Word / Excel endpoints which use Gemini API.
+  // 100mb to allow headroom for base64 overhead on medium files.
+  app.use(express.json({ limit: "100mb" }));
+  app.use(express.urlencoded({ extended: true, limit: "100mb" }));
 
   // Helper to safely get the Gemini client
   function getGeminiClient() {

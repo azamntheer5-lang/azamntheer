@@ -104,7 +104,19 @@ function makeProgressRequest(
 
 export const CloudApiService = {
   /**
-   * 1. PDF Upload & Analysis
+   * 1. PDF Upload & Analysis — 100% LOCAL processing (no server upload)
+   *
+   * Why local: The original server-side flow base64-encoded the file and POSTed it
+   * to /api/files/pdf/upload-analyze. This broke for files >~30MB because:
+   *   - Base64 adds ~33% overhead (47MB file → ~63MB payload)
+   *   - Render's free tier reverse proxy (Cloudflare + Render router) rejects
+   *     bodies larger than ~50MB with HTTP 413 (Request Entity Too Large)
+   *   - Express's `express.json({ limit: "50mb" })` would also reject it
+   *
+   * Solution: All PDF analysis (page count, metadata, text extraction) is now
+   * performed in-browser using pdf-lib (already bundled) and pdfjs-dist
+   * (already vendored). No network round-trip = no 413, no size limit beyond
+   * the user's available RAM.
    */
   async uploadPDF(
     file: File,
@@ -117,35 +129,85 @@ export const CloudApiService = {
     metadata: { title: string; author: string; subject: string; keywords: string };
     extractedText: string;
   }> {
-    onProgress({ uploadProgress: 0, downloadProgress: 0, statusText: "جاري تجهيز وتحويل الملف..." });
-    const fileBase64 = await fileToBase64(file);
-    
-    const payload = {
-      fileBase64,
-      fileName: file.name
-    };
+    onProgress({ uploadProgress: 10, downloadProgress: 0, statusText: "جاري قراءة الملف محلياً..." });
 
-    const result = await makeProgressRequest("/api/files/pdf/upload-analyze", "POST", payload, onProgress);
-    
-    // Convert base64 response back to Uint8Array
-    const binStr = atob(result.pdfBase64);
-    const bytes = new Uint8Array(binStr.length);
-    for (let i = 0; i < binStr.length; i++) {
-      bytes[i] = binStr.charCodeAt(i);
+    // Read file as ArrayBuffer — fully local, no upload
+    const arrayBuffer = await file.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+
+    onProgress({ uploadProgress: 40, downloadProgress: 0, statusText: "جاري تحليل بنية PDF..." });
+
+    // Use pdf-lib for metadata + page count (already bundled, runs in-browser)
+    const { PDFDocument } = await import("pdf-lib");
+    let totalPages = 0;
+    let metadata = { title: "", author: "", subject: "", keywords: "" };
+    try {
+      const doc = await PDFDocument.load(bytes, { ignoreEncryption: true });
+      totalPages = doc.getPageCount();
+      metadata = {
+        title: doc.getTitle() || "",
+        author: doc.getAuthor() || "",
+        subject: doc.getSubject() || "",
+        keywords: doc.getKeywords() || "",
+      };
+    } catch (e) {
+      // If pdf-lib fails (e.g. encrypted), fall back to pdfjs for page count
+      console.warn("pdf-lib load failed, trying pdfjs:", e);
     }
+
+    onProgress({ uploadProgress: 70, downloadProgress: 0, statusText: "جاري استخراج النص..." });
+
+    // Use pdfjs-dist (already vendored locally via src/lib/pdfjs.ts) for text extraction
+    let extractedText = "";
+    try {
+      const { copyBytesForPdfjs, pdfjsLib } = await import("../lib/pdfjs");
+      const loadingTask = pdfjsLib.getDocument({ data: copyBytesForPdfjs(bytes) });
+      const pdfDoc = await loadingTask.promise;
+      // Cap extraction at first 50 pages to keep UI responsive on huge files
+      const pagesToExtract = Math.min(totalPages || pdfDoc.numPages, 50);
+      const parts: string[] = [];
+      for (let i = 1; i <= pagesToExtract; i++) {
+        const page = await pdfDoc.getPage(i);
+        const content = await page.getTextContent();
+        const pageText = content.items
+          .map((item: any) => (typeof item.str === "string" ? item.str : ""))
+          .join(" ");
+        parts.push(pageText);
+      }
+      extractedText = parts.join("\n\n");
+      if (totalPages === 0) totalPages = pdfDoc.numPages;
+    } catch (e) {
+      console.warn("pdfjs text extraction failed:", e);
+      // Non-fatal — text extraction is optional, file still usable for editing
+      extractedText = "";
+    }
+
+    onProgress({ uploadProgress: 100, downloadProgress: 100, statusText: "اكتملت المعالجة بنجاح!" });
 
     return {
       bytes,
       name: file.name,
       size: file.size,
-      totalPages: result.totalPages,
-      metadata: result.metadata,
-      extractedText: result.extractedText
+      totalPages,
+      metadata,
+      extractedText,
     };
   },
 
   /**
-   * 2. Process specific PDF actions on the server
+   * 2. Process specific PDF actions — 100% LOCAL (no server upload)
+   *
+   * Original server-side flow had the same 413 problem as uploadPDF for large
+   * files. Now all operations run in-browser via pdf-lib:
+   *   - delete: remove a page
+   *   - rotate: rotate a page (90/180/270 degrees)
+   *   - reorder: rearrange page order
+   *   - reverse: reverse page order
+   *   - split: extract a page range into a new PDF
+   *   - compress: re-save with compressed streams
+   *   - merge: combine multiple PDFs
+   *   - metadata: update title/author/subject/keywords
+   *   - countPages: just return page count
    */
   async processPDFAction(
     pdfBytes: Uint8Array,
@@ -153,32 +215,123 @@ export const CloudApiService = {
     params: any,
     onProgress: ProgressCallback
   ): Promise<{ bytes: Uint8Array; totalPages: number; extractedText: string }> {
-    // Generate a quick binary chunk base64
-    let binary = "";
-    const len = pdfBytes.byteLength;
-    for (let i = 0; i < len; i++) {
-      binary += String.fromCharCode(pdfBytes[i]);
+    onProgress({ uploadProgress: 20, downloadProgress: 0, statusText: `جاري تنفيذ: ${action}...` });
+
+    const { PDFDocument, degrees, rgb } = await import("pdf-lib");
+
+    // pdf-lib can mutate in place, but we load fresh to avoid detachment issues
+    const doc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
+    let resultBytes = pdfBytes;
+    let totalPages = doc.getPageCount();
+
+    switch (action) {
+      case "delete": {
+        const pageNum = Number(params?.pageNum);
+        if (pageNum >= 1 && pageNum <= totalPages) {
+          doc.removePage(pageNum - 1);
+          totalPages = doc.getPageCount();
+        }
+        break;
+      }
+      case "rotate": {
+        const pageNum = Number(params?.pageNum);
+        const angle = Number(params?.angle) || 90;
+        const pages = pageNum ? [doc.getPage(pageNum - 1)] : doc.getPages();
+        pages.forEach(p => {
+          const current = p.getRotation().angle;
+          p.setRotation(degrees((current + angle) % 360));
+        });
+        break;
+      }
+      case "reorder": {
+        const newOrder: number[] = params?.newOrder || [];
+        if (newOrder.length === totalPages) {
+          // pdf-lib doesn't have direct reorder; copy pages in new order
+          const newDoc = await PDFDocument.create();
+          for (const idx of newOrder) {
+            const [copied] = await newDoc.copyPages(doc, [idx - 1]);
+            newDoc.addPage(copied);
+          }
+          const saved = await newDoc.save();
+          resultBytes = saved as Uint8Array;
+          totalPages = newDoc.getPageCount();
+          onProgress({ uploadProgress: 90, downloadProgress: 0, statusText: "اكتمل إعادة الترتيب" });
+          onProgress({ uploadProgress: 100, downloadProgress: 100, statusText: "اكتملت المعالجة بنجاح!" });
+          return { bytes: resultBytes, totalPages, extractedText: "" };
+        }
+        break;
+      }
+      case "reverse": {
+        const newDoc = await PDFDocument.create();
+        for (let i = totalPages - 1; i >= 0; i--) {
+          const [copied] = await newDoc.copyPages(doc, [i]);
+          newDoc.addPage(copied);
+        }
+        const saved = await newDoc.save();
+        resultBytes = saved as Uint8Array;
+        onProgress({ uploadProgress: 100, downloadProgress: 100, statusText: "اكتملت المعالجة بنجاح!" });
+        return { bytes: resultBytes, totalPages: newDoc.getPageCount(), extractedText: "" };
+      }
+      case "split": {
+        const from = Number(params?.from) || 1;
+        const to = Number(params?.to) || totalPages;
+        const newDoc = await PDFDocument.create();
+        const pageIndices: number[] = [];
+        for (let i = from; i <= Math.min(to, totalPages); i++) pageIndices.push(i - 1);
+        const copied = await newDoc.copyPages(doc, pageIndices);
+        copied.forEach(p => newDoc.addPage(p));
+        const saved = await newDoc.save();
+        resultBytes = saved as Uint8Array;
+        onProgress({ uploadProgress: 100, downloadProgress: 100, statusText: "اكتمل التقسيم" });
+        return { bytes: resultBytes, totalPages: newDoc.getPageCount(), extractedText: "" };
+      }
+      case "compress": {
+        // Re-save with object streams and compressed xref
+        const saved = await doc.save({ useObjectStreams: true });
+        resultBytes = saved as Uint8Array;
+        break;
+      }
+      case "merge": {
+        const additionalBytes: Uint8Array[] = params?.additionalBytes || [];
+        for (const src of additionalBytes) {
+          const srcDoc = await PDFDocument.load(src, { ignoreEncryption: true });
+          const copied = await doc.copyPages(srcDoc, srcDoc.getPageIndices());
+          copied.forEach(p => doc.addPage(p));
+        }
+        const saved = await doc.save();
+        resultBytes = saved as Uint8Array;
+        totalPages = doc.getPageCount();
+        break;
+      }
+      case "metadata": {
+        if (params?.title !== undefined) doc.setTitle(params.title);
+        if (params?.author !== undefined) doc.setAuthor(params.author);
+        if (params?.subject !== undefined) doc.setSubject(params.subject);
+        if (params?.keywords !== undefined) doc.setKeywords(params.keywords);
+        const saved = await doc.save();
+        resultBytes = saved as Uint8Array;
+        break;
+      }
+      case "countPages": {
+        // No mutation needed
+        onProgress({ uploadProgress: 100, downloadProgress: 100, statusText: "اكتمل" });
+        return { bytes: pdfBytes, totalPages, extractedText: "" };
+      }
     }
-    const pdfBase64 = btoa(binary);
 
-    const payload = {
-      pdfBase64,
-      action,
-      params
-    };
-
-    const result = await makeProgressRequest("/api/files/pdf/process-action", "POST", payload, onProgress);
-
-    const binStr = atob(result.pdfBase64);
-    const bytes = new Uint8Array(binStr.length);
-    for (let i = 0; i < binStr.length; i++) {
-      bytes[i] = binStr.charCodeAt(i);
+    // If we mutated doc but didn't save yet (delete/rotate/metadata/compress already saved above
+    // except delete which removes a page without save — let's save it here)
+    if (action === "delete" || action === "rotate") {
+      const saved = await doc.save();
+      resultBytes = saved as Uint8Array;
     }
+
+    onProgress({ uploadProgress: 100, downloadProgress: 100, statusText: "اكتملت المعالجة بنجاح!" });
 
     return {
-      bytes,
-      totalPages: result.totalPages,
-      extractedText: result.extractedText
+      bytes: resultBytes,
+      totalPages,
+      extractedText: "",
     };
   },
 
