@@ -1,2 +1,6 @@
 skills/
 node_modules/
+tool-results/
+extracted/
+download/
+worklog.md
