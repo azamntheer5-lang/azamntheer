@@ -1,9 +1,10 @@
 import React from "react";
 import {
   Settings as SettingsIcon, Palette, Cpu, Keyboard, ShieldCheck,
-  RotateCcw, Check, Moon, Sun, Sparkles, Waves, Zap,
+  RotateCcw, Check, Moon, Sun, Sparkles, Waves, Zap, Languages,
 } from "lucide-react";
 import { useThemeStore, THEMES, type ThemeMode } from "../store/themeStore";
+import { useI18nStore, type Locale } from "../store/i18nStore";
 import { useSettingsStore } from "../store/settingsStore";
 import { useToast } from "../context/ToastContext";
 
@@ -45,6 +46,9 @@ const ToggleRow: React.FC<{
 export const SettingsWorkspace: React.FC = () => {
   const themeMode    = useThemeStore((s) => s.mode);
   const setThemeMode = useThemeStore((s) => s.setMode);
+  const locale       = useI18nStore((s) => s.locale);
+  const setLocale    = useI18nStore((s) => s.setLocale);
+  const t            = useI18nStore((s) => s.t);
   const settings     = useSettingsStore();
   const toast        = useToast();
 
@@ -64,7 +68,7 @@ export const SettingsWorkspace: React.FC = () => {
   );
 
   return (
-    <main className="flex-1 overflow-y-auto safe-scrollbar p-6" dir="rtl">
+    <main className="flex-1 overflow-y-auto safe-scrollbar p-6" dir={locale === "ar" ? "rtl" : "ltr"}>
       <div className="max-w-3xl mx-auto space-y-5">
 
         {/* Header */}
@@ -73,13 +77,42 @@ export const SettingsWorkspace: React.FC = () => {
             <SettingsIcon className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="text-sm font-black text-white">الإعدادات العامة</h2>
-            <p className="text-[11px] text-slate-500 mt-0.5 font-medium">خصص تجربتك في عـزَّام</p>
+            <h2 className="text-sm font-black text-white">{t("settings.title")}</h2>
+            <p className="text-[11px] text-slate-500 mt-0.5 font-medium">{t("settings.subtitle")}</p>
           </div>
         </div>
 
+        {/* Language */}
+        <Section title={t("settings.language")} icon={Languages} iconColor="text-cyan-400">
+          <div className="grid grid-cols-2 gap-3">
+            {([
+              { id: "ar", label: "العربية", sub: "Arabic", flag: "🇸🇦" },
+              { id: "en", label: "English", sub: "الإنجليزية", flag: "🇬🇧" },
+            ] as { id: Locale; label: string; sub: string; flag: string }[]).map(l => (
+              <button
+                key={l.id}
+                onClick={() => { setLocale(l.id); toast.success(`Language: ${l.label}`); }}
+                className={`rounded-xl p-4 border cursor-pointer transition-all text-right relative overflow-hidden ${
+                  locale === l.id
+                    ? "border-cyan-500 ring-1 ring-cyan-500/30 bg-cyan-500/5"
+                    : "border-white/[0.08] hover:border-white/20"
+                }`}
+              >
+                {locale === l.id && (
+                  <span className="absolute top-2 left-2 h-4 w-4 rounded-full bg-cyan-500 flex items-center justify-center">
+                    <Check className="h-2.5 w-2.5 text-white" />
+                  </span>
+                )}
+                <div className="text-3xl mb-2">{l.flag}</div>
+                <p className="text-sm font-black text-slate-100">{l.label}</p>
+                <p className="text-[10px] text-slate-500">{l.sub}</p>
+              </button>
+            ))}
+          </div>
+        </Section>
+
         {/* Theme */}
-        <Section title="الثيم والمظهر (6 خيارات)" icon={Palette} iconColor="text-blue-400">
+        <Section title={t("settings.theme")} icon={Palette} iconColor="text-blue-400">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {(Object.keys(THEMES) as ThemeMode[]).map((key) => {
               const theme   = THEMES[key];

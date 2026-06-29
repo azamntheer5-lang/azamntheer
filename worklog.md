@@ -283,3 +283,61 @@ Artifacts:
 - /home/z/my-project/repo/azzam/src/App.tsx (extended)
 - /home/z/my-project/repo/azzam/package.json (bumped to v2.0.0)
 - /home/z/my-project/repo/azzam/metadata.json (updated)
+
+---
+Task ID: 4
+Agent: Super Z (main)
+Task: Transform Azzam v2.0 → v3.0 — add Code Editor, Audio/Video Tools, Charts/Mermaid, and full i18n (Arabic + English).
+
+Work Log:
+- Created src/store/i18nStore.ts: Zustand store with persist (localStorage "azzam-locale"), 2 locales (ar, en), 130+ translation keys covering brand/badges/search/stats/sections/upload/workspaces/footer/common/settings/topbar/sidebar, fallback chain (locale → en → key), param substitution via {param} syntax
+- Extended src/store/uiStore.ts: added 3 new WorkspaceIds (code-tools, media-tools, charts) → total 21 workspaces
+- Updated src/store/themeStore.ts toggle(): now cycles through all 6 themes in order
+- Created src/workspaces/CodeToolsWorkspace.tsx (~340 lines): multi-language code editor with Prism syntax highlighting for 13 languages (JS, TS, JSX, TSX, JSON, CSS, Markdown, Python, Bash, SQL, YAML, Go, Rust), transparent textarea overlay technique for live highlighting, JavaScript execution with console.log capture via new Function(), format (JSON pretty-print + JS line cleanup), copy/download/clear, 4 quick snippets, live stats (lines/chars/bytes)
+- Created src/workspaces/MediaToolsWorkspace.tsx (~700 lines): 5 tools — Audio Recorder (MediaRecorder + WebM, pause/resume, timer, download), Audio Converter (Web Audio API + WAV PCM encoder + MediaRecorder for OGG/MP3), Video Recorder (getUserMedia 720p + audio + live preview + REC indicator + download WebM), Video Trimmer (dual range sliders + captureStream + MediaRecorder for segment extraction), Extract Audio (captureStream + audio-track-only MediaRecorder)
+- Created src/workspaces/ChartsWorkspace.tsx (~280 lines): Mermaid diagrams with 8 chart types (flowchart, mindmap, sequence, gantt, pie, class, state, er), live debounced preview (300ms), dark theme with custom themeVariables matching app palette, SVG + PNG export (canvas 2x retina scale), 8 ready-made templates, syntax reference card, error display with helpful messages
+- Created src/components/ui/SharedUI.tsx: TabBar, ToolHeader, CopyButton shared components (was already created in v2.0 but used by new workspaces)
+- Updated src/App.tsx: added 3 lazy imports (CodeToolsWorkspace, MediaToolsWorkspace, ChartsWorkspace), wired active workspace router for 21 IDs, added useI18nStore hook, applied locale-based dir (rtl/ltr) on root element, added Ctrl+L shortcut for language toggle, applied root.dir + root.lang on locale change
+- Updated src/components/Sidebar.tsx: complete i18n migration — all labels via t(labelKey), nav groups expanded to 5 with 21 items (added code-tools/media-tools/charts under "أدوات احترافية"), filter search now searches translated labels, footer shows themeMode badge, all text uses i18n
+- Updated src/components/Topbar.tsx: complete i18n migration — breadcrumb uses t(wsKey), added Languages icon + language toggle button (shows "EN" in Arabic mode, "ع" in English mode), tool count shows localized label, all tooltips translated
+- Updated src/components/command/CommandPalette.tsx: added Film/BarChart3/Languages icons, wired 3 new tool actions (openCodeTools/openMediaTools/openCharts), added toggleLanguage action to settings commands
+- Updated src/lib/commands.ts: added 3 new nav entries (code-tools, media-tools, charts) with relevant keywords + subtitles, added 3 new tool commands, added toggleLanguage to buildSettingsCommands signature + new "set-toggle-language" command with Ctrl+L shortcut
+- Updated src/workspaces/HomeWorkspace.tsx: complete i18n migration — all MAIN_TOOLS/QUICK_TOOLS/PRO_TOOLS use titleKey/descKey, PRO_TOOLS expanded from 6 to 9 (added code-tools, media-tools, charts), search placeholder uses 21 tools count, stats updated to 75+ tools / 21 workspaces, hero badge says "v3.0 — وحش الأدوات", filter dropdown searches translated labels
+- Updated src/workspaces/SettingsWorkspace.tsx: added Languages import + Locale type, added useI18nStore hook, dir is now locale-aware (rtl/ltr), added new "Language" section at top with 2 locale cards (ar 🇸🇦 / en 🇬🇧) showing flag + native name + alternate name + active checkmark, all section titles use t(), theme section title updated
+- Installed new deps: mermaid@^11, prismjs@^1.30, @types/prismjs
+- Updated package.json: version → 3.0.0
+- Updated metadata.json: description mentions 21 workspaces, 75+ tools, charts, audio/video, code editor, i18n
+
+Stage Summary:
+- 4 NEW files: i18nStore.ts, CodeToolsWorkspace.tsx, MediaToolsWorkspace.tsx, ChartsWorkspace.tsx
+- 7 MODIFIED files: uiStore, themeStore, App, Sidebar, Topbar, HomeWorkspace, SettingsWorkspace, commands, CommandPalette
+- Workspace count: 18 → 21 (+3)
+- Tool count: 60+ → 75+ (+15: 13 languages in code editor + 5 audio/video tools + 8 chart types = ~26 new, but counted conservatively)
+- New languages: 2 (Arabic + English with full RTL/LTR switching)
+- TypeScript: 0 errors (`tsc --noEmit` clean)
+- Production build: ✓ successful in 15.04s
+  * ChartsWorkspace chunk: 632KB (152KB gzipped) — mermaid is large but lazy-loaded
+  * CodeToolsWorkspace chunk: 62KB (22KB gzipped) — prismjs + language definitions
+  * MediaToolsWorkspace chunk: ~25KB (uses native browser APIs, no extra deps)
+  * Multiple mermaid diagram sub-chunks (sequence/gantt/flow/c4/architecture/etc) loaded on demand
+- Dev server: ✓ running on http://localhost:3000 — health endpoint returns `{"status":"ok"}`
+- Full i18n: 130+ translation keys, instant language switching, persisted to localStorage
+- RTL/LTR: app direction changes instantly based on locale (rtl for ar, ltr for en)
+- New keyboard shortcut: Ctrl+L toggles language
+- All 21 workspaces now accessible via Sidebar / Command Palette / Home dashboard
+- 100% local processing preserved (no new network calls; Mermaid + Prism run client-side)
+
+Artifacts:
+- /home/z/my-project/repo/azzam/src/store/i18nStore.ts (new — i18n store + 130+ translations)
+- /home/z/my-project/repo/azzam/src/workspaces/CodeToolsWorkspace.tsx (new — 13-language editor)
+- /home/z/my-project/repo/azzam/src/workspaces/MediaToolsWorkspace.tsx (new — 5 audio/video tools)
+- /home/z/my-project/repo/azzam/src/workspaces/ChartsWorkspace.tsx (new — 8 Mermaid diagram types)
+- /home/z/my-project/repo/azzam/src/store/uiStore.ts (extended — +3 workspace IDs)
+- /home/z/my-project/repo/azzam/src/App.tsx (extended — 3 lazy imports + i18n + Ctrl+L)
+- /home/z/my-project/repo/azzam/src/components/Sidebar.tsx (rewritten — i18n + 21 items)
+- /home/z/my-project/repo/azzam/src/components/Topbar.tsx (rewritten — i18n + language toggle)
+- /home/z/my-project/repo/azzam/src/components/command/CommandPalette.tsx (extended — +3 tools + language cmd)
+- /home/z/my-project/repo/azzam/src/workspaces/HomeWorkspace.tsx (rewritten — i18n + 9 pro tools)
+- /home/z/my-project/repo/azzam/src/workspaces/SettingsWorkspace.tsx (extended — language section)
+- /home/z/my-project/repo/azzam/src/lib/commands.ts (extended — +3 nav + 3 tool + 1 language cmd)
+- /home/z/my-project/repo/azzam/package.json (v3.0.0)

@@ -4,10 +4,11 @@ import {
   ScanLine, Camera, GitCompare, QrCode, Clock, Settings, HelpCircle,
   ChevronLeft, ChevronRight, ShieldCheck, Command as CommandIcon,
   Code2, Type, ArrowLeftRight, Lock, Calendar, Calculator,
-  Search, Zap, Sparkles, Crown,
+  Search, Sparkles, Crown, Film, BarChart3,
 } from "lucide-react";
 import { useUIStore, type WorkspaceId } from "../store/uiStore";
 import { useThemeStore } from "../store/themeStore";
+import { useI18nStore } from "../store/i18nStore";
 
 interface NavGroup {
   label: string;
@@ -16,7 +17,7 @@ interface NavGroup {
 
 interface NavItem {
   id: WorkspaceId;
-  label: string;
+  labelKey: string;
   icon: React.ComponentType<{ className?: string }>;
   badge?: string;
   badgeClass?: string;
@@ -25,46 +26,49 @@ interface NavItem {
 
 const NAV_GROUPS: NavGroup[] = [
   {
-    label: "الرئيسية",
+    label: "section.home",
     items: [
-      { id: "home", label: "لوحة التحكم", icon: Home, color: "text-blue-400" },
+      { id: "home", labelKey: "ws.home", icon: Home, color: "text-blue-400" },
     ],
   },
   {
-    label: "أدوات المستندات",
+    label: "section.documents",
     items: [
-      { id: "pdf",   label: "PDF Expert", icon: FileText, badge: "متقدم", badgeClass: "badge-blue", color: "text-blue-400" },
-      { id: "word",  label: "Word Tools", icon: FileCode, color: "text-violet-400" },
-      { id: "excel", label: "Excel Studio", icon: FileSpreadsheet, color: "text-emerald-400" },
+      { id: "pdf",   labelKey: "ws.pdf",   icon: FileText, badge: "badge.advanced", badgeClass: "badge-blue", color: "text-blue-400" },
+      { id: "word",  labelKey: "ws.word",  icon: FileCode, color: "text-violet-400" },
+      { id: "excel", labelKey: "ws.excel", icon: FileSpreadsheet, color: "text-emerald-400" },
     ],
   },
   {
-    label: "الوسائط والذكاء",
+    label: "section.media",
     items: [
-      { id: "image",    label: "استوديو الصور", icon: ImageIcon, color: "text-orange-400" },
-      { id: "ocr",      label: "استخراج النص", icon: ScanLine, color: "text-cyan-400" },
-      { id: "scanner",  label: "الماسح الضوئي", icon: Camera, color: "text-pink-400" },
-      { id: "compare",  label: "مقارنة المستندات", icon: GitCompare, color: "text-indigo-400" },
-      { id: "qr-tools", label: "QR / Barcode", icon: QrCode, color: "text-yellow-400" },
+      { id: "image",       labelKey: "ws.image",      icon: ImageIcon, color: "text-orange-400" },
+      { id: "ocr",         labelKey: "ws.ocr",        icon: ScanLine, color: "text-cyan-400" },
+      { id: "scanner",     labelKey: "ws.scanner",    icon: Camera, color: "text-pink-400" },
+      { id: "compare",     labelKey: "ws.compare",    icon: GitCompare, color: "text-indigo-400" },
+      { id: "qr-tools",    labelKey: "ws.qr-tools",   icon: QrCode, color: "text-yellow-400" },
     ],
   },
   {
-    label: "أدوات احترافية",
+    label: "section.advanced",
     items: [
-      { id: "dev-tools",   label: "أدوات المطور", icon: Code2, badge: "جديد", badgeClass: "badge-pink", color: "text-pink-400" },
-      { id: "text-tools",  label: "أدوات النصوص", icon: Type, badge: "جديد", badgeClass: "badge-pink", color: "text-cyan-400" },
-      { id: "converters",  label: "محوّلات", icon: ArrowLeftRight, badge: "جديد", badgeClass: "badge-pink", color: "text-amber-400" },
-      { id: "crypto",      label: "تشفير وكلمات سر", icon: Lock, badge: "جديد", badgeClass: "badge-pink", color: "text-rose-400" },
-      { id: "time-tools",  label: "وقت وتاريخ", icon: Calendar, badge: "جديد", badgeClass: "badge-pink", color: "text-teal-400" },
-      { id: "calc-tools",  label: "حاسبات", icon: Calculator, badge: "جديد", badgeClass: "badge-pink", color: "text-emerald-400" },
+      { id: "dev-tools",   labelKey: "ws.dev-tools",   icon: Code2, badge: "badge.new", badgeClass: "badge-pink", color: "text-pink-400" },
+      { id: "text-tools",  labelKey: "ws.text-tools",  icon: Type, badge: "badge.new", badgeClass: "badge-pink", color: "text-cyan-400" },
+      { id: "converters",  labelKey: "ws.converters",  icon: ArrowLeftRight, badge: "badge.new", badgeClass: "badge-pink", color: "text-amber-400" },
+      { id: "crypto",      labelKey: "ws.crypto",      icon: Lock, badge: "badge.new", badgeClass: "badge-pink", color: "text-rose-400" },
+      { id: "time-tools",  labelKey: "ws.time-tools",  icon: Calendar, badge: "badge.new", badgeClass: "badge-pink", color: "text-teal-400" },
+      { id: "calc-tools",  labelKey: "ws.calc-tools",  icon: Calculator, badge: "badge.new", badgeClass: "badge-pink", color: "text-emerald-400" },
+      { id: "code-tools",  labelKey: "ws.code-tools",  icon: Code2, badge: "badge.new", badgeClass: "badge-pink", color: "text-violet-400" },
+      { id: "media-tools", labelKey: "ws.media-tools", icon: Film, badge: "badge.new", badgeClass: "badge-pink", color: "text-rose-400" },
+      { id: "charts",      labelKey: "ws.charts",      icon: BarChart3, badge: "badge.new", badgeClass: "badge-pink", color: "text-indigo-400" },
     ],
   },
   {
-    label: "النظام",
+    label: "section.system",
     items: [
-      { id: "history",  label: "السجل", icon: Clock, color: "text-slate-400" },
-      { id: "settings", label: "الإعدادات", icon: Settings, color: "text-slate-400" },
-      { id: "help",     label: "المساعدة", icon: HelpCircle, color: "text-slate-400" },
+      { id: "history",  labelKey: "ws.history",  icon: Clock, color: "text-slate-400" },
+      { id: "settings", labelKey: "ws.settings", icon: Settings, color: "text-slate-400" },
+      { id: "help",     labelKey: "ws.help",     icon: HelpCircle, color: "text-slate-400" },
     ],
   },
 ];
@@ -78,6 +82,7 @@ export const Sidebar: React.FC = () => {
   const setActive   = useUIStore((s) => s.setActiveWorkspace);
   const setPalette  = useUIStore((s) => s.setCommandPaletteOpen);
   const themeMode   = useThemeStore((s) => s.mode);
+  const { t, locale } = useI18nStore();
   const [query, setQuery] = useState("");
 
   const filteredGroups = useMemo(() => {
@@ -86,10 +91,13 @@ export const Sidebar: React.FC = () => {
     return NAV_GROUPS
       .map(g => ({
         ...g,
-        items: g.items.filter(it => it.label.toLowerCase().includes(q) || it.id.toLowerCase().includes(q)),
+        items: g.items.filter(it =>
+          t(it.labelKey).toLowerCase().includes(q) ||
+          it.id.toLowerCase().includes(q)
+        ),
       }))
       .filter(g => g.items.length > 0);
-  }, [query]);
+  }, [query, t]);
 
   return (
     <aside
@@ -108,11 +116,11 @@ export const Sidebar: React.FC = () => {
         {!collapsed && (
           <div className="min-w-0 flex-1">
             <h2 className="text-base font-black tracking-wide leading-tight gradient-text-static font-display">
-              عـزَّام برو
+              {t("brand.name")}
             </h2>
             <p className="text-[10px] font-semibold text-slate-500 leading-tight mt-0.5 flex items-center gap-1">
               <Sparkles className="h-2.5 w-2.5 text-amber-400" />
-              Azzam Pro v2.0
+              {t("brand.tagline")}
             </p>
           </div>
         )}
@@ -122,7 +130,7 @@ export const Sidebar: React.FC = () => {
       <div className="px-3 pt-3 pb-1">
         <button
           onClick={() => setPalette(true)}
-          title="بحث وأوامر (Ctrl+K)"
+          title={t("search.global")}
           className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-slate-400 hover:text-slate-200 transition-all duration-200 group ${
             collapsed ? "justify-center" : ""
           }`}
@@ -130,7 +138,7 @@ export const Sidebar: React.FC = () => {
           <CommandIcon className="h-4 w-4 text-blue-400 shrink-0" />
           {!collapsed && (
             <>
-              <span className="text-xs font-semibold flex-1 text-right text-slate-400">بحث سريع...</span>
+              <span className="text-xs font-semibold flex-1 text-right text-slate-400">{t("search.command_palette")}</span>
               <kbd className="text-[9px] text-slate-500 font-mono border border-white/10 rounded-md px-1.5 py-0.5 bg-white/[0.04]">
                 ⌘K
               </kbd>
@@ -139,7 +147,7 @@ export const Sidebar: React.FC = () => {
         </button>
       </div>
 
-      {/* Local search (only when expanded) */}
+      {/* Local search */}
       {!collapsed && (
         <div className="px-3 pt-1 pb-2">
           <div className="relative">
@@ -147,7 +155,7 @@ export const Sidebar: React.FC = () => {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="تصفية الأدوات..."
+              placeholder={t("search.filter")}
               className="input-field w-full !text-[11px] !py-2 !pr-9 !pl-3"
             />
           </div>
@@ -160,7 +168,7 @@ export const Sidebar: React.FC = () => {
           <div key={group.label} className="mb-1">
             {!collapsed && (
               <p className="text-[9px] font-bold text-slate-600 uppercase tracking-widest px-3 py-2">
-                {group.label}
+                {t(group.label)}
               </p>
             )}
             {collapsed && <div className="separator my-2" />}
@@ -172,7 +180,7 @@ export const Sidebar: React.FC = () => {
                   <button
                     key={item.id}
                     onClick={() => setActive(item.id)}
-                    title={collapsed ? item.label : undefined}
+                    title={collapsed ? t(item.labelKey) : undefined}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 cursor-pointer nav-item ${
                       isActive ? "nav-active text-white" : "text-slate-400 hover:text-slate-200"
                     } ${collapsed ? "justify-center" : ""}`}
@@ -182,11 +190,11 @@ export const Sidebar: React.FC = () => {
                     }`} />
                     {!collapsed && (
                       <span className="text-[12.5px] font-semibold flex-1 text-right leading-none truncate">
-                        {item.label}
+                        {t(item.labelKey)}
                       </span>
                     )}
                     {!collapsed && item.badge && (
-                      <span className={`badge ${item.badgeClass || "badge-blue"}`}>{item.badge}</span>
+                      <span className={`badge ${item.badgeClass || "badge-blue"}`}>{t(item.badge)}</span>
                     )}
                   </button>
                 );
@@ -196,7 +204,7 @@ export const Sidebar: React.FC = () => {
         ))}
         {filteredGroups.length === 0 && !collapsed && (
           <div className="text-center py-6 text-xs text-slate-500">
-            لا توجد نتائج
+            {t("search.no_results")}
           </div>
         )}
       </nav>
@@ -207,9 +215,9 @@ export const Sidebar: React.FC = () => {
           <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-emerald-500/[0.07] border border-emerald-500/20">
             <ShieldCheck className="h-4 w-4 text-emerald-400 shrink-0" />
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-bold text-emerald-400">معالجة محلية 100%</p>
+              <p className="text-[10px] font-bold text-emerald-400">{t("badge.local")}</p>
               <p className="text-[9px] text-slate-500 leading-tight mt-0.5 font-medium">
-                ملفاتك لا تغادر متصفحك
+                {t("badge.local.desc")}
               </p>
             </div>
             <span className="badge badge-emerald text-[9px]">{themeMode}</span>
@@ -218,7 +226,7 @@ export const Sidebar: React.FC = () => {
 
         <button
           onClick={toggle}
-          title={collapsed ? "توسيع" : "طي"}
+          title={collapsed ? t("sidebar.expand") : t("sidebar.collapse")}
           className="w-full flex items-center justify-center py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.05] text-slate-500 hover:text-slate-300 transition-all duration-200 cursor-pointer"
         >
           {collapsed

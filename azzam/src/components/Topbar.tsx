@@ -1,31 +1,35 @@
 import React from "react";
 import {
-  Search, Moon, Sun, ChevronRight, Undo2, Redo2, Command as CommandIcon, Zap,
-  Palette, Github, Star,
+  Search, ChevronRight, Undo2, Redo2, Command as CommandIcon, Zap,
+  Palette, Github, Star, Languages,
 } from "lucide-react";
 import { useUIStore, type WorkspaceId } from "../store/uiStore";
 import { useThemeStore, THEMES, type ThemeMode } from "../store/themeStore";
+import { useI18nStore } from "../store/i18nStore";
 import { usePdfStore } from "../store/pdfStore";
 
-const WORKSPACE_LABELS: Record<WorkspaceId, { label: string; emoji: string }> = {
-  home:         { label: "لوحة التحكم",        emoji: "🏠" },
-  pdf:          { label: "PDF Expert",          emoji: "📄" },
-  word:         { label: "أدوات Word",          emoji: "📝" },
-  excel:        { label: "جداول Excel",         emoji: "📊" },
-  image:        { label: "استوديو الصور",        emoji: "🖼️" },
-  ocr:          { label: "استخراج النص",         emoji: "🔍" },
-  scanner:      { label: "الماسح الضوئي",        emoji: "📷" },
-  compare:      { label: "مقارنة المستندات",     emoji: "⚖️" },
-  "qr-tools":   { label: "أدوات QR",            emoji: "🔲" },
-  "dev-tools":  { label: "أدوات المطور",         emoji: "💻" },
-  "text-tools": { label: "أدوات النصوص",         emoji: "🔤" },
-  "converters": { label: "محوّلات",              emoji: "🔄" },
-  "crypto":     { label: "تشفير وكلمات سر",      emoji: "🔐" },
-  "time-tools": { label: "وقت وتاريخ",           emoji: "📅" },
-  "calc-tools": { label: "حاسبات",               emoji: "🧮" },
-  history:      { label: "السجل",                emoji: "📋" },
-  settings:     { label: "الإعدادات",            emoji: "⚙️" },
-  help:         { label: "المساعدة",             emoji: "💡" },
+const WORKSPACE_LABELS: Record<WorkspaceId, string> = {
+  home:         "ws.home",
+  pdf:          "ws.pdf",
+  word:         "ws.word",
+  excel:        "ws.excel",
+  image:        "ws.image",
+  ocr:          "ws.ocr",
+  scanner:      "ws.scanner",
+  compare:      "ws.compare",
+  "qr-tools":   "ws.qr-tools",
+  "dev-tools":  "ws.dev-tools",
+  "text-tools": "ws.text-tools",
+  "converters": "ws.converters",
+  "crypto":     "ws.crypto",
+  "time-tools": "ws.time-tools",
+  "calc-tools": "ws.calc-tools",
+  "code-tools": "ws.code-tools",
+  "media-tools":"ws.media-tools",
+  "charts":     "ws.charts",
+  history:      "ws.history",
+  settings:     "ws.settings",
+  help:         "ws.help",
 };
 
 const THEME_ORDER: ThemeMode[] = ["dark", "light", "midnight", "aurora", "cyber", "ocean"];
@@ -43,7 +47,9 @@ export const Topbar: React.FC = () => {
   const historyLen = usePdfStore((s) => s.history.length);
   const futureLen  = usePdfStore((s) => s.future.length);
 
-  const ws = WORKSPACE_LABELS[active];
+  const { t, locale, toggle: toggleLocale } = useI18nStore();
+
+  const wsKey = WORKSPACE_LABELS[active];
   const isHome = active === "home";
 
   const cycleTheme = () => {
@@ -61,14 +67,13 @@ export const Topbar: React.FC = () => {
               onClick={() => setActive("home")}
               className="text-[11px] font-semibold text-slate-500 hover:text-slate-300 transition-colors cursor-pointer"
             >
-              الرئيسية
+              {t("topbar.home")}
             </button>
             <ChevronRight className="h-3 w-3 text-slate-600" />
           </>
         )}
         <div className="flex items-center gap-2">
-          <span className="text-base leading-none">{ws.emoji}</span>
-          <span className="text-[13px] font-bold text-slate-200 truncate">{ws.label}</span>
+          <span className="text-sm font-bold text-slate-200 truncate">{t(wsKey)}</span>
         </div>
 
         {/* PDF undo/redo */}
@@ -77,7 +82,7 @@ export const Topbar: React.FC = () => {
             <button
               onClick={undo}
               disabled={historyLen === 0}
-              title="تراجع (Ctrl+Z)"
+              title="Ctrl+Z"
               className="h-7 w-7 flex items-center justify-center rounded-md text-slate-400 hover:text-white hover:bg-white/[0.08] disabled:opacity-25 disabled:cursor-not-allowed transition-all cursor-pointer"
             >
               <Undo2 className="h-3.5 w-3.5" />
@@ -85,7 +90,7 @@ export const Topbar: React.FC = () => {
             <button
               onClick={redo}
               disabled={futureLen === 0}
-              title="إعادة (Ctrl+Y)"
+              title="Ctrl+Y"
               className="h-7 w-7 flex items-center justify-center rounded-md text-slate-400 hover:text-white hover:bg-white/[0.08] disabled:opacity-25 disabled:cursor-not-allowed transition-all cursor-pointer"
             >
               <Redo2 className="h-3.5 w-3.5" />
@@ -97,36 +102,48 @@ export const Topbar: React.FC = () => {
         {!isHome && (
           <span className="badge badge-new ml-2">
             <Zap className="h-2.5 w-2.5" />
-            PRO
+            {t("badge.pro")}
           </span>
         )}
       </div>
 
       {/* Right: Actions */}
       <div className="flex items-center gap-2">
-        {/* Quick tool count indicator */}
+        {/* Tool count */}
         <div className="hidden md:flex items-center gap-1.5 px-2.5 h-8 rounded-xl bg-white/[0.04] border border-white/[0.06]">
           <Star className="h-3 w-3 text-amber-400" />
-          <span className="text-[10px] font-bold text-slate-300">18 أداة</span>
+          <span className="text-[10px] font-bold text-slate-300">{locale === "ar" ? "21 أداة" : "21 tools"}</span>
         </div>
 
         {/* Search */}
         <button
           onClick={() => setPalette(true)}
-          title="بحث وأوامر (Ctrl+K)"
+          title={t("search.global")}
           className="flex items-center gap-2 h-8 px-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-slate-400 hover:text-slate-200 transition-all duration-200 cursor-pointer"
         >
           <Search className="h-3.5 w-3.5" />
-          <span className="text-[11px] font-semibold hidden sm:inline text-slate-500">بحث سريع</span>
+          <span className="text-[11px] font-semibold hidden sm:inline text-slate-500">{t("search.command_palette")}</span>
           <kbd className="text-[9px] text-slate-600 font-mono border border-white/[0.08] rounded px-1 py-0.5 hidden sm:inline">
             ⌘K
           </kbd>
         </button>
 
-        {/* Theme cycle button with label */}
+        {/* Language toggle */}
+        <button
+          onClick={toggleLocale}
+          title={locale === "ar" ? "Switch to English" : "التبديل للعربية"}
+          className="flex items-center gap-2 h-8 px-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-slate-400 hover:text-slate-200 transition-all duration-200 cursor-pointer"
+        >
+          <Languages className="h-3.5 w-3.5" />
+          <span className="text-[11px] font-bold hidden lg:inline">
+            {locale === "ar" ? "EN" : "ع"}
+          </span>
+        </button>
+
+        {/* Theme cycle */}
         <button
           onClick={cycleTheme}
-          title={`الثيم الحالي: ${THEMES[themeMode].label} — اضغط للتبديل`}
+          title={`${t("topbar.theme")}: ${THEMES[themeMode].label} — ${t("topbar.theme.toggle")}`}
           className="flex items-center gap-2 h-8 px-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-slate-400 hover:text-slate-200 transition-all duration-200 cursor-pointer"
         >
           <Palette className="h-3.5 w-3.5" />

@@ -2,6 +2,7 @@ import React, { useEffect, lazy, Suspense } from "react";
 import { useUIStore } from "./store/uiStore";
 import { usePdfStore } from "./store/pdfStore";
 import { useThemeStore } from "./store/themeStore";
+import { useI18nStore } from "./store/i18nStore";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { ToastProvider } from "./context/ToastContext";
 import { Sidebar } from "./components/Sidebar";
@@ -26,6 +27,9 @@ const ConvertersWorkspace   = lazy(() => import("./workspaces/ConvertersWorkspac
 const CryptoWorkspace       = lazy(() => import("./workspaces/CryptoWorkspace").then(m => ({ default: m.CryptoWorkspace })));
 const TimeToolsWorkspace    = lazy(() => import("./workspaces/TimeToolsWorkspace").then(m => ({ default: m.TimeToolsWorkspace })));
 const CalcToolsWorkspace    = lazy(() => import("./workspaces/CalcToolsWorkspace").then(m => ({ default: m.CalcToolsWorkspace })));
+const CodeToolsWorkspace    = lazy(() => import("./workspaces/CodeToolsWorkspace").then(m => ({ default: m.CodeToolsWorkspace })));
+const MediaToolsWorkspace   = lazy(() => import("./workspaces/MediaToolsWorkspace").then(m => ({ default: m.MediaToolsWorkspace })));
+const ChartsWorkspace       = lazy(() => import("./workspaces/ChartsWorkspace").then(m => ({ default: m.ChartsWorkspace })));
 const HistoryWorkspace      = lazy(() => import("./workspaces/HistoryWorkspace").then(m => ({ default: m.HistoryWorkspace })));
 const SettingsWorkspace     = lazy(() => import("./workspaces/SettingsWorkspace").then(m => ({ default: m.SettingsWorkspace })));
 const HelpWorkspace         = lazy(() => import("./workspaces/HelpWorkspace").then(m => ({ default: m.HelpWorkspace })));
@@ -59,6 +63,9 @@ function ActiveWorkspace() {
       {active === "crypto"       && <CryptoWorkspace />}
       {active === "time-tools"   && <TimeToolsWorkspace />}
       {active === "calc-tools"   && <CalcToolsWorkspace />}
+      {active === "code-tools"   && <CodeToolsWorkspace />}
+      {active === "media-tools"  && <MediaToolsWorkspace />}
+      {active === "charts"       && <ChartsWorkspace />}
       {active === "history"      && <HistoryWorkspace />}
       {active === "settings"     && <SettingsWorkspace />}
       {active === "help"         && <HelpWorkspace />}
@@ -77,6 +84,8 @@ function AppShell() {
   const doc            = usePdfStore((s) => s.doc);
   const themeColors    = useThemeStore((s) => s.colors);
   const themeMode      = useThemeStore((s) => s.mode);
+  const locale         = useI18nStore((s) => s.locale);
+  const toggleLocale   = useI18nStore((s) => s.toggle);
 
   // Apply theme CSS variables
   useEffect(() => {
@@ -86,12 +95,16 @@ function AppShell() {
     root.dataset.theme = themeMode;
     document.body.style.backgroundColor = themeColors.background;
     document.body.style.color           = themeColors.text;
-  }, [themeColors, themeMode]);
+    // Apply direction based on locale
+    root.dir = locale === "ar" ? "rtl" : "ltr";
+    root.lang = locale;
+  }, [themeColors, themeMode, locale]);
 
   useKeyboardShortcuts([
     { key: "k", ctrl: true, meta: true, handler: togglePalette },
     { key: "b", ctrl: true,             handler: toggleSidebar },
     { key: "j", ctrl: true,             handler: toggleTheme },
+    { key: "l", ctrl: true,             handler: toggleLocale, ignoreInputs: true },
     { key: "z", ctrl: true,             handler: () => doc && undo(), ignoreInputs: true },
     { key: "y", ctrl: true,             handler: () => doc && redo(), ignoreInputs: true },
     { key: "o", ctrl: true,             handler: () => setActive("pdf"),   ignoreInputs: true },
@@ -101,7 +114,7 @@ function AppShell() {
   return (
     <div
       className="flex h-screen w-screen overflow-hidden relative font-sans"
-      dir="rtl"
+      dir={locale === "ar" ? "rtl" : "ltr"}
       style={{ background: themeColors.background, color: themeColors.text }}
     >
       {/* Ambient background glows */}

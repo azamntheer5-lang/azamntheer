@@ -12,13 +12,17 @@ export type WorkspaceId =
   | "scanner"
   | "compare"
   | "qr-tools"
-  // NEW: Monster Tools Suite
+  // Pro Tools v2.0
   | "dev-tools"      // JSON, Base64, Hash, UUID, JWT, Regex, Color picker
   | "text-tools"     // Counter, Case converter, Lorem, Diff, Sort, Dedupe
   | "converters"     // Units, Color, Number base, Roman
   | "crypto"         // Password gen, AES, Hash calc, Strength checker
   | "time-tools"     // Date diff, Age, Countdown, Stopwatch, World clock
   | "calc-tools"     // Basic, Scientific, BMI, Percentage, Loan, Tip
+  // Pro Tools v3.0 (NEW)
+  | "code-tools"     // Multi-language code editor with run + format
+  | "media-tools"    // Audio record/convert, Video record/trim/convert
+  | "charts"         // Mermaid diagrams, flowcharts, mindmaps, sequence
   // System
   | "history"
   | "settings"

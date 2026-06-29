@@ -5,9 +5,11 @@ import {
   GitCompare, QrCode, Clock, Settings, HelpCircle, Moon, Sidebar, Trash2,
   Upload, FilePlus, Search as SearchIcon, CornerDownLeft, ChevronRight,
   Code2, Type, ArrowLeftRight, Lock, Calendar, Calculator,
+  Film, BarChart3, Languages,
 } from "lucide-react";
 import { useUIStore } from "../../store/uiStore";
 import { useThemeStore } from "../../store/themeStore";
+import { useI18nStore } from "../../store/i18nStore";
 import { useHistoryStore } from "../../store/historyStore";
 import {
   buildNavigationCommands, buildToolCommands, buildSettingsCommands, type Command,
@@ -20,6 +22,7 @@ const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   upload: Upload, "file-plus": FilePlus,
   code: Code2, text: Type, convert: ArrowLeftRight, lock: Lock,
   time: Calendar, calc: Calculator,
+  media: Film, chart: BarChart3, languages: Languages,
 };
 
 const GROUP_LABELS: Record<Command["group"], string> = {
@@ -36,6 +39,7 @@ export const CommandPalette: React.FC = () => {
   const setActive = useUIStore((s) => s.setActiveWorkspace);
   const toggleSidebar = useUIStore((s) => s.toggleSidebar);
   const toggleTheme = useThemeStore((s) => s.toggle);
+  const toggleLanguage = useI18nStore((s) => s.toggle);
   const clearHistory = useHistoryStore((s) => s.clearAll);
 
   const [query, setQuery] = useState("");
@@ -65,19 +69,23 @@ export const CommandPalette: React.FC = () => {
       openCrypto: () => setActive("crypto"),
       openTimeTools: () => setActive("time-tools"),
       openCalcTools: () => setActive("calc-tools"),
+      openCodeTools: () => setActive("code-tools"),
+      openMediaTools: () => setActive("media-tools"),
+      openCharts: () => setActive("charts"),
       paletteClose: close,
     });
 
     const settings = buildSettingsCommands({
       toggleTheme,
       toggleSidebar,
+      toggleLanguage,
       openSettings: () => setActive("settings"),
       clearHistory,
       paletteClose: close,
     });
 
     return [...nav, ...tools, ...settings];
-  }, [setActive, setOpen, toggleTheme, toggleSidebar, clearHistory]);
+  }, [setActive, setOpen, toggleTheme, toggleSidebar, toggleLanguage, clearHistory]);
 
   const filtered = useMemo(() => {
     if (!query.trim()) return commands;

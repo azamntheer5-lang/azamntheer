@@ -40,6 +40,10 @@ export function buildNavigationCommands(
     { id: "crypto", title: "تشفير وكلمات سر", subtitle: "توليد · AES · فحص قوة · توكنز", icon: "lock", keywords: ["crypto", "password", "aes", "hash", "token"] },
     { id: "time-tools", title: "وقت وتاريخ", subtitle: "فارق · عمر · عدّاد · ساعة عالمية", icon: "time", keywords: ["time", "date", "age", "countdown", "stopwatch", "clock"] },
     { id: "calc-tools", title: "حاسبات متخصصة", subtitle: "علمية · BMI · نسب · قروض · إكرامية", icon: "calc", keywords: ["calc", "bmi", "percent", "loan", "tip", "scientific"] },
+    // Pro Tools v3.0 (NEW)
+    { id: "code-tools", title: "محرر الأكواد", subtitle: "13 لغة · تنفيذ JS · تنسيق · snippets", icon: "code", keywords: ["code", "editor", "javascript", "python", "typescript", "syntax"] },
+    { id: "media-tools", title: "أدوات صوت/فيديو", subtitle: "تسجيل صوت · تحويل · فيديو · قص · استخراج", icon: "media", keywords: ["audio", "video", "record", "convert", "trim", "media"] },
+    { id: "charts", title: "مخططات بيانية", subtitle: "Mermaid · Flowchart · Mindmap · Sequence", icon: "chart", keywords: ["chart", "diagram", "mermaid", "flowchart", "mindmap", "gantt"] },
     // System
     { id: "history", title: "سجل العمليات", subtitle: "كل ما قمت به", icon: "history", keywords: ["history", "log"] },
     { id: "settings", title: "الإعدادات", subtitle: "ثيم، اختصارات، أداء", icon: "settings", keywords: ["settings", "config"] },
@@ -73,6 +77,9 @@ export function buildToolCommands(actions: {
   openCrypto: () => void;
   openTimeTools: () => void;
   openCalcTools: () => void;
+  openCodeTools: () => void;
+  openMediaTools: () => void;
+  openCharts: () => void;
   paletteClose: () => void;
 }): Command[] {
   const wrap = (fn: () => void) => () => {
@@ -189,12 +196,40 @@ export function buildToolCommands(actions: {
       keywords: ["calc", "bmi", "percent", "loan"],
       action: wrap(actions.openCalcTools),
     },
+    {
+      id: "tool-code",
+      title: "محرر الأكواد",
+      subtitle: "13 لغة · تنفيذ JS · تنسيق",
+      group: "tools",
+      icon: "code",
+      keywords: ["code", "editor", "javascript", "python"],
+      action: wrap(actions.openCodeTools),
+    },
+    {
+      id: "tool-media",
+      title: "أدوات صوت/فيديو",
+      subtitle: "تسجيل · تحويل · قص · استخراج",
+      group: "tools",
+      icon: "media",
+      keywords: ["audio", "video", "record", "convert"],
+      action: wrap(actions.openMediaTools),
+    },
+    {
+      id: "tool-charts",
+      title: "مخططات بيانية",
+      subtitle: "Mermaid · Flowchart · Mindmap",
+      group: "tools",
+      icon: "chart",
+      keywords: ["chart", "diagram", "mermaid"],
+      action: wrap(actions.openCharts),
+    },
   ];
 }
 
 export function buildSettingsCommands(actions: {
   toggleTheme: () => void;
   toggleSidebar: () => void;
+  toggleLanguage: () => void;
   openSettings: () => void;
   clearHistory: () => void;
   paletteClose: () => void;
@@ -206,12 +241,21 @@ export function buildSettingsCommands(actions: {
   return [
     {
       id: "set-toggle-theme",
-      title: "تبديل الثيم (داكن/فاتح/ألوان)",
+      title: "تبديل الثيم (6 خيارات)",
       group: "settings",
       icon: "moon",
       keywords: ["theme", "dark", "light", "cyber", "ocean"],
       shortcut: ["Ctrl", "J"],
       action: wrap(actions.toggleTheme),
+    },
+    {
+      id: "set-toggle-language",
+      title: "تبديل اللغة (عربي/English)",
+      group: "settings",
+      icon: "languages",
+      keywords: ["language", "locale", "arabic", "english", "i18n"],
+      shortcut: ["Ctrl", "L"],
+      action: wrap(actions.toggleLanguage),
     },
     {
       id: "set-toggle-sidebar",
