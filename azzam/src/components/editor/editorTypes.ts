@@ -48,6 +48,7 @@ export interface TextEditorObject extends BaseEditorObject {
   text: string;
   fontFamily: string;
   fontSize: number;
+  fontWeight: number; // 300 | 400 | 500 | 600 | 700 | 800 | 900
   color: string;
   bgColor: string;
   useBg: boolean;
@@ -57,6 +58,8 @@ export interface TextEditorObject extends BaseEditorObject {
   align: "left" | "center" | "right";
   strokeColor: string;
   useStroke: boolean;
+  /** Optional subtle shadow for legibility over busy backgrounds */
+  useShadow: boolean;
 }
 
 export interface ShapeEditorObject extends BaseEditorObject {
@@ -91,17 +94,29 @@ export interface EditorState {
 export const DEFAULT_TEXT_PROPS: Omit<TextEditorObject, "id" | "page" | "x" | "y" | "width" | "height" | "rotation" | "opacity" | "name" | "visible" | "locked" | "zIndex" | "kind"> = {
   text: "نص جديد",
   fontFamily: "Cairo",
-  fontSize: 18,
+  fontSize: 20,
+  fontWeight: 700, // bold by default for strong Arabic readability over PDF text
   color: "#1a73e8",
   bgColor: "#ffffff",
   useBg: false,
-  bold: false,
+  bold: true,
   italic: false,
   underline: false,
   align: "right",
   strokeColor: "#000000",
   useStroke: false,
+  useShadow: true, // subtle shadow improves legibility on busy backgrounds
 };
+
+export const FONT_WEIGHTS: Array<{ value: number; label: string }> = [
+  { value: 300, label: "خفيف (300)" },
+  { value: 400, label: "عادي (400)" },
+  { value: 500, label: "متوسط (500)" },
+  { value: 600, label: "شبه عريض (600)" },
+  { value: 700, label: "عريض (700)" },
+  { value: 800, label: "عريض جداً (800)" },
+  { value: 900, label: "أسود (900)" },
+];
 
 export const DEFAULT_SHAPE_PROPS: Omit<ShapeEditorObject, "id" | "page" | "x" | "y" | "width" | "height" | "rotation" | "opacity" | "name" | "visible" | "locked" | "zIndex" | "kind"> = {
   strokeColor: "#1a73e8",

@@ -14,6 +14,7 @@ import { useToast } from "../../context/ToastContext";
 import { drawTextAsPng, loadImage } from "../../lib/dom";
 import { downloadBytes, sanitizeFilename } from "../../lib/utils";
 import type { EditorObject, EditorTool, TextEditorObject, ShapeEditorObject, ImageEditorObject } from "./editorTypes";
+import { FONT_WEIGHTS } from "./editorTypes";
 
 interface PdfEditorProps {
   pdfBytes: Uint8Array;
@@ -49,6 +50,8 @@ export const PdfEditor: React.FC<PdfEditorProps> = ({ pdfBytes, totalPages, isPr
   const toggleSnapToGrid = useEditorStore((s) => s.toggleSnapToGrid);
   const addObject = useEditorStore((s) => s.addObject);
   const updateObject = useEditorStore((s) => s.updateObject);
+  const updateObjectLive = useEditorStore((s) => s.updateObjectLive);
+  const pushHistory = useEditorStore((s) => s.pushHistory);
   const deleteObject = useEditorStore((s) => s.deleteObject);
   const duplicateObject = useEditorStore((s) => s.duplicateObject);
   const selectObject = useEditorStore((s) => s.selectObject);
@@ -144,6 +147,27 @@ export const PdfEditor: React.FC<PdfEditorProps> = ({ pdfBytes, totalPages, isPr
     [snapToGrid, gridSize]
   );
 
+  // Add a text box at the center of the currently visible canvas area.
+  // Triggered by the prominent "إضافة مربع نص" button in the toolbar.
+  const addTextBoxAtCenter = useCallback(() => {
+    if (!pageRender) {
+      toast.info("يرجى الانتظار حتى تُرسم الصفحة أولاً");
+      return;
+    }
+    // Center of the PDF page in PDF coordinates
+    const cx = pageRender.width / 2;
+    const cy = pageRender.height / 2;
+    // Default text box dimensions match createTextObject (240×48)
+    const id = addObject(
+      createTextObject(activePage, cx - 120, cy - 24, {
+        text: "نص جديد",
+      })
+    );
+    selectObject(id);
+    setTool("select");
+    toast.success("تمت إضافة مربع النص — اسحبه بحرية فوق الصفحة");
+  }, [pageRender, activePage, addObject, selectObject, setTool, toast]);
+
   // Click on canvas to add new object when a tool is active
   const handleCanvasClick = useCallback(
     (e: React.MouseEvent) => {
@@ -224,7 +248,12 @@ export const PdfEditor: React.FC<PdfEditorProps> = ({ pdfBytes, totalPages, isPr
   const handleObjectMouseDown = (e: React.MouseEvent, obj: EditorObject, mode: "move" | "resize" | "rotate", handle?: string) => {
     e.stopPropagation();
     if (obj.locked) return;
+    e.preventDefault(); // prevent text selection during drag
     selectObject(obj.id);
+    // Snapshot the current state ONCE at gesture start so undo restores
+    // the pre-drag/pre-resize position. During the gesture we use
+    // updateObjectLive() which is silent (no per-move undo pushes).
+    pushHistory();
     dragRef.current = {
       id: obj.id,
       mode,
@@ -233,7 +262,9 @@ export const PdfEditor: React.FC<PdfEditorProps> = ({ pdfBytes, totalPages, isPr
       startY: e.clientY,
       origObj: { ...obj },
     };
-    // Attach global listeners
+    // Disable text selection on the whole document during drag
+    document.body.style.userSelect = "none";
+    document.body.style.cursor = mode === "move" ? "grabbing" : mode === "rotate" ? "grabbing" : "nwse-resize";
     window.addEventListener("mousemove", handleDragMove);
     window.addEventListener("mouseup", handleDragEnd);
   };
@@ -257,7 +288,9 @@ export const PdfEditor: React.FC<PdfEditorProps> = ({ pdfBytes, totalPages, isPr
           newX = snap(newX);
           newY = snap(newY);
         }
-        updateObject(drag.id, { x: newX, y: newY });
+        // Use updateObjectLive — no undo push on every move (we already
+        // snapshotted at gesture start). This is the key smoothness fix.
+        updateObjectLive(drag.id, { x: newX, y: newY });
       } else if (drag.mode === "resize") {
         const h = drag.handle!;
         let { x, y, width, height } = orig;
@@ -280,7 +313,7 @@ export const PdfEditor: React.FC<PdfEditorProps> = ({ pdfBytes, totalPages, isPr
           width = snap(width);
           height = snap(height);
         }
-        updateObject(drag.id, { x, y, width, height });
+        updateObjectLive(drag.id, { x, y, width, height });
       } else if (drag.mode === "rotate") {
         // Calculate angle from object center to current mouse position
         const obj = objects.find((o) => o.id === drag.id);
@@ -295,14 +328,17 @@ export const PdfEditor: React.FC<PdfEditorProps> = ({ pdfBytes, totalPages, isPr
         // Normalize to 0..360, snap to 15° if shift held
         let deg = (angle + 90 + 360) % 360;
         if (e.shiftKey) deg = Math.round(deg / 15) * 15;
-        updateObject(drag.id, { rotation: deg });
+        updateObjectLive(drag.id, { rotation: deg });
       }
     },
-    [pageRender, objects, snapToGrid, snap, updateObject]
+    [pageRender, objects, snapToGrid, snap, updateObjectLive]
   );
 
   const handleDragEnd = useCallback(() => {
     dragRef.current = null;
+    // Restore normal cursor + selection
+    document.body.style.userSelect = "";
+    document.body.style.cursor = "";
     window.removeEventListener("mousemove", handleDragMove);
     window.removeEventListener("mouseup", handleDragEnd);
   }, [handleDragMove]);
@@ -445,6 +481,15 @@ export const PdfEditor: React.FC<PdfEditorProps> = ({ pdfBytes, totalPages, isPr
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 select-none">
       {/* LEFT: Tools + Properties (3 cols) */}
       <div className="lg:col-span-3 space-y-3">
+        {/* ★ Prominent "Add Text Box" button — adds a text box at center of page */}
+        <button
+          onClick={addTextBoxAtCenter}
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-black bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/20 cursor-pointer transition-all active:scale-[0.98]"
+        >
+          <Plus className="h-4 w-4" />
+          <span>إضافة مربع نص</span>
+        </button>
+
         {/* Toolbar */}
         <div className="bg-white/5 border border-white/10 rounded-2xl p-3 space-y-3">
           <div className="text-[10px] font-black text-gray-300 uppercase tracking-wider">الأدوات</div>
@@ -730,9 +775,16 @@ const ObjectOverlay: React.FC<ObjectOverlayProps> = ({
             className={`absolute ${isSelected ? "ring-2 ring-blue-500" : ""} ${obj.locked ? "ring-1 ring-amber-500/40" : ""}`}
             style={{
               left, top, width: w, height: h,
-              transform: `rotate(${obj.rotation}deg)`,
+              // Use translate3d for GPU acceleration + rotate
+              transform: `translate3d(0, 0, 0) rotate(${obj.rotation}deg)`,
               transformOrigin: "center center",
-              opacity: obj.opacity,
+              // Hint to the browser that this element will animate —
+              // promotes it to its own compositor layer for smooth dragging.
+              willChange: "transform",
+              // NOTE: opacity is applied inside <ObjectContent> on the
+              // content layer only, NOT on this bounding container.
+              // Applying opacity here would dim the selection ring too
+              // and create a stacking context that hurts text rendering.
               cursor,
             }}
             onMouseDown={(e) => {
@@ -819,31 +871,59 @@ const ObjectOverlay: React.FC<ObjectOverlayProps> = ({
 const ObjectContent: React.FC<{ obj: EditorObject; width: number; height: number }> = ({ obj, width, height }) => {
   if (obj.kind === "text") {
     const t = obj as TextEditorObject;
-    const fontStyle = `${t.italic ? "italic " : ""}${t.bold ? "bold " : ""}${t.fontSize}px "${t.fontFamily}", "Cairo", "Tajawal", sans-serif`;
+    // Use the explicit fontWeight field (300..900) as the source of truth.
+    // The legacy `bold` boolean is kept for backward compat but does NOT
+    // override fontWeight — otherwise weights 800/900 would be capped at 700.
+    const fontWeight = t.fontWeight || (t.bold ? 700 : 400);
+    // Subtle shadow for legibility over busy PDF backgrounds. Off by default
+    // but the user can toggle it. Uses a small blur + slight offset.
+    const textShadow = t.useShadow
+      ? `0 1px 2px rgba(0,0,0,0.35), 0 0 1px rgba(0,0,0,0.6)`
+      : "none";
     return (
       <div
         style={{
-          width: "100%", height: "100%",
+          width: "100%",
+          height: "100%",
           background: t.useBg ? t.bgColor : "transparent",
           border: t.useStroke ? `${1.5}px solid ${t.strokeColor}` : "none",
           display: "flex",
           alignItems: "center",
-          justifyContent: t.align === "center" ? "center" : t.align === "left" ? "flex-start" : "flex-end",
+          justifyContent:
+            t.align === "center" ? "center" : t.align === "left" ? "flex-start" : "flex-end",
           padding: "0 6px",
           overflow: "hidden",
           fontFamily: t.fontFamily,
           textDecoration: t.underline ? "underline" : "none",
+          // Apply opacity HERE (on the content layer) rather than on the
+          // bounding container — keeps the selection ring crisp at full
+          // opacity even when the content is faded.
+          opacity: t.opacity,
+          // Crisp Arabic text rendering
+          textRendering: "geometricPrecision",
+          WebkitFontSmoothing: "antialiased",
+          MozOsxFontSmoothing: "grayscale",
         }}
       >
         <span
           style={{
-            font: fontStyle,
+            // Use individual font properties instead of the `font` shorthand
+            // to avoid React warnings about mixing shorthand + non-shorthand.
+            fontFamily: t.fontFamily,
+            fontSize: `${t.fontSize}px`,
+            fontWeight,
+            fontStyle: t.italic ? "italic" : "normal",
             color: t.color,
             whiteSpace: "pre-wrap",
             textOverflow: "ellipsis",
             lineHeight: 1.2,
             direction: "rtl",
             textAlign: t.align,
+            textShadow,
+            // Prevents the text from looking "thin" due to subpixel rendering
+            letterSpacing: "0",
+            display: "inline-block",
+            maxWidth: "100%",
           }}
         >
           {t.text || "نص"}
@@ -856,10 +936,12 @@ const ObjectContent: React.FC<{ obj: EditorObject; width: number; height: number
     return (
       <div
         style={{
-          width: "100%", height: "100%",
+          width: "100%",
+          height: "100%",
           border: `${s.strokeWidth}px solid ${s.strokeColor}`,
           background: s.useFill ? s.fillColor : "transparent",
           borderRadius: obj.kind === "ellipse" ? "50%" : "0",
+          opacity: s.opacity,
         }}
       />
     );
@@ -867,9 +949,16 @@ const ObjectContent: React.FC<{ obj: EditorObject; width: number; height: number
   if (obj.kind === "line" || obj.kind === "arrow") {
     const s = obj as ShapeEditorObject;
     return (
-      <svg width="100%" height="100%" style={{ overflow: "visible" }}>
+      <svg
+        width="100%"
+        height="100%"
+        style={{ overflow: "visible", opacity: s.opacity }}
+      >
         <line
-          x1="0" y1={height / 2} x2={width} y2={height / 2}
+          x1="0"
+          y1={height / 2}
+          x2={width}
+          y2={height / 2}
           stroke={s.strokeColor}
           strokeWidth={s.strokeWidth}
           strokeLinecap="round"
@@ -889,7 +978,13 @@ const ObjectContent: React.FC<{ obj: EditorObject; width: number; height: number
       <img
         src={`data:image/png;base64,${im.pngBase64}`}
         alt={im.name}
-        style={{ width: "100%", height: "100%", objectFit: "contain", pointerEvents: "none" }}
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: "contain",
+          pointerEvents: "none",
+          opacity: im.opacity,
+        }}
         draggable={false}
       />
     );
@@ -936,6 +1031,21 @@ const PropertiesPanel: React.FC<{ obj: EditorObject; onUpdate: (patch: Partial<E
               className="w-full text-[10px] bg-slate-950/60 border border-white/10 rounded-lg p-1.5 font-bold text-white"
             />
           </div>
+        </div>
+        {/* Font weight selector — critical for Arabic text legibility */}
+        <div>
+          <label className="text-[9px] text-gray-400 font-bold block mb-1">سُمك الخط</label>
+          <select
+            value={t.fontWeight}
+            onChange={(e) => onUpdate({ fontWeight: parseInt(e.target.value) } as any)}
+            className="w-full text-[10px] bg-slate-950/60 border border-white/10 rounded-lg p-1.5 font-bold text-white"
+          >
+            {FONT_WEIGHTS.map((w) => (
+              <option key={w.value} value={w.value} style={{ fontWeight: w.value }}>
+                {w.label}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="grid grid-cols-2 gap-2">
           <div>
@@ -1014,6 +1124,15 @@ const PropertiesPanel: React.FC<{ obj: EditorObject; onUpdate: (patch: Partial<E
             className="h-3.5 w-3.5 accent-blue-500 cursor-pointer"
           />
           <span>إطار</span>
+        </label>
+        <label className="flex items-center gap-2 cursor-pointer text-[10px] font-bold text-gray-300">
+          <input
+            type="checkbox"
+            checked={t.useShadow}
+            onChange={(e) => onUpdate({ useShadow: e.target.checked } as any)}
+            className="h-3.5 w-3.5 accent-blue-500 cursor-pointer"
+          />
+          <span>ظل خفيف (لوضوح النص فوق خلفيات مزدحمة)</span>
         </label>
         <div>
           <label className="text-[9px] text-gray-400 font-bold block mb-1">الشفافية: {Math.round(t.opacity * 100)}%</label>
@@ -1274,9 +1393,11 @@ async function drawTextObject(pdfDoc: PDFDocument, page: any, obj: TextEditorObj
     strokeColorHex: obj.strokeColor,
     useStroke: obj.useStroke,
     bold: obj.bold,
+    fontWeight: obj.fontWeight,
     italic: obj.italic,
     align: obj.align,
     renderScale: 2.8,
+    useShadow: obj.useShadow,
   });
   if (!dataUrl) return;
 

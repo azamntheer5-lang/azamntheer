@@ -31,6 +31,12 @@ interface EditorStoreState {
   // Object ops (each pushes a snapshot for undo)
   addObject: (obj: Omit<EditorObject, "id" | "zIndex">) => string;
   updateObject: (id: string, patch: Partial<EditorObject>) => void;
+  /** Silent update — does NOT push to undo stack. Use during drag/resize for smooth perf.
+   *  Caller is responsible for calling pushHistory() once at gesture start. */
+  updateObjectLive: (id: string, patch: Partial<EditorObject>) => void;
+  /** Snapshot current state into the undo stack. Call once at the START of a
+   *  drag/resize gesture so undo restores the pre-gesture state. */
+  pushHistory: () => void;
   deleteObject: (id: string) => void;
   duplicateObject: (id: string) => void;
   selectObject: (id: string | null) => void;
@@ -108,16 +114,24 @@ export const useEditorStore = create<EditorStoreState>((set, get) => ({
     set((state) => {
       const prev = state.objects;
       const next = prev.map((o) => (o.id === id ? ({ ...o, ...patch } as EditorObject) : o));
-      // Avoid pushing to undo for every micro-update (e.g., during drag).
-      // We push to undoStack only when this is a "commit" update — caller
-      // can call pushUndo() explicitly if needed. For simplicity we push
-      // on every update; with a max history of 50 this is acceptable.
       return {
         objects: next,
         undoStack: [...state.undoStack, snapshot(prev)].slice(-MAX_HISTORY),
         redoStack: [],
       };
     }),
+
+  updateObjectLive: (id, patch) =>
+    set((state) => ({
+      objects: state.objects.map((o) => (o.id === id ? ({ ...o, ...patch } as EditorObject) : o)),
+      // Intentionally does NOT push to undoStack — caller manages history
+    })),
+
+  pushHistory: () =>
+    set((state) => ({
+      undoStack: [...state.undoStack, snapshot(state.objects)].slice(-MAX_HISTORY),
+      redoStack: [],
+    })),
 
   deleteObject: (id) =>
     set((state) => ({
@@ -299,8 +313,8 @@ export function createTextObject(
     page,
     x,
     y,
-    width: 200,
-    height: 40,
+    width: 240,
+    height: 48,
     rotation: 0,
     opacity: 1,
     name: "نص",

@@ -19,10 +19,14 @@ export interface DrawTextOptions {
   useStroke?: boolean;
   strokeColorHex?: string;
   bold?: boolean;
+  /** Explicit font weight (300..900). When provided, overrides `bold`. */
+  fontWeight?: number;
   italic?: boolean;
   align?: "right" | "left" | "center";
   renderScale?: number;
   padding?: number;
+  /** Subtle text shadow for legibility over busy backgrounds */
+  useShadow?: boolean;
 }
 
 export function drawTextAsPng(opts: DrawTextOptions): string | null {
@@ -36,11 +40,16 @@ export function drawTextAsPng(opts: DrawTextOptions): string | null {
     useStroke = false,
     strokeColorHex = "#000000",
     bold = false,
+    fontWeight,
     italic = false,
     align = "center",
     renderScale = 2.8,
     padding = 24,
+    useShadow = false,
   } = opts;
+
+  // Resolve final weight: explicit fontWeight wins, else bold→700, else 400
+  const finalWeight = fontWeight !== undefined ? fontWeight : bold ? 700 : 400;
 
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
@@ -49,7 +58,7 @@ export function drawTextAsPng(opts: DrawTextOptions): string | null {
   const scaledSize = fontSize * renderScale;
   const fontParts: string[] = [];
   if (italic) fontParts.push("italic");
-  if (bold) fontParts.push("bold");
+  fontParts.push(`${finalWeight}`);
   fontParts.push(`${scaledSize}px`);
   fontParts.push(`"${fontFamily}", "Cairo", "Tajawal", sans-serif`);
   const fontStr = fontParts.join(" ");
@@ -84,6 +93,20 @@ export function drawTextAsPng(opts: DrawTextOptions): string | null {
   ctx.fillStyle = colorHex;
   ctx.textBaseline = "middle";
   ctx.textAlign = align;
+
+  // Apply shadow BEFORE drawing text — improves legibility over busy PDFs
+  if (useShadow) {
+    ctx.shadowColor = "rgba(0,0,0,0.6)";
+    ctx.shadowBlur = 3 * renderScale;
+    ctx.shadowOffsetX = 1 * renderScale;
+    ctx.shadowOffsetY = 1 * renderScale;
+  } else {
+    ctx.shadowColor = "transparent";
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+  }
+
   const x =
     align === "right" ? canvas.width - (padding * renderScale) / 2 : align === "left" ? (padding * renderScale) / 2 : canvas.width / 2;
   ctx.fillText(text, x, canvas.height / 2);
