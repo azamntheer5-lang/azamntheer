@@ -259,7 +259,7 @@ export const QrToolsWorkspace: React.FC = () => {
     <main className="flex-1 overflow-y-auto safe-scrollbar p-6 relative" dir="rtl">
       <div className="max-w-5xl mx-auto space-y-6">
         {/* Header */}
-        <div className="glass-panel rounded-2xl p-5 border border-white/10 flex items-center gap-3">
+        <div className="glass-card rounded-2xl p-5 border border-white/10 flex items-center gap-3">
           <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white shadow-lg">
             <QrCode className="h-6 w-6" />
           </div>
@@ -293,7 +293,7 @@ export const QrToolsWorkspace: React.FC = () => {
         {(mode === "generate-qr" || mode === "generate-barcode") && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Left: Form */}
-            <div className="glass-panel rounded-2xl p-5 border border-white/10 space-y-4">
+            <div className="glass-card rounded-2xl p-5 border border-white/10 space-y-4">
               <div>
                 <label className="text-[10px] text-gray-400 font-bold block mb-1">المحتوى / النص</label>
                 <textarea
@@ -395,7 +395,7 @@ export const QrToolsWorkspace: React.FC = () => {
             </div>
 
             {/* Right: Preview & download */}
-            <div className="glass-panel rounded-2xl p-5 border border-white/10 flex flex-col items-center justify-center">
+            <div className="glass-card rounded-2xl p-5 border border-white/10 flex flex-col items-center justify-center">
               {qrDataUrl ? (
                 <>
                   <div className="bg-white p-4 rounded-xl border border-white/10 shadow-lg">
@@ -429,7 +429,7 @@ export const QrToolsWorkspace: React.FC = () => {
         )}
 
         {mode === "scan" && (
-          <div className="glass-panel rounded-2xl p-6 border border-white/10 space-y-5">
+          <div className="glass-card rounded-2xl p-6 border border-white/10 space-y-5">
             <div className="flex flex-col md:flex-row items-center justify-between gap-3">
               <p className="text-xs text-gray-400 font-bold">
                 وجّه الكاميرا نحو الرمز لقراءته تلقائياً، أو ارفع صورة تحتوي على QR/Barcode.

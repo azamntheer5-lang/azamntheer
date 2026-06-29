@@ -193,7 +193,7 @@ export const OcrWorkspace: React.FC = () => {
     <main className="flex-1 overflow-y-auto safe-scrollbar p-6 relative" dir="rtl">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="glass-panel rounded-2xl p-5 border border-white/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="glass-card rounded-2xl p-5 border border-white/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg">
               <ScanLine className="h-6 w-6" />
@@ -289,7 +289,7 @@ export const OcrWorkspace: React.FC = () => {
         </div>
 
         {/* Settings row */}
-        <div className="glass-panel rounded-2xl p-4 border border-white/10 grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+        <div className="glass-card rounded-2xl p-4 border border-white/10 grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
           <div>
             <label className="text-[10px] text-gray-400 font-bold block mb-1 flex items-center gap-1">
               <Languages className="h-3 w-3" />
@@ -336,7 +336,7 @@ export const OcrWorkspace: React.FC = () => {
 
         {/* Results list + active result view */}
         {results.length === 0 ? (
-          <div className="glass-panel rounded-2xl p-12 border border-white/10 text-center">
+          <div className="glass-card rounded-2xl p-12 border border-white/10 text-center">
             <Eye className="h-10 w-10 text-gray-500 mx-auto mb-3" />
             <h3 className="text-sm font-black text-gray-300">لا توجد نتائج بعد</h3>
             <p className="text-[11px] text-gray-500 mt-1">ارفع صورة أو ملف PDF لبدء الاستخراج.</p>
@@ -393,7 +393,7 @@ export const OcrWorkspace: React.FC = () => {
             </div>
 
             {/* Active result viewer */}
-            <div className="lg:col-span-8 glass-panel rounded-2xl border border-white/10 p-5 min-h-[500px] flex flex-col">
+            <div className="lg:col-span-8 glass-card rounded-2xl border border-white/10 p-5 min-h-[500px] flex flex-col">
               {activeResult ? (
                 <>
                   <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-3">

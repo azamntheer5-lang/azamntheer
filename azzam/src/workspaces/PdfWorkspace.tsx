@@ -802,7 +802,7 @@ export const PdfWorkspace: React.FC = () => {
         />
         {showScannerStandalone ? (
           <div className="w-full max-w-5xl mx-auto space-y-4">
-            <div className="flex justify-between items-center glass-panel p-4.5 rounded-2xl border border-white/10 text-white shadow-md">
+            <div className="flex justify-between items-center glass-card p-4.5 rounded-2xl border border-white/10 text-white shadow-md">
               <button
                 onClick={() => setShowScannerStandalone(false)}
                 className="px-4.5 py-2 text-xs font-black text-gray-300 bg-white/5 border border-white/10 hover:bg-white/10 rounded-xl cursor-pointer"
@@ -862,7 +862,7 @@ export const PdfWorkspace: React.FC = () => {
           </div>
 
           {/* Metadata bar */}
-          <div className="glass-panel rounded-2xl p-4.5 flex items-center justify-between border border-white/10">
+          <div className="glass-card rounded-2xl p-4.5 flex items-center justify-between border border-white/10">
             <div className="flex items-center gap-3">
               <div className="h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
               <span className="text-xs font-bold text-white max-w-md truncate">{doc.name}</span>
@@ -887,7 +887,7 @@ export const PdfWorkspace: React.FC = () => {
           </div>
 
           {/* Canvas + Processing Overlay */}
-          <div className="flex-1 overflow-y-auto safe-scrollbar glass-panel rounded-2xl p-6 min-h-0 relative">
+          <div className="flex-1 overflow-y-auto safe-scrollbar glass-card rounded-2xl p-6 min-h-0 relative">
             <ProcessingOverlay
               active={isProcessing}
               status={processingStatus}

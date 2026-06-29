@@ -51,7 +51,7 @@ export const HistoryWorkspace: React.FC = () => {
     <main className="flex-1 overflow-y-auto safe-scrollbar p-6 relative" dir="rtl">
       <div className="max-w-5xl mx-auto space-y-6">
         {/* Header */}
-        <div className="glass-panel rounded-2xl p-5 border border-white/10 flex items-center justify-between">
+        <div className="glass-card rounded-2xl p-5 border border-white/10 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-lg">
               <Clock className="h-6 w-6" />
@@ -89,7 +89,7 @@ export const HistoryWorkspace: React.FC = () => {
                 <div
                   key={type}
                   onClick={() => setFilter(filter === type ? "all" : (type as any))}
-                  className={`glass-panel rounded-xl p-3 border cursor-pointer transition-all ${
+                  className={`glass-card rounded-xl p-3 border cursor-pointer transition-all ${
                     filter === type ? "border-white/30 bg-white/10" : "border-white/5 hover:border-white/15"
                   }`}
                 >
@@ -129,7 +129,7 @@ export const HistoryWorkspace: React.FC = () => {
 
         {/* List */}
         {filtered.length === 0 ? (
-          <div className="glass-panel rounded-2xl p-12 border border-white/10 text-center">
+          <div className="glass-card rounded-2xl p-12 border border-white/10 text-center">
             <Clock className="h-10 w-10 text-gray-500 mx-auto mb-3" />
             <h3 className="text-sm font-black text-gray-300">
               {entries.length === 0 ? "لا يوجد سجل بعد" : "لا توجد نتائج مطابقة"}
@@ -148,7 +148,7 @@ export const HistoryWorkspace: React.FC = () => {
               return (
                 <div
                   key={entry.id}
-                  className="glass-panel rounded-xl p-4 border border-white/5 hover:border-white/10 flex items-center justify-between gap-3 transition-all"
+                  className="glass-card rounded-xl p-4 border border-white/5 hover:border-white/10 flex items-center justify-between gap-3 transition-all"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className={`h-9 w-9 rounded-lg flex items-center justify-center border shrink-0 ${meta.color}`}>

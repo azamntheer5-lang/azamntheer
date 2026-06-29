@@ -14,7 +14,7 @@ export const SettingsWorkspace: React.FC = () => {
     <main className="flex-1 overflow-y-auto safe-scrollbar p-6 relative" dir="rtl">
       <div className="max-w-3xl mx-auto space-y-6">
         {/* Header */}
-        <div className="glass-panel rounded-2xl p-5 border border-white/10 flex items-center gap-3">
+        <div className="glass-card rounded-2xl p-5 border border-white/10 flex items-center gap-3">
           <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-slate-500 to-slate-700 flex items-center justify-center text-white shadow-lg">
             <SettingsIcon className="h-6 w-6" />
           </div>
@@ -27,7 +27,7 @@ export const SettingsWorkspace: React.FC = () => {
         </div>
 
         {/* Theme */}
-        <div className="glass-panel rounded-2xl p-5 border border-white/10 space-y-4">
+        <div className="glass-card rounded-2xl p-5 border border-white/10 space-y-4">
           <h3 className="text-xs font-black text-white flex items-center gap-2">
             <Palette className="h-4 w-4 text-blue-400" />
             <span>الثيم والمظهر</span>
@@ -63,7 +63,7 @@ export const SettingsWorkspace: React.FC = () => {
         </div>
 
         {/* Performance */}
-        <div className="glass-panel rounded-2xl p-5 border border-white/10 space-y-4">
+        <div className="glass-card rounded-2xl p-5 border border-white/10 space-y-4">
           <h3 className="text-xs font-black text-white flex items-center gap-2">
             <Cpu className="h-4 w-4 text-emerald-400" />
             <span>الأداء والمعالجة</span>
@@ -128,7 +128,7 @@ export const SettingsWorkspace: React.FC = () => {
         </div>
 
         {/* Privacy */}
-        <div className="glass-panel rounded-2xl p-5 border border-white/10 space-y-3">
+        <div className="glass-card rounded-2xl p-5 border border-white/10 space-y-3">
           <h3 className="text-xs font-black text-white flex items-center gap-2">
             <ShieldCheck className="h-4 w-4 text-emerald-400" />
             <span>الخصوصية والأمان</span>
@@ -141,7 +141,7 @@ export const SettingsWorkspace: React.FC = () => {
         </div>
 
         {/* Shortcuts */}
-        <div className="glass-panel rounded-2xl p-5 border border-white/10 space-y-3">
+        <div className="glass-card rounded-2xl p-5 border border-white/10 space-y-3">
           <h3 className="text-xs font-black text-white flex items-center gap-2">
             <Keyboard className="h-4 w-4 text-amber-400" />
             <span>اختصارات لوحة المفاتيح</span>

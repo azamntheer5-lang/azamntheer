@@ -48,7 +48,7 @@ export const HelpWorkspace: React.FC = () => {
     <main className="flex-1 overflow-y-auto safe-scrollbar p-6 relative" dir="rtl">
       <div className="max-w-3xl mx-auto space-y-6">
         {/* Header */}
-        <div className="glass-panel rounded-2xl p-5 border border-white/10 flex items-center gap-3">
+        <div className="glass-card rounded-2xl p-5 border border-white/10 flex items-center gap-3">
           <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white shadow-lg">
             <HelpCircle className="h-6 w-6" />
           </div>
@@ -61,7 +61,7 @@ export const HelpWorkspace: React.FC = () => {
         </div>
 
         {/* Features overview */}
-        <div className="glass-panel rounded-2xl p-5 border border-white/10">
+        <div className="glass-card rounded-2xl p-5 border border-white/10">
           <h3 className="text-xs font-black text-white mb-3 flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-amber-400" />
             <span>الميزات الرئيسية</span>
@@ -82,7 +82,7 @@ export const HelpWorkspace: React.FC = () => {
         </div>
 
         {/* Privacy */}
-        <div className="glass-panel rounded-2xl p-5 border border-emerald-500/20 bg-emerald-500/5">
+        <div className="glass-card rounded-2xl p-5 border border-emerald-500/20 bg-emerald-500/5">
           <div className="flex items-start gap-3">
             <ShieldCheck className="h-6 w-6 text-emerald-400 shrink-0 mt-0.5" />
             <div>
@@ -97,7 +97,7 @@ export const HelpWorkspace: React.FC = () => {
         </div>
 
         {/* FAQ */}
-        <div className="glass-panel rounded-2xl p-5 border border-white/10 space-y-3">
+        <div className="glass-card rounded-2xl p-5 border border-white/10 space-y-3">
           <h3 className="text-xs font-black text-white mb-3">الأسئلة الشائعة</h3>
           {FAQS.map((faq, i) => (
             <details

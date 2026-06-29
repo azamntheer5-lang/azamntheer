@@ -121,7 +121,7 @@ export const CompareWorkspace: React.FC = () => {
     <main className="flex-1 overflow-y-auto safe-scrollbar p-6 relative" dir="rtl">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
-        <div className="glass-panel rounded-2xl p-5 border border-white/10 flex items-center gap-3">
+        <div className="glass-card rounded-2xl p-5 border border-white/10 flex items-center gap-3">
           <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center text-white shadow-lg">
             <GitCompare className="h-6 w-6" />
           </div>
@@ -166,15 +166,15 @@ export const CompareWorkspace: React.FC = () => {
         {/* Diff stats */}
         {stats && (
           <div className="grid grid-cols-3 gap-3">
-            <div className="glass-panel rounded-xl p-4 border border-white/10 text-center">
+            <div className="glass-card rounded-xl p-4 border border-white/10 text-center">
               <div className="text-2xl font-black text-white">{stats.same}</div>
               <div className="text-[10px] text-gray-400 font-bold">أسطر متطابقة</div>
             </div>
-            <div className="glass-panel rounded-xl p-4 border border-emerald-500/20 bg-emerald-500/5 text-center">
+            <div className="glass-card rounded-xl p-4 border border-emerald-500/20 bg-emerald-500/5 text-center">
               <div className="text-2xl font-black text-emerald-400">{stats.added}</div>
               <div className="text-[10px] text-emerald-400 font-bold">أسطر مضافة (في الثاني)</div>
             </div>
-            <div className="glass-panel rounded-xl p-4 border border-rose-500/20 bg-rose-500/5 text-center">
+            <div className="glass-card rounded-xl p-4 border border-rose-500/20 bg-rose-500/5 text-center">
               <div className="text-2xl font-black text-rose-400">{stats.removed}</div>
               <div className="text-[10px] text-rose-400 font-bold">أسطر محذوفة (من الأول)</div>
             </div>
@@ -183,7 +183,7 @@ export const CompareWorkspace: React.FC = () => {
 
         {/* Diff view */}
         {diff && (
-          <div className="glass-panel rounded-2xl p-5 border border-white/10">
+          <div className="glass-card rounded-2xl p-5 border border-white/10">
             <h3 className="text-xs font-black text-white mb-3">عرض الفروقات</h3>
             <div className="bg-slate-950/60 border border-white/5 rounded-xl p-4 max-h-[500px] overflow-y-auto safe-scrollbar font-mono text-xs">
               {diff.map((d, i) => (
@@ -220,7 +220,7 @@ const UploadCard: React.FC<{
 }> = ({ label, doc, onLoad, onClear, accent }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   return (
-    <div className={`glass-panel rounded-2xl p-4 border ${accent}`}>
+    <div className={`glass-card rounded-2xl p-4 border ${accent}`}>
       <div className="flex items-center justify-between mb-3">
         <span className="text-xs font-black text-white">{label}</span>
         {doc && (
