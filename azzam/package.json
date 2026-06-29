@@ -1,7 +1,7 @@
 {
-  "name": "azzam-suite",
+  "name": "azzam-pro",
   "private": true,
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
@@ -13,16 +13,19 @@
   "dependencies": {
     "@google/genai": "^2.4.0",
     "@tailwindcss/vite": "^4.1.14",
+    "@types/crypto-js": "^4.2.2",
     "@vitejs/plugin-react": "^5.0.4",
     "@zxing/browser": "^0.2.0",
     "@zxing/library": "^0.22.0",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
+    "crypto-js": "^4.2.0",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
     "framer-motion": "^12.42.0",
     "jsqr": "^1.4.0",
     "jszip": "^3.10.1",
+    "jwt-decode": "^4.0.0",
     "lucide-react": "^0.546.0",
     "mammoth": "^1.12.0",
     "motion": "^12.23.24",
@@ -48,5 +51,5 @@
     "typescript": "~5.8.2",
     "vite": "^6.2.3"
   },
-  "description": "Azzam File Processing Suite - PDF, Word, Excel & Image tools"
+  "description": "Azzam Pro — All-in-One Toolbox: 18 workspaces, 60+ tools for PDF, Word, Excel, Images, Dev, Crypto, Time, Calc. 100% local processing."
 }

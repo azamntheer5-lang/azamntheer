@@ -4,3 +4,19 @@ tool-results/
 extracted/
 download/
 worklog.md
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Build artifacts
+azzam/dist/
+azzam/server.js
+*.log
+
+# Env
+azzam/.env
+azzam/.env.local
+.env
+.env.local

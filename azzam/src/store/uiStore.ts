@@ -1,20 +1,30 @@
 import { create } from "zustand";
 
 export type WorkspaceId =
+  // Core
   | "home"
   | "pdf"
   | "word"
   | "excel"
   | "image"
+  // Media & Recognition
   | "ocr"
   | "scanner"
   | "compare"
   | "qr-tools"
+  // NEW: Monster Tools Suite
+  | "dev-tools"      // JSON, Base64, Hash, UUID, JWT, Regex, Color picker
+  | "text-tools"     // Counter, Case converter, Lorem, Diff, Sort, Dedupe
+  | "converters"     // Units, Color, Number base, Roman
+  | "crypto"         // Password gen, AES, Hash calc, Strength checker
+  | "time-tools"     // Date diff, Age, Countdown, Stopwatch, World clock
+  | "calc-tools"     // Basic, Scientific, BMI, Percentage, Loan, Tip
+  // System
   | "history"
   | "settings"
   | "help";
 
-interface UIState {
+export interface UIState {
   activeWorkspace: WorkspaceId;
   sidebarCollapsed: boolean;
   commandPaletteOpen: boolean;

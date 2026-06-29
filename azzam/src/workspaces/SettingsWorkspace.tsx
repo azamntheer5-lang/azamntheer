@@ -1,7 +1,7 @@
 import React from "react";
 import {
   Settings as SettingsIcon, Palette, Cpu, Keyboard, ShieldCheck,
-  RotateCcw, Check, Moon, Sun, Sparkles,
+  RotateCcw, Check, Moon, Sun, Sparkles, Waves, Zap,
 } from "lucide-react";
 import { useThemeStore, THEMES, type ThemeMode } from "../store/themeStore";
 import { useSettingsStore } from "../store/settingsStore";
@@ -12,6 +12,8 @@ const THEME_ICONS: Record<ThemeMode, React.ComponentType<{ className?: string }>
   light:      Sun,
   midnight:   SettingsIcon,
   aurora:     Sparkles,
+  cyber:      Zap,
+  ocean:      Waves,
 };
 
 const ToggleRow: React.FC<{
@@ -77,8 +79,8 @@ export const SettingsWorkspace: React.FC = () => {
         </div>
 
         {/* Theme */}
-        <Section title="الثيم والمظهر" icon={Palette} iconColor="text-blue-400">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Section title="الثيم والمظهر (6 خيارات)" icon={Palette} iconColor="text-blue-400">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {(Object.keys(THEMES) as ThemeMode[]).map((key) => {
               const theme   = THEMES[key];
               const colors  = theme.colors;
@@ -101,13 +103,13 @@ export const SettingsWorkspace: React.FC = () => {
                     </span>
                   )}
                   <div className="flex gap-1 mb-2.5">
-                    {[colors.primary, colors.accent, colors.success, colors.warning].map((c, i) => (
+                    {[colors.primary, colors.accent, colors.secondary, colors.success, colors.warning].map((c, i) => (
                       <div key={i} className="h-3.5 w-3.5 rounded-full border border-white/10" style={{ background: c }} />
                     ))}
                   </div>
                   <div className="flex items-center gap-1.5">
                     <Icon className="h-3 w-3" style={{ color: colors.text }} />
-                    <span className="text-[11px] font-black" style={{ color: colors.text }}>{theme.label}</span>
+                    <span className="text-[11px] font-black" style={{ color: colors.text }}>{theme.emoji} {theme.label}</span>
                   </div>
                 </button>
               );

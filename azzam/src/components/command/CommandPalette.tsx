@@ -4,6 +4,7 @@ import {
   Home, FileText, FileCode, FileSpreadsheet, Image as ImageIcon, ScanLine, Camera,
   GitCompare, QrCode, Clock, Settings, HelpCircle, Moon, Sidebar, Trash2,
   Upload, FilePlus, Search as SearchIcon, CornerDownLeft, ChevronRight,
+  Code2, Type, ArrowLeftRight, Lock, Calendar, Calculator,
 } from "lucide-react";
 import { useUIStore } from "../../store/uiStore";
 import { useThemeStore } from "../../store/themeStore";
@@ -17,6 +18,8 @@ const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   scan: ScanLine, camera: Camera, compare: GitCompare, qr: QrCode, history: Clock,
   settings: Settings, help: HelpCircle, moon: Moon, sidebar: Sidebar, trash: Trash2,
   upload: Upload, "file-plus": FilePlus,
+  code: Code2, text: Type, convert: ArrowLeftRight, lock: Lock,
+  time: Calendar, calc: Calculator,
 };
 
 const GROUP_LABELS: Record<Command["group"], string> = {
@@ -56,6 +59,12 @@ export const CommandPalette: React.FC = () => {
       openOcr: () => setActive("ocr"),
       openCompare: () => setActive("compare"),
       openQr: () => setActive("qr-tools"),
+      openDevTools: () => setActive("dev-tools"),
+      openTextTools: () => setActive("text-tools"),
+      openConverters: () => setActive("converters"),
+      openCrypto: () => setActive("crypto"),
+      openTimeTools: () => setActive("time-tools"),
+      openCalcTools: () => setActive("calc-tools"),
       paletteClose: close,
     });
 

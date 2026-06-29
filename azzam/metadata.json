@@ -1,6 +1,6 @@
 {
-  "name": "Azzam Document SuperApp",
-  "description": "منصة عزَّام الذكية الشاملة لمعالجة وتحرير ملفات PDF، ومستندات Word، وجداول Excel، ومعالجة الصور بالكامل محلياً وفي المتصفح.",
+  "name": "Azzam Pro — All-in-One Toolbox",
+  "description": "منصة عزَّام برو الشاملة: 18 مساحة عمل، 60+ أداة متخصصة لمعالجة PDF، Word، Excel، الصور، تطوير، تشفير، حساب، ووقت — بأمان محلي 100% داخل المتصفح. تنافس iLovePDF و SmallPDF و Adobe.",
   "requestFramePermissions": ["camera"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

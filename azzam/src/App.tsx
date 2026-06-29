@@ -12,17 +12,23 @@ import { CommandPalette } from "./components/command/CommandPalette";
 import { HomeWorkspace } from "./workspaces/HomeWorkspace";
 
 // Lazily loaded (on demand)
-const PdfWorkspace      = lazy(() => import("./workspaces/PdfWorkspace").then(m => ({ default: m.PdfWorkspace })));
-const WordWorkspace     = lazy(() => import("./workspaces/WordWorkspace").then(m => ({ default: m.WordWorkspace })));
-const ExcelWorkspace    = lazy(() => import("./workspaces/ExcelWorkspace").then(m => ({ default: m.ExcelWorkspace })));
-const ImageWorkspace    = lazy(() => import("./workspaces/ImageWorkspace").then(m => ({ default: m.ImageWorkspace })));
-const OcrWorkspace      = lazy(() => import("./workspaces/OcrWorkspace").then(m => ({ default: m.OcrWorkspace })));
-const ScannerWorkspace  = lazy(() => import("./workspaces/ScannerWorkspace").then(m => ({ default: m.ScannerWorkspace })));
-const CompareWorkspace  = lazy(() => import("./workspaces/CompareWorkspace").then(m => ({ default: m.CompareWorkspace })));
-const QrToolsWorkspace  = lazy(() => import("./workspaces/QrToolsWorkspace").then(m => ({ default: m.QrToolsWorkspace })));
-const HistoryWorkspace  = lazy(() => import("./workspaces/HistoryWorkspace").then(m => ({ default: m.HistoryWorkspace })));
-const SettingsWorkspace = lazy(() => import("./workspaces/SettingsWorkspace").then(m => ({ default: m.SettingsWorkspace })));
-const HelpWorkspace     = lazy(() => import("./workspaces/HelpWorkspace").then(m => ({ default: m.HelpWorkspace })));
+const PdfWorkspace          = lazy(() => import("./workspaces/PdfWorkspace").then(m => ({ default: m.PdfWorkspace })));
+const WordWorkspace         = lazy(() => import("./workspaces/WordWorkspace").then(m => ({ default: m.WordWorkspace })));
+const ExcelWorkspace        = lazy(() => import("./workspaces/ExcelWorkspace").then(m => ({ default: m.ExcelWorkspace })));
+const ImageWorkspace        = lazy(() => import("./workspaces/ImageWorkspace").then(m => ({ default: m.ImageWorkspace })));
+const OcrWorkspace          = lazy(() => import("./workspaces/OcrWorkspace").then(m => ({ default: m.OcrWorkspace })));
+const ScannerWorkspace      = lazy(() => import("./workspaces/ScannerWorkspace").then(m => ({ default: m.ScannerWorkspace })));
+const CompareWorkspace      = lazy(() => import("./workspaces/CompareWorkspace").then(m => ({ default: m.CompareWorkspace })));
+const QrToolsWorkspace      = lazy(() => import("./workspaces/QrToolsWorkspace").then(m => ({ default: m.QrToolsWorkspace })));
+const DevToolsWorkspace     = lazy(() => import("./workspaces/DevToolsWorkspace").then(m => ({ default: m.DevToolsWorkspace })));
+const TextToolsWorkspace    = lazy(() => import("./workspaces/TextToolsWorkspace").then(m => ({ default: m.TextToolsWorkspace })));
+const ConvertersWorkspace   = lazy(() => import("./workspaces/ConvertersWorkspace").then(m => ({ default: m.ConvertersWorkspace })));
+const CryptoWorkspace       = lazy(() => import("./workspaces/CryptoWorkspace").then(m => ({ default: m.CryptoWorkspace })));
+const TimeToolsWorkspace    = lazy(() => import("./workspaces/TimeToolsWorkspace").then(m => ({ default: m.TimeToolsWorkspace })));
+const CalcToolsWorkspace    = lazy(() => import("./workspaces/CalcToolsWorkspace").then(m => ({ default: m.CalcToolsWorkspace })));
+const HistoryWorkspace      = lazy(() => import("./workspaces/HistoryWorkspace").then(m => ({ default: m.HistoryWorkspace })));
+const SettingsWorkspace     = lazy(() => import("./workspaces/SettingsWorkspace").then(m => ({ default: m.SettingsWorkspace })));
+const HelpWorkspace         = lazy(() => import("./workspaces/HelpWorkspace").then(m => ({ default: m.HelpWorkspace })));
 
 // Fallback while workspace is loading
 const WorkspaceSkeleton: React.FC = () => (
@@ -38,18 +44,24 @@ function ActiveWorkspace() {
   const active = useUIStore((s) => s.activeWorkspace);
   return (
     <Suspense fallback={<WorkspaceSkeleton />}>
-      {active === "home"      && <HomeWorkspace />}
-      {active === "pdf"       && <PdfWorkspace />}
-      {active === "word"      && <WordWorkspace />}
-      {active === "excel"     && <ExcelWorkspace />}
-      {active === "image"     && <ImageWorkspace />}
-      {active === "ocr"       && <OcrWorkspace />}
-      {active === "scanner"   && <ScannerWorkspace />}
-      {active === "compare"   && <CompareWorkspace />}
-      {active === "qr-tools"  && <QrToolsWorkspace />}
-      {active === "history"   && <HistoryWorkspace />}
-      {active === "settings"  && <SettingsWorkspace />}
-      {active === "help"      && <HelpWorkspace />}
+      {active === "home"         && <HomeWorkspace />}
+      {active === "pdf"          && <PdfWorkspace />}
+      {active === "word"         && <WordWorkspace />}
+      {active === "excel"        && <ExcelWorkspace />}
+      {active === "image"        && <ImageWorkspace />}
+      {active === "ocr"          && <OcrWorkspace />}
+      {active === "scanner"      && <ScannerWorkspace />}
+      {active === "compare"      && <CompareWorkspace />}
+      {active === "qr-tools"     && <QrToolsWorkspace />}
+      {active === "dev-tools"    && <DevToolsWorkspace />}
+      {active === "text-tools"   && <TextToolsWorkspace />}
+      {active === "converters"   && <ConvertersWorkspace />}
+      {active === "crypto"       && <CryptoWorkspace />}
+      {active === "time-tools"   && <TimeToolsWorkspace />}
+      {active === "calc-tools"   && <CalcToolsWorkspace />}
+      {active === "history"      && <HistoryWorkspace />}
+      {active === "settings"     && <SettingsWorkspace />}
+      {active === "help"         && <HelpWorkspace />}
     </Suspense>
   );
 }
@@ -96,6 +108,7 @@ function AppShell() {
       <div className="absolute top-[-15%] left-[-15%] w-[55%] h-[55%] rounded-full blur-[160px] ambient-glow-1 pointer-events-none z-0" />
       <div className="absolute bottom-[-15%] right-[-15%] w-[55%] h-[55%] rounded-full blur-[160px] ambient-glow-2 pointer-events-none z-0" />
       <div className="absolute top-[35%] left-[25%] w-[40%] h-[40%] rounded-full blur-[140px] ambient-glow-3 pointer-events-none z-0" />
+      <div className="absolute bottom-[20%] right-[30%] w-[35%] h-[35%] rounded-full blur-[140px] ambient-glow-4 pointer-events-none z-0" />
 
       <Sidebar />
 

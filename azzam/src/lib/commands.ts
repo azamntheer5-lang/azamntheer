@@ -22,15 +22,25 @@ export function buildNavigationCommands(
   paletteClose: () => void
 ): Command[] {
   const nav: Array<{ id: WorkspaceId; title: string; subtitle: string; icon: string; keywords: string[] }> = [
+    // Core
     { id: "home", title: "الرئيسية", subtitle: "لوحة الترحيب والإحصائيات", icon: "home", keywords: ["home", "dashboard"] },
-    { id: "pdf", title: "مساحة عمل PDF", subtitle: "تعديل، تنظيم، دمج، ضغط", icon: "pdf", keywords: ["pdf", "edit"] },
-    { id: "word", title: "مساحة عمل Word", subtitle: "قراءة وتصدير ملفات Word", icon: "word", keywords: ["word", "docx"] },
-    { id: "excel", title: "مساحة عمل Excel", subtitle: "تصفح وتصدير الجداول", icon: "excel", keywords: ["excel", "xlsx", "csv"] },
+    { id: "pdf", title: "PDF Expert", subtitle: "تعديل، تنظيم، دمج، ضغط، محرر متقدم", icon: "pdf", keywords: ["pdf", "edit"] },
+    { id: "word", title: "أدوات Word", subtitle: "قراءة وتصدير ملفات Word", icon: "word", keywords: ["word", "docx"] },
+    { id: "excel", title: "Excel Studio", subtitle: "تصفح وتصدير الجداول", icon: "excel", keywords: ["excel", "xlsx", "csv"] },
     { id: "image", title: "استوديو الصور", subtitle: "تحويل وضغط ودمج الصور", icon: "image", keywords: ["image", "convert"] },
+    // Media
     { id: "ocr", title: "OCR — استخراج النص", subtitle: "من صورة أو PDF ممسوح", icon: "scan", keywords: ["ocr", "scan", "extract"] },
     { id: "scanner", title: "ماسح ضوئي", subtitle: "كاميرا + فلاتر ذكية", icon: "camera", keywords: ["scan", "camera"] },
     { id: "compare", title: "مقارنة المستندات", subtitle: "مقارنة PDF أو صور", icon: "compare", keywords: ["compare", "diff"] },
     { id: "qr-tools", title: "أدوات QR و Barcode", subtitle: "توليد وقراءة الرموز", icon: "qr", keywords: ["qr", "barcode"] },
+    // Pro Tools (NEW)
+    { id: "dev-tools", title: "أدوات المطور", subtitle: "JSON · Base64 · Hash · UUID · JWT · Regex · Color", icon: "code", keywords: ["json", "base64", "hash", "uuid", "jwt", "regex", "color", "developer"] },
+    { id: "text-tools", title: "أدوات النصوص", subtitle: "عدّاد · حالة · لوريم · عكس · فرز · تكرار · بحث", icon: "text", keywords: ["text", "counter", "case", "lorem", "sort", "diff"] },
+    { id: "converters", title: "محوّلات شاملة", subtitle: "وحدات · ألوان · أرقام · رومانية", icon: "convert", keywords: ["convert", "unit", "color", "number", "roman"] },
+    { id: "crypto", title: "تشفير وكلمات سر", subtitle: "توليد · AES · فحص قوة · توكنز", icon: "lock", keywords: ["crypto", "password", "aes", "hash", "token"] },
+    { id: "time-tools", title: "وقت وتاريخ", subtitle: "فارق · عمر · عدّاد · ساعة عالمية", icon: "time", keywords: ["time", "date", "age", "countdown", "stopwatch", "clock"] },
+    { id: "calc-tools", title: "حاسبات متخصصة", subtitle: "علمية · BMI · نسب · قروض · إكرامية", icon: "calc", keywords: ["calc", "bmi", "percent", "loan", "tip", "scientific"] },
+    // System
     { id: "history", title: "سجل العمليات", subtitle: "كل ما قمت به", icon: "history", keywords: ["history", "log"] },
     { id: "settings", title: "الإعدادات", subtitle: "ثيم، اختصارات، أداء", icon: "settings", keywords: ["settings", "config"] },
     { id: "help", title: "مركز المساعدة", subtitle: "أسئلة شائعة ودليل", icon: "help", keywords: ["help", "faq"] },
@@ -57,6 +67,12 @@ export function buildToolCommands(actions: {
   openOcr: () => void;
   openCompare: () => void;
   openQr: () => void;
+  openDevTools: () => void;
+  openTextTools: () => void;
+  openConverters: () => void;
+  openCrypto: () => void;
+  openTimeTools: () => void;
+  openCalcTools: () => void;
   paletteClose: () => void;
 }): Command[] {
   const wrap = (fn: () => void) => () => {
@@ -119,6 +135,60 @@ export function buildToolCommands(actions: {
       keywords: ["qr", "barcode", "generate"],
       action: wrap(actions.openQr),
     },
+    {
+      id: "tool-dev",
+      title: "أدوات المطور",
+      subtitle: "JSON · Base64 · Hash · JWT · Regex",
+      group: "tools",
+      icon: "code",
+      keywords: ["json", "base64", "hash", "jwt", "regex", "dev"],
+      action: wrap(actions.openDevTools),
+    },
+    {
+      id: "tool-text",
+      title: "أدوات النصوص",
+      subtitle: "عدّاد · حالة · لوريم · فرز",
+      group: "tools",
+      icon: "text",
+      keywords: ["text", "counter", "case", "lorem"],
+      action: wrap(actions.openTextTools),
+    },
+    {
+      id: "tool-converters",
+      title: "محوّلات شاملة",
+      subtitle: "وحدات · ألوان · أرقام · رومانية",
+      group: "tools",
+      icon: "convert",
+      keywords: ["convert", "unit", "color"],
+      action: wrap(actions.openConverters),
+    },
+    {
+      id: "tool-crypto",
+      title: "تشفير وكلمات سر",
+      subtitle: "توليد · AES · فحص قوة · توكنز",
+      group: "tools",
+      icon: "lock",
+      keywords: ["crypto", "password", "aes"],
+      action: wrap(actions.openCrypto),
+    },
+    {
+      id: "tool-time",
+      title: "وقت وتاريخ",
+      subtitle: "فارق · عمر · عدّاد · ساعة",
+      group: "tools",
+      icon: "time",
+      keywords: ["time", "date", "age", "clock"],
+      action: wrap(actions.openTimeTools),
+    },
+    {
+      id: "tool-calc",
+      title: "حاسبات",
+      subtitle: "علمية · BMI · نسب · قروض",
+      group: "tools",
+      icon: "calc",
+      keywords: ["calc", "bmi", "percent", "loan"],
+      action: wrap(actions.openCalcTools),
+    },
   ];
 }
 
@@ -136,10 +206,10 @@ export function buildSettingsCommands(actions: {
   return [
     {
       id: "set-toggle-theme",
-      title: "تبديل الثيم (داكن/فاتح)",
+      title: "تبديل الثيم (داكن/فاتح/ألوان)",
       group: "settings",
       icon: "moon",
-      keywords: ["theme", "dark", "light"],
+      keywords: ["theme", "dark", "light", "cyber", "ocean"],
       shortcut: ["Ctrl", "J"],
       action: wrap(actions.toggleTheme),
     },
