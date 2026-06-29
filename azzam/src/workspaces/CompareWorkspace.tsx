@@ -127,7 +127,7 @@ export const CompareWorkspace: React.FC = () => {
           </div>
           <div>
             <h2 className="text-sm font-black text-white">مقارنة المستندات</h2>
-            <p className="text-[11px] text-gray-400 font-bold mt-0.5">
+            <p className="text-[11px] text-slate-500 font-bold mt-0.5">
               قارن ملفي PDF لمعرفة الفروقات نصياً سطراً بسطر
             </p>
           </div>
@@ -168,7 +168,7 @@ export const CompareWorkspace: React.FC = () => {
           <div className="grid grid-cols-3 gap-3">
             <div className="glass-card rounded-xl p-4 border border-white/10 text-center">
               <div className="text-2xl font-black text-white">{stats.same}</div>
-              <div className="text-[10px] text-gray-400 font-bold">أسطر متطابقة</div>
+              <div className="text-[10px] text-slate-500 font-bold">أسطر متطابقة</div>
             </div>
             <div className="glass-card rounded-xl p-4 border border-emerald-500/20 bg-emerald-500/5 text-center">
               <div className="text-2xl font-black text-emerald-400">{stats.added}</div>
@@ -191,7 +191,7 @@ export const CompareWorkspace: React.FC = () => {
                   key={i}
                   className={`px-3 py-1.5 rounded mb-1 ${
                     d.type === "same"
-                      ? "text-gray-400"
+                      ? "text-slate-500"
                       : d.type === "added"
                       ? "bg-emerald-500/10 text-emerald-300 border-r-2 border-emerald-500"
                       : "bg-rose-500/10 text-rose-300 border-r-2 border-rose-500"
@@ -237,8 +237,8 @@ const UploadCard: React.FC<{
           onClick={() => inputRef.current?.click()}
           className="border-2 border-dashed border-white/15 hover:border-white/30 rounded-xl p-6 text-center cursor-pointer transition-all"
         >
-          <UploadCloud className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-          <p className="text-xs text-gray-400 font-bold">اسحب ملف PDF هنا أو انقر للاختيار</p>
+          <UploadCloud className="h-8 w-8 text-slate-500 mx-auto mb-2" />
+          <p className="text-xs text-slate-500 font-bold">اسحب ملف PDF هنا أو انقر للاختيار</p>
           <input
             ref={inputRef}
             type="file"
@@ -249,11 +249,11 @@ const UploadCard: React.FC<{
         </div>
       ) : (
         <div className="space-y-2">
-          <div className="flex items-center gap-2 bg-white/5 rounded-lg p-2.5">
+          <div className="flex items-center gap-2 bg-white/[0.04]/5 rounded-lg p-2.5">
             <FileText className="h-5 w-5 text-blue-400 shrink-0" />
             <div className="flex-1 min-w-0">
               <div className="text-xs font-bold text-white truncate">{doc.name}</div>
-              <div className="text-[10px] text-gray-400 font-bold">
+              <div className="text-[10px] text-slate-500 font-bold">
                 {(doc.size / 1024).toFixed(1)} KB {doc.pages ? `• ${doc.pages} صفحات` : ""}
               </div>
             </div>

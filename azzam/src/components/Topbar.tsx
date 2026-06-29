@@ -59,12 +59,12 @@ export const Topbar: React.FC = () => {
 
         {/* PDF undo/redo */}
         {doc && active === "pdf" && (
-          <div className="flex items-center gap-0.5 mr-3 bg-white/[0.04] rounded-lg border border-white/[0.06] p-0.5">
+          <div className="flex items-center gap-0.5 mr-3 bg-white/[0.04]/[0.04] rounded-lg border border-white/[0.06] p-0.5">
             <button
               onClick={undo}
               disabled={historyLen === 0}
               title="تراجع (Ctrl+Z)"
-              className="h-7 w-7 flex items-center justify-center rounded-md text-slate-400 hover:text-white hover:bg-white/[0.08] disabled:opacity-25 disabled:cursor-not-allowed transition-all cursor-pointer"
+              className="h-7 w-7 flex items-center justify-center rounded-md text-slate-400 hover:text-white hover:bg-white/[0.04]/[0.08] disabled:opacity-25 disabled:cursor-not-allowed transition-all cursor-pointer"
             >
               <Undo2 className="h-3.5 w-3.5" />
             </button>
@@ -72,7 +72,7 @@ export const Topbar: React.FC = () => {
               onClick={redo}
               disabled={futureLen === 0}
               title="إعادة (Ctrl+Y)"
-              className="h-7 w-7 flex items-center justify-center rounded-md text-slate-400 hover:text-white hover:bg-white/[0.08] disabled:opacity-25 disabled:cursor-not-allowed transition-all cursor-pointer"
+              className="h-7 w-7 flex items-center justify-center rounded-md text-slate-400 hover:text-white hover:bg-white/[0.04]/[0.08] disabled:opacity-25 disabled:cursor-not-allowed transition-all cursor-pointer"
             >
               <Redo2 className="h-3.5 w-3.5" />
             </button>
@@ -86,7 +86,7 @@ export const Topbar: React.FC = () => {
         <button
           onClick={() => setPalette(true)}
           title="بحث وأوامر (Ctrl+K)"
-          className="flex items-center gap-2 h-8 px-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-slate-400 hover:text-slate-200 transition-all duration-200 cursor-pointer"
+          className="flex items-center gap-2 h-8 px-3 rounded-xl bg-white/[0.04]/[0.04] hover:bg-white/[0.04]/[0.08] border border-white/[0.06] text-slate-400 hover:text-slate-200 transition-all duration-200 cursor-pointer"
         >
           <Search className="h-3.5 w-3.5" />
           <span className="text-[11px] font-semibold hidden sm:inline text-slate-500">بحث سريع</span>
@@ -99,7 +99,7 @@ export const Topbar: React.FC = () => {
         <button
           onClick={toggleTheme}
           title="تبديل الثيم"
-          className="h-8 w-8 flex items-center justify-center rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-slate-400 hover:text-slate-200 transition-all duration-200 cursor-pointer"
+          className="h-8 w-8 flex items-center justify-center rounded-xl bg-white/[0.04]/[0.04] hover:bg-white/[0.04]/[0.08] border border-white/[0.06] text-slate-400 hover:text-slate-200 transition-all duration-200 cursor-pointer"
         >
           {themeMode === "dark"
             ? <Sun className="h-3.5 w-3.5" />

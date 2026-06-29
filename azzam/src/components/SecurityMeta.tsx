@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Lock, Unlock, FileText, Check, ShieldAlert, Sparkles, RefreshCw } from "lucide-react";
+import { Lock, Unlock, FileText, Check, ShieldAlert, Sparkles, Eye, EyeOff } from "lucide-react";
+import { useToast } from "../context/ToastContext";
 
 interface SecurityMetaProps {
   initialMeta: { title: string; author: string; subject: string; keywords: string };
@@ -10,25 +11,26 @@ interface SecurityMetaProps {
   isProcessing: boolean;
 }
 
+const inputClass =
+  "w-full text-xs font-semibold bg-white/[0.04]/[0.04] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white placeholder-slate-600 focus:outline-none focus:border-blue-500/50 transition-colors";
+
 export const SecurityMeta: React.FC<SecurityMetaProps> = ({
   initialMeta,
   onApplyMetadata,
   onApplyPassword,
   onRemovePassword,
   isLocked,
-  isProcessing
+  isProcessing,
 }) => {
-  // Metadata state
-  const [title, setTitle] = useState(initialMeta.title);
-  const [author, setAuthor] = useState(initialMeta.author);
-  const [subject, setSubject] = useState(initialMeta.subject);
+  const [title,    setTitle]    = useState(initialMeta.title);
+  const [author,   setAuthor]   = useState(initialMeta.author);
+  const [subject,  setSubject]  = useState(initialMeta.subject);
   const [keywords, setKeywords] = useState(initialMeta.keywords);
-
-  // Password state
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [confirm,  setConfirm]  = useState("");
+  const [showPw,   setShowPw]   = useState(false);
+  const toast = useToast();
 
-  // Sync state if parent values update (e.g. from AI)
   useEffect(() => {
     setTitle(initialMeta.title);
     setAuthor(initialMeta.author);
@@ -36,182 +38,144 @@ export const SecurityMeta: React.FC<SecurityMetaProps> = ({
     setKeywords(initialMeta.keywords);
   }, [initialMeta]);
 
-  const triggerSaveMeta = async () => {
+  const handleSaveMeta = async () => {
     await onApplyMetadata({ title, author, subject, keywords });
   };
 
-  const triggerLock = async () => {
-    if (!password) {
-      alert("⚠️ يرجى إدخال كلمة المرور المطلوبة للتشفير!");
-      return;
-    }
-    if (password !== confirmPassword) {
-      alert("❌ كلمتا المرور غير متطابقتين!");
-      return;
-    }
+  const handleLock = async () => {
+    if (!password) { toast.error("أدخل كلمة المرور أولاً"); return; }
+    if (password !== confirm) { toast.error("كلمتا المرور غير متطابقتين"); return; }
     await onApplyPassword(password);
     setPassword("");
-    setConfirmPassword("");
+    setConfirm("");
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 select-none">
-      
-      {/* 1. METADATA EDITOR PANEL */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-3xs flex flex-col justify-between">
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-google-blue">
-              <FileText className="h-5 w-5" />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-gray-800">بيانات وخصائص الملف</h3>
-              <p className="text-[10px] text-gray-400 font-semibold">تضمين تفاصيل المستند الوصفية لظهورها في برامج التصفح.</p>
-            </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 select-none">
+      {/* Metadata panel */}
+      <div className="glass-card rounded-2xl p-5 border border-white/[0.08] space-y-4">
+        <div className="flex items-center gap-2.5 pb-1">
+          <div className="h-9 w-9 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+            <FileText className="h-4 w-4" />
           </div>
-
-          <div className="space-y-3">
-            <div>
-              <label className="text-[10px] text-gray-450 font-bold block mb-1">عنوان الملف (Title):</label>
-              <input
-                type="text"
-                value={title}
-                onChange={e => setTitle(e.target.value)}
-                placeholder="عنوان المستند الرئيسي"
-                className="w-full text-xs bg-gray-50 border border-gray-200 rounded-lg p-2.5 font-semibold text-gray-800"
-              />
-            </div>
-
-            <div>
-              <label className="text-[10px] text-gray-450 font-bold block mb-1">الكاتب أو المؤلف (Author):</label>
-              <input
-                type="text"
-                value={author}
-                onChange={e => setAuthor(e.target.value)}
-                placeholder="اسم الكاتب أو الجهة المنشئة"
-                className="w-full text-xs bg-gray-50 border border-gray-200 rounded-lg p-2.5 font-semibold text-gray-800"
-              />
-            </div>
-
-            <div>
-              <label className="text-[10px] text-gray-450 font-bold block mb-1">الموضوع (Subject):</label>
-              <input
-                type="text"
-                value={subject}
-                onChange={e => setSubject(e.target.value)}
-                placeholder="موضوع الملف باختصار"
-                className="w-full text-xs bg-gray-50 border border-gray-200 rounded-lg p-2.5 font-semibold text-gray-800"
-              />
-            </div>
-
-            <div>
-              <label className="text-[10px] text-gray-450 font-bold block mb-1">الكلمات المفتاحية (Keywords - افصل بينها بفاصلة):</label>
-              <input
-                type="text"
-                value={keywords}
-                onChange={e => setKeywords(e.target.value)}
-                placeholder="مثال: تقرير، ميزانية، 2026"
-                className="w-full text-xs bg-gray-50 border border-gray-200 rounded-lg p-2.5 font-semibold text-gray-800"
-              />
-            </div>
+          <div>
+            <h3 className="text-xs font-black text-white">بيانات الملف الوصفية</h3>
+            <p className="text-[10px] text-slate-500 font-medium mt-0.5">تضمين بيانات تعريفية في المستند</p>
           </div>
+        </div>
+
+        <div className="space-y-3">
+          {[
+            { label: "عنوان الملف", value: title, setter: setTitle, placeholder: "عنوان المستند الرئيسي" },
+            { label: "المؤلف", value: author, setter: setAuthor, placeholder: "اسم المؤلف" },
+            { label: "الموضوع", value: subject, setter: setSubject, placeholder: "وصف قصير للمستند" },
+            { label: "الكلمات المفتاحية", value: keywords, setter: setKeywords, placeholder: "كلمة1، كلمة2" },
+          ].map((field) => (
+            <div key={field.label}>
+              <label className="text-[10px] text-slate-500 font-bold block mb-1">{field.label}</label>
+              <input
+                type="text"
+                value={field.value}
+                onChange={(e) => field.setter(e.target.value)}
+                placeholder={field.placeholder}
+                className={inputClass}
+              />
+            </div>
+          ))}
         </div>
 
         <button
-          onClick={triggerSaveMeta}
+          onClick={handleSaveMeta}
           disabled={isProcessing}
-          className="w-full mt-6 flex items-center justify-center gap-1.5 rounded-xl bg-google-blue hover:bg-blue-600 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/10 transition-all cursor-pointer"
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl btn-primary text-white text-xs font-bold cursor-pointer disabled:opacity-50"
         >
-          {isProcessing ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-          <span>حفظ خصائص البيانات وتعديلها</span>
+          <Check className="h-4 w-4" />
+          حفظ البيانات الوصفية
         </button>
       </div>
 
-      {/* 2. SECURITY & PASSWORD LOCK PANEL */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-3xs flex flex-col justify-between">
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-50 text-google-red">
-              <Lock className="h-5 w-5" />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-gray-800">حماية وتشفير المستند</h3>
-              <p className="text-[10px] text-gray-400 font-semibold">إغلاق وتشفير الملف بكلمة مرور تمنع الوصول غير المصرح به.</p>
-            </div>
+      {/* Password panel */}
+      <div className="glass-card rounded-2xl p-5 border border-white/[0.08] space-y-4">
+        <div className="flex items-center gap-2.5 pb-1">
+          <div className={`h-9 w-9 rounded-xl border flex items-center justify-center ${
+            isLocked
+              ? "bg-rose-500/10 border-rose-500/20 text-rose-400"
+              : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+          }`}>
+            {isLocked ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
           </div>
-
-          {/* Locked / Unlocked visual meter */}
-          <div className="flex items-center justify-center py-4 bg-gray-50 rounded-xl border border-gray-150 gap-3">
-            <div className={`h-11 w-11 rounded-full flex items-center justify-center text-lg shadow-sm ${
-              isLocked ? "bg-red-100 text-google-red animate-pulse" : "bg-green-100 text-google-green"
-            }`}>
-              {isLocked ? <Lock className="h-5 w-5" /> : <Unlock className="h-5 w-5" />}
-            </div>
-            <div className="flex flex-col">
-              <span className="text-xs font-bold text-gray-800">
-                {isLocked ? "مؤمن ومقفل بكلمة مرور" : "مفتوح وغير مشفر حالياً"}
-              </span>
-              <span className="text-[9px] text-gray-400 font-semibold">
-                {isLocked ? "احفظ الملف لتأكيد التشفير" : "يدعم تشفير مالك المستند الآمن"}
-              </span>
-            </div>
+          <div>
+            <h3 className="text-xs font-black text-white">
+              {isLocked ? "الملف محمي بكلمة مرور" : "تأمين الملف بكلمة مرور"}
+            </h3>
+            <p className="text-[10px] text-slate-500 font-medium mt-0.5">
+              {isLocked ? "يمكنك إزالة الحماية" : "تشفير الملف بكلمة سر"}
+            </p>
           </div>
-
-          {!isLocked ? (
-            <div className="space-y-3 animate-fade-in">
-              <div>
-                <label className="text-[10px] text-gray-450 font-bold block mb-1">أدخل كلمة المرور للتشفير:</label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  placeholder="أدخل كلمة سر قوية..."
-                  className="w-full text-xs bg-gray-50 border border-gray-200 rounded-lg p-2.5 font-semibold text-gray-800"
-                />
-              </div>
-
-              <div>
-                <label className="text-[10px] text-gray-450 font-bold block mb-1">تأكيد كلمة المرور:</label>
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={e => setConfirmPassword(e.target.value)}
-                  placeholder="أعد كتابة كلمة السر للتأكيد"
-                  className="w-full text-xs bg-gray-50 border border-gray-200 rounded-lg p-2.5 font-semibold text-gray-800"
-                />
-              </div>
-            </div>
-          ) : (
-            <div className="p-3 bg-red-50 border border-red-100 rounded-xl text-xs text-red-800 font-semibold flex items-start gap-1.5 leading-relaxed animate-fade-in">
-              <ShieldAlert className="h-4.5 w-4.5 shrink-0 mt-0.5 text-google-red" />
-              <span>
-                ملاحظة: لقد قمت بإقفال وتأمين المستند. لإلغاء القفل وإرجاعه حراً، اضغط على زر "إزالة كلمة المرور وفك الحماية" بالأدنى.
-              </span>
-            </div>
-          )}
         </div>
 
-        {!isLocked ? (
-          <button
-            onClick={triggerLock}
-            disabled={isProcessing || !password}
-            className="w-full mt-6 flex items-center justify-center gap-1.5 rounded-xl bg-google-red hover:bg-red-600 py-2.5 text-xs font-bold text-white shadow-md shadow-red-500/10 transition-all disabled:opacity-40 cursor-pointer"
-          >
-            {isProcessing ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-            <span>تأمين المستند بكلمة المرور</span>
-          </button>
+        {isLocked ? (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2.5 p-4 rounded-xl bg-rose-500/10 border border-rose-500/20">
+              <ShieldAlert className="h-5 w-5 text-rose-400 shrink-0" />
+              <p className="text-xs text-rose-300 font-semibold">
+                هذا الملف محمي بكلمة مرور. إزالة الحماية ستتطلب معرفتها مسبقاً.
+              </p>
+            </div>
+            <button
+              onClick={onRemovePassword}
+              disabled={isProcessing}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-bold cursor-pointer hover:bg-rose-500/20 transition-all disabled:opacity-50"
+            >
+              <Unlock className="h-4 w-4" />
+              إزالة حماية كلمة المرور
+            </button>
+          </div>
         ) : (
-          <button
-            onClick={onRemovePassword}
-            disabled={isProcessing}
-            className="w-full mt-6 flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 py-2.5 text-xs font-bold text-gray-700 shadow-3xs transition-all cursor-pointer"
-          >
-            {isProcessing ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Unlock className="h-4 w-4" />}
-            <span>إزالة كلمة المرور وفك الحماية</span>
-          </button>
+          <div className="space-y-3">
+            <div>
+              <label className="text-[10px] text-slate-500 font-bold block mb-1">كلمة المرور</label>
+              <div className="relative">
+                <input
+                  type={showPw ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="أدخل كلمة مرور قوية"
+                  className={inputClass + " pl-10"}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPw(!showPw)}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors cursor-pointer"
+                >
+                  {showPw ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                </button>
+              </div>
+            </div>
+            <div>
+              <label className="text-[10px] text-slate-500 font-bold block mb-1">تأكيد كلمة المرور</label>
+              <input
+                type="password"
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                placeholder="أعد إدخال كلمة المرور"
+                className={inputClass}
+              />
+            </div>
+            {password && confirm && password !== confirm && (
+              <p className="text-[10px] text-rose-400 font-semibold">كلمتا المرور غير متطابقتين</p>
+            )}
+            <button
+              onClick={handleLock}
+              disabled={isProcessing || !password || password !== confirm}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-400 text-xs font-bold cursor-pointer hover:bg-amber-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Lock className="h-4 w-4" />
+              تأمين الملف
+            </button>
+          </div>
         )}
       </div>
-
     </div>
   );
 };

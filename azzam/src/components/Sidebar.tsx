@@ -92,7 +92,7 @@ export const Sidebar: React.FC = () => {
         <button
           onClick={() => setPalette(true)}
           title="بحث وأوامر (Ctrl+K)"
-          className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-slate-400 hover:text-slate-200 transition-all duration-200 group ${
+          className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white/[0.04]/[0.04] hover:bg-white/[0.04]/[0.08] border border-white/[0.06] text-slate-400 hover:text-slate-200 transition-all duration-200 group ${
             collapsed ? "justify-center" : ""
           }`}
         >
@@ -100,7 +100,7 @@ export const Sidebar: React.FC = () => {
           {!collapsed && (
             <>
               <span className="text-xs font-semibold flex-1 text-right text-slate-400">بحث سريع...</span>
-              <kbd className="text-[9px] text-slate-500 font-mono border border-white/10 rounded-md px-1.5 py-0.5 bg-white/[0.04]">
+              <kbd className="text-[9px] text-slate-500 font-mono border border-white/10 rounded-md px-1.5 py-0.5 bg-white/[0.04]/[0.04]">
                 ⌘K
               </kbd>
             </>
@@ -167,7 +167,7 @@ export const Sidebar: React.FC = () => {
         <button
           onClick={toggle}
           title={collapsed ? "توسيع" : "طي"}
-          className="w-full flex items-center justify-center py-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/[0.05] text-slate-500 hover:text-slate-300 transition-all duration-200 cursor-pointer"
+          className="w-full flex items-center justify-center py-2 rounded-xl bg-white/[0.04]/[0.03] hover:bg-white/[0.04]/[0.07] border border-white/[0.05] text-slate-500 hover:text-slate-300 transition-all duration-200 cursor-pointer"
         >
           {collapsed
             ? <ChevronLeft className="h-4 w-4" />

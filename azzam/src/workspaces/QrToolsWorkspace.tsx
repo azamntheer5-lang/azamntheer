@@ -265,7 +265,7 @@ export const QrToolsWorkspace: React.FC = () => {
           </div>
           <div>
             <h2 className="text-sm font-black text-white">أدوات QR و Barcode</h2>
-            <p className="text-[11px] text-gray-400 font-bold mt-0.5">
+            <p className="text-[11px] text-slate-500 font-bold mt-0.5">
               توليد وقراءة الرموز بأنواعها — مع تصدير عالي الجودة
             </p>
           </div>
@@ -280,7 +280,7 @@ export const QrToolsWorkspace: React.FC = () => {
                 key={t.id}
                 onClick={() => setMode(t.id)}
                 className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                  mode === t.id ? "bg-emerald-600 text-white shadow-md" : "text-gray-400 hover:text-white hover:bg-white/5"
+                  mode === t.id ? "bg-emerald-600 text-white shadow-md" : "text-slate-500 hover:text-white hover:bg-white/[0.04]/5"
                 }`}
               >
                 <Icon className="h-4 w-4" />
@@ -295,7 +295,7 @@ export const QrToolsWorkspace: React.FC = () => {
             {/* Left: Form */}
             <div className="glass-card rounded-2xl p-5 border border-white/10 space-y-4">
               <div>
-                <label className="text-[10px] text-gray-400 font-bold block mb-1">المحتوى / النص</label>
+                <label className="text-[10px] text-slate-500 font-bold block mb-1">المحتوى / النص</label>
                 <textarea
                   value={text}
                   onChange={(e) => setText(e.target.value)}
@@ -307,13 +307,13 @@ export const QrToolsWorkspace: React.FC = () => {
 
               {/* Quick presets */}
               <div>
-                <label className="text-[10px] text-gray-400 font-bold block mb-1.5">قوالب جاهزة</label>
+                <label className="text-[10px] text-slate-500 font-bold block mb-1.5">قوالب جاهزة</label>
                 <div className="grid grid-cols-3 gap-1.5">
                   {PRESETS.map((p) => (
                     <button
                       key={p.label}
                       onClick={() => setText(p.value)}
-                      className="text-[10px] font-bold text-gray-300 bg-white/5 hover:bg-white/10 border border-white/5 rounded-lg p-2 cursor-pointer transition-all"
+                      className="text-[10px] font-bold text-gray-300 bg-white/[0.04]/5 hover:bg-white/[0.04]/10 border border-white/5 rounded-lg p-2 cursor-pointer transition-all"
                     >
                       <span className="block text-sm mb-0.5">{p.icon}</span>
                       <span>{p.label}</span>
@@ -326,7 +326,7 @@ export const QrToolsWorkspace: React.FC = () => {
                 <>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[10px] text-gray-400 font-bold block mb-1">لون الرمز</label>
+                      <label className="text-[10px] text-slate-500 font-bold block mb-1">لون الرمز</label>
                       <div className="flex items-center gap-2">
                         <input
                           type="color"
@@ -348,7 +348,7 @@ export const QrToolsWorkspace: React.FC = () => {
                       </div>
                     </div>
                     <div>
-                      <label className="text-[10px] text-gray-400 font-bold block mb-1">لون الخلفية</label>
+                      <label className="text-[10px] text-slate-500 font-bold block mb-1">لون الخلفية</label>
                       <div className="flex items-center gap-2">
                         <input
                           type="color"
@@ -356,14 +356,14 @@ export const QrToolsWorkspace: React.FC = () => {
                           onChange={(e) => setBgColor(e.target.value)}
                           className="h-8 w-12 rounded-lg border border-white/10 bg-transparent cursor-pointer"
                         />
-                        <span className="text-xs text-gray-400 font-bold">{bgColor}</span>
+                        <span className="text-xs text-slate-500 font-bold">{bgColor}</span>
                       </div>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[10px] text-gray-400 font-bold block mb-1">الحجم</label>
+                      <label className="text-[10px] text-slate-500 font-bold block mb-1">الحجم</label>
                       <select
                         value={size}
                         onChange={(e) => setSize(parseInt(e.target.value))}
@@ -377,7 +377,7 @@ export const QrToolsWorkspace: React.FC = () => {
                       </select>
                     </div>
                     <div>
-                      <label className="text-[10px] text-gray-400 font-bold block mb-1">مستوى تصحيح الأخطاء</label>
+                      <label className="text-[10px] text-slate-500 font-bold block mb-1">مستوى تصحيح الأخطاء</label>
                       <select
                         value={eccLevel}
                         onChange={(e) => setEccLevel(e.target.value as any)}
@@ -398,7 +398,7 @@ export const QrToolsWorkspace: React.FC = () => {
             <div className="glass-card rounded-2xl p-5 border border-white/10 flex flex-col items-center justify-center">
               {qrDataUrl ? (
                 <>
-                  <div className="bg-white p-4 rounded-xl border border-white/10 shadow-lg">
+                  <div className="bg-white/[0.04] p-4 rounded-xl border border-white/10 shadow-lg">
                     <img src={qrDataUrl} alt="Generated QR" className="max-w-full max-h-[280px] object-contain" />
                   </div>
                   <div className="flex items-center gap-2 mt-4">
@@ -411,7 +411,7 @@ export const QrToolsWorkspace: React.FC = () => {
                     </button>
                     <button
                       onClick={handleCopyImage}
-                      className="flex items-center gap-1.5 text-xs font-bold bg-white/5 hover:bg-white/10 border border-white/10 text-white px-4 py-2.5 rounded-xl cursor-pointer transition-all"
+                      className="flex items-center gap-1.5 text-xs font-bold bg-white/[0.04]/5 hover:bg-white/[0.04]/10 border border-white/10 text-white px-4 py-2.5 rounded-xl cursor-pointer transition-all"
                     >
                       {copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
                       <span>{copied ? "تم النسخ" : "نسخ"}</span>
@@ -419,7 +419,7 @@ export const QrToolsWorkspace: React.FC = () => {
                   </div>
                 </>
               ) : (
-                <div className="text-center text-gray-500">
+                <div className="text-center text-slate-500">
                   <QrCode className="h-12 w-12 mx-auto mb-2 opacity-30" />
                   <p className="text-xs font-bold">أدخل نصاً لتوليد الرمز</p>
                 </div>
@@ -431,7 +431,7 @@ export const QrToolsWorkspace: React.FC = () => {
         {mode === "scan" && (
           <div className="glass-card rounded-2xl p-6 border border-white/10 space-y-5">
             <div className="flex flex-col md:flex-row items-center justify-between gap-3">
-              <p className="text-xs text-gray-400 font-bold">
+              <p className="text-xs text-slate-500 font-bold">
                 وجّه الكاميرا نحو الرمز لقراءته تلقائياً، أو ارفع صورة تحتوي على QR/Barcode.
               </p>
               <div className="flex items-center gap-2">
@@ -463,7 +463,7 @@ export const QrToolsWorkspace: React.FC = () => {
             <div className="bg-slate-950/60 border border-white/10 rounded-xl aspect-video max-w-2xl mx-auto overflow-hidden relative flex items-center justify-center">
               <video ref={videoRef} className="w-full h-full object-cover" playsInline muted />
               {!isScanning && !scanResult && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-500">
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-500">
                   <Camera className="h-10 w-10 mb-2 opacity-50" />
                   <span className="text-xs font-bold">الكاميرا متوقفة</span>
                 </div>

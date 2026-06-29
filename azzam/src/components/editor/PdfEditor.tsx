@@ -491,7 +491,7 @@ export const PdfEditor: React.FC<PdfEditorProps> = ({ pdfBytes, totalPages, isPr
         </button>
 
         {/* Toolbar */}
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-3 space-y-3">
+        <div className="bg-white/[0.04]/5 border border-white/10 rounded-2xl p-3 space-y-3">
           <div className="text-[10px] font-black text-gray-300 uppercase tracking-wider">الأدوات</div>
           {TOOLBAR_GROUPS.map((group, gi) => (
             <div key={gi} className="grid grid-cols-4 gap-1.5">
@@ -506,7 +506,7 @@ export const PdfEditor: React.FC<PdfEditorProps> = ({ pdfBytes, totalPages, isPr
                     className={`flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
                       isActive
                         ? "bg-blue-600 text-white shadow-md"
-                        : "bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white"
+                        : "bg-white/[0.04]/5 text-gray-300 hover:bg-white/[0.04]/10 hover:text-white"
                     }`}
                   >
                     <Icon className="h-4 w-4" />
@@ -519,13 +519,13 @@ export const PdfEditor: React.FC<PdfEditorProps> = ({ pdfBytes, totalPages, isPr
         </div>
 
         {/* History + View controls */}
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-3 space-y-2">
+        <div className="bg-white/[0.04]/5 border border-white/10 rounded-2xl p-3 space-y-2">
           <div className="text-[10px] font-black text-gray-300 uppercase tracking-wider">سجل وعرض</div>
           <div className="grid grid-cols-2 gap-1.5">
             <button
               onClick={undo}
               disabled={!canUndo}
-              className="flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-bold bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white disabled:opacity-30 cursor-pointer transition-all"
+              className="flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-bold bg-white/[0.04]/5 hover:bg-white/[0.04]/10 text-gray-300 hover:text-white disabled:opacity-30 cursor-pointer transition-all"
             >
               <Undo2 className="h-3.5 w-3.5" />
               <span>تراجع</span>
@@ -533,7 +533,7 @@ export const PdfEditor: React.FC<PdfEditorProps> = ({ pdfBytes, totalPages, isPr
             <button
               onClick={redo}
               disabled={!canRedo}
-              className="flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-bold bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white disabled:opacity-30 cursor-pointer transition-all"
+              className="flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-bold bg-white/[0.04]/5 hover:bg-white/[0.04]/10 text-gray-300 hover:text-white disabled:opacity-30 cursor-pointer transition-all"
             >
               <Redo2 className="h-3.5 w-3.5" />
               <span>إعادة</span>
@@ -541,7 +541,7 @@ export const PdfEditor: React.FC<PdfEditorProps> = ({ pdfBytes, totalPages, isPr
             <button
               onClick={toggleGrid}
               className={`flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-bold cursor-pointer transition-all ${
-                showGrid ? "bg-blue-600 text-white" : "bg-white/5 text-gray-300 hover:bg-white/10"
+                showGrid ? "bg-blue-600 text-white" : "bg-white/[0.04]/5 text-gray-300 hover:bg-white/[0.04]/10"
               }`}
             >
               <Grid3x3 className="h-3.5 w-3.5" />
@@ -550,7 +550,7 @@ export const PdfEditor: React.FC<PdfEditorProps> = ({ pdfBytes, totalPages, isPr
             <button
               onClick={toggleGuides}
               className={`flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-bold cursor-pointer transition-all ${
-                showGuides ? "bg-blue-600 text-white" : "bg-white/5 text-gray-300 hover:bg-white/10"
+                showGuides ? "bg-blue-600 text-white" : "bg-white/[0.04]/5 text-gray-300 hover:bg-white/[0.04]/10"
               }`}
             >
               <Ruler className="h-3.5 w-3.5" />
@@ -559,7 +559,7 @@ export const PdfEditor: React.FC<PdfEditorProps> = ({ pdfBytes, totalPages, isPr
             <button
               onClick={toggleSnapToGrid}
               className={`flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-bold cursor-pointer transition-all ${
-                snapToGrid ? "bg-blue-600 text-white" : "bg-white/5 text-gray-300 hover:bg-white/10"
+                snapToGrid ? "bg-blue-600 text-white" : "bg-white/[0.04]/5 text-gray-300 hover:bg-white/[0.04]/10"
               }`}
             >
               <Magnet className="h-3.5 w-3.5" />
@@ -567,19 +567,19 @@ export const PdfEditor: React.FC<PdfEditorProps> = ({ pdfBytes, totalPages, isPr
             </button>
             <button
               onClick={() => setZoom(zoom - 0.25)}
-              className="flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-bold bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white cursor-pointer transition-all"
+              className="flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-bold bg-white/[0.04]/5 hover:bg-white/[0.04]/10 text-gray-300 hover:text-white cursor-pointer transition-all"
             >
               <ZoomOut className="h-3.5 w-3.5" />
               <span>تصغير</span>
             </button>
             <button
               onClick={() => setZoom(zoom + 0.25)}
-              className="flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-bold bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white cursor-pointer transition-all"
+              className="flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-bold bg-white/[0.04]/5 hover:bg-white/[0.04]/10 text-gray-300 hover:text-white cursor-pointer transition-all"
             >
               <ZoomIn className="h-3.5 w-3.5" />
               <span>تكبير</span>
             </button>
-            <div className="flex items-center justify-center py-2 rounded-lg text-[10px] font-black bg-white/5 text-white">
+            <div className="flex items-center justify-center py-2 rounded-lg text-[10px] font-black bg-white/[0.04]/5 text-white">
               {Math.round(zoom * 100)}%
             </div>
           </div>
@@ -590,12 +590,12 @@ export const PdfEditor: React.FC<PdfEditorProps> = ({ pdfBytes, totalPages, isPr
 
         {/* Object actions */}
         {selected && (
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-3 space-y-2">
+          <div className="bg-white/[0.04]/5 border border-white/10 rounded-2xl p-3 space-y-2">
             <div className="text-[10px] font-black text-gray-300 uppercase tracking-wider">إجراءات</div>
             <div className="grid grid-cols-2 gap-1.5">
               <button
                 onClick={() => duplicateObject(selected.id)}
-                className="flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-bold bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white cursor-pointer transition-all"
+                className="flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-bold bg-white/[0.04]/5 hover:bg-white/[0.04]/10 text-gray-300 hover:text-white cursor-pointer transition-all"
               >
                 <Copy className="h-3.5 w-3.5" />
                 <span>تكرار</span>
@@ -605,14 +605,14 @@ export const PdfEditor: React.FC<PdfEditorProps> = ({ pdfBytes, totalPages, isPr
                   copy(selected.id);
                   toast.success("تم النسخ");
                 }}
-                className="flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-bold bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white cursor-pointer transition-all"
+                className="flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-bold bg-white/[0.04]/5 hover:bg-white/[0.04]/10 text-gray-300 hover:text-white cursor-pointer transition-all"
               >
                 <Clipboard className="h-3.5 w-3.5" />
                 <span>نسخ</span>
               </button>
               <button
                 onClick={paste}
-                className="flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-bold bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white cursor-pointer transition-all"
+                className="flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-bold bg-white/[0.04]/5 hover:bg-white/[0.04]/10 text-gray-300 hover:text-white cursor-pointer transition-all"
               >
                 <Clipboard className="h-3.5 w-3.5" />
                 <span>لصق</span>
@@ -632,11 +632,11 @@ export const PdfEditor: React.FC<PdfEditorProps> = ({ pdfBytes, totalPages, isPr
       {/* CENTER: Canvas (6 cols) */}
       <div className="lg:col-span-6 flex flex-col">
         {/* Page nav */}
-        <div className="flex items-center justify-between mb-3 bg-white/5 border border-white/10 rounded-xl p-2">
+        <div className="flex items-center justify-between mb-3 bg-white/[0.04]/5 border border-white/10 rounded-xl p-2">
           <button
             onClick={() => setActivePage((p) => Math.max(1, p - 1))}
             disabled={activePage === 1}
-            className="px-3 py-1.5 text-xs font-bold bg-white/5 hover:bg-white/10 text-white rounded-lg cursor-pointer disabled:opacity-30 transition-all"
+            className="px-3 py-1.5 text-xs font-bold bg-white/[0.04]/5 hover:bg-white/[0.04]/10 text-white rounded-lg cursor-pointer disabled:opacity-30 transition-all"
           >
             ◀ السابق
           </button>
@@ -646,7 +646,7 @@ export const PdfEditor: React.FC<PdfEditorProps> = ({ pdfBytes, totalPages, isPr
           <button
             onClick={() => setActivePage((p) => Math.min(totalPages, p + 1))}
             disabled={activePage === totalPages}
-            className="px-3 py-1.5 text-xs font-bold bg-white/5 hover:bg-white/10 text-white rounded-lg cursor-pointer disabled:opacity-30 transition-all"
+            className="px-3 py-1.5 text-xs font-bold bg-white/[0.04]/5 hover:bg-white/[0.04]/10 text-white rounded-lg cursor-pointer disabled:opacity-30 transition-all"
           >
             التالي ▶
           </button>
@@ -676,7 +676,7 @@ export const PdfEditor: React.FC<PdfEditorProps> = ({ pdfBytes, totalPages, isPr
                 ref={canvasRef}
                 width={pageRender.canvas.width}
                 height={pageRender.canvas.height}
-                className="absolute inset-0 w-full h-full bg-white"
+                className="absolute inset-0 w-full h-full bg-white/[0.04]"
                 style={{ width: pageRender.renderWidth, height: pageRender.renderHeight }}
               />
 
@@ -707,8 +707,8 @@ export const PdfEditor: React.FC<PdfEditorProps> = ({ pdfBytes, totalPages, isPr
         </div>
 
         {/* Export bar */}
-        <div className="mt-3 flex items-center justify-between gap-2 bg-white/5 border border-white/10 rounded-xl p-2">
-          <div className="text-[10px] text-gray-400 font-bold">
+        <div className="mt-3 flex items-center justify-between gap-2 bg-white/[0.04]/5 border border-white/10 rounded-xl p-2">
+          <div className="text-[10px] text-slate-500 font-bold">
             {objects.length} عنصر في {new Set(objects.map((o) => o.page)).size} صفحة
           </div>
           <div className="flex items-center gap-2">
@@ -998,7 +998,7 @@ const PropertiesPanel: React.FC<{ obj: EditorObject; onUpdate: (patch: Partial<E
   if (obj.kind === "text") {
     const t = obj as TextEditorObject;
     return (
-      <div className="bg-white/5 border border-white/10 rounded-2xl p-3 space-y-3">
+      <div className="bg-white/[0.04]/5 border border-white/10 rounded-2xl p-3 space-y-3">
         <div className="text-[10px] font-black text-gray-300 uppercase tracking-wider">خصائص النص</div>
         <textarea
           value={t.text}
@@ -1009,7 +1009,7 @@ const PropertiesPanel: React.FC<{ obj: EditorObject; onUpdate: (patch: Partial<E
         />
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="text-[9px] text-gray-400 font-bold block mb-1">الخط</label>
+            <label className="text-[9px] text-slate-500 font-bold block mb-1">الخط</label>
             <select
               value={t.fontFamily}
               onChange={(e) => onUpdate({ fontFamily: e.target.value } as any)}
@@ -1023,7 +1023,7 @@ const PropertiesPanel: React.FC<{ obj: EditorObject; onUpdate: (patch: Partial<E
             </select>
           </div>
           <div>
-            <label className="text-[9px] text-gray-400 font-bold block mb-1">الحجم</label>
+            <label className="text-[9px] text-slate-500 font-bold block mb-1">الحجم</label>
             <input
               type="number"
               value={t.fontSize}
@@ -1034,7 +1034,7 @@ const PropertiesPanel: React.FC<{ obj: EditorObject; onUpdate: (patch: Partial<E
         </div>
         {/* Font weight selector — critical for Arabic text legibility */}
         <div>
-          <label className="text-[9px] text-gray-400 font-bold block mb-1">سُمك الخط</label>
+          <label className="text-[9px] text-slate-500 font-bold block mb-1">سُمك الخط</label>
           <select
             value={t.fontWeight}
             onChange={(e) => onUpdate({ fontWeight: parseInt(e.target.value) } as any)}
@@ -1049,7 +1049,7 @@ const PropertiesPanel: React.FC<{ obj: EditorObject; onUpdate: (patch: Partial<E
         </div>
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="text-[9px] text-gray-400 font-bold block mb-1">لون النص</label>
+            <label className="text-[9px] text-slate-500 font-bold block mb-1">لون النص</label>
             <input
               type="color"
               value={t.color}
@@ -1058,7 +1058,7 @@ const PropertiesPanel: React.FC<{ obj: EditorObject; onUpdate: (patch: Partial<E
             />
           </div>
           <div>
-            <label className="text-[9px] text-gray-400 font-bold block mb-1">لون الخلفية</label>
+            <label className="text-[9px] text-slate-500 font-bold block mb-1">لون الخلفية</label>
             <input
               type="color"
               value={t.bgColor}
@@ -1070,19 +1070,19 @@ const PropertiesPanel: React.FC<{ obj: EditorObject; onUpdate: (patch: Partial<E
         <div className="flex items-center gap-1">
           <button
             onClick={() => onUpdate({ bold: !t.bold } as any)}
-            className={`flex-1 py-1.5 rounded-md text-[10px] font-black cursor-pointer transition-all ${t.bold ? "bg-blue-600 text-white" : "bg-white/5 text-gray-300 hover:bg-white/10"}`}
+            className={`flex-1 py-1.5 rounded-md text-[10px] font-black cursor-pointer transition-all ${t.bold ? "bg-blue-600 text-white" : "bg-white/[0.04]/5 text-gray-300 hover:bg-white/[0.04]/10"}`}
           >
             <Bold className="h-3.5 w-3.5 mx-auto" />
           </button>
           <button
             onClick={() => onUpdate({ italic: !t.italic } as any)}
-            className={`flex-1 py-1.5 rounded-md text-[10px] font-black cursor-pointer transition-all ${t.italic ? "bg-blue-600 text-white" : "bg-white/5 text-gray-300 hover:bg-white/10"}`}
+            className={`flex-1 py-1.5 rounded-md text-[10px] font-black cursor-pointer transition-all ${t.italic ? "bg-blue-600 text-white" : "bg-white/[0.04]/5 text-gray-300 hover:bg-white/[0.04]/10"}`}
           >
             <Italic className="h-3.5 w-3.5 mx-auto" />
           </button>
           <button
             onClick={() => onUpdate({ underline: !t.underline } as any)}
-            className={`flex-1 py-1.5 rounded-md text-[10px] font-black cursor-pointer transition-all ${t.underline ? "bg-blue-600 text-white" : "bg-white/5 text-gray-300 hover:bg-white/10"}`}
+            className={`flex-1 py-1.5 rounded-md text-[10px] font-black cursor-pointer transition-all ${t.underline ? "bg-blue-600 text-white" : "bg-white/[0.04]/5 text-gray-300 hover:bg-white/[0.04]/10"}`}
           >
             <Underline className="h-3.5 w-3.5 mx-auto" />
           </button>
@@ -1090,19 +1090,19 @@ const PropertiesPanel: React.FC<{ obj: EditorObject; onUpdate: (patch: Partial<E
         <div className="flex items-center gap-1">
           <button
             onClick={() => onUpdate({ align: "right" } as any)}
-            className={`flex-1 py-1.5 rounded-md cursor-pointer transition-all ${t.align === "right" ? "bg-blue-600 text-white" : "bg-white/5 text-gray-300 hover:bg-white/10"}`}
+            className={`flex-1 py-1.5 rounded-md cursor-pointer transition-all ${t.align === "right" ? "bg-blue-600 text-white" : "bg-white/[0.04]/5 text-gray-300 hover:bg-white/[0.04]/10"}`}
           >
             <AlignRight className="h-3.5 w-3.5 mx-auto" />
           </button>
           <button
             onClick={() => onUpdate({ align: "center" } as any)}
-            className={`flex-1 py-1.5 rounded-md cursor-pointer transition-all ${t.align === "center" ? "bg-blue-600 text-white" : "bg-white/5 text-gray-300 hover:bg-white/10"}`}
+            className={`flex-1 py-1.5 rounded-md cursor-pointer transition-all ${t.align === "center" ? "bg-blue-600 text-white" : "bg-white/[0.04]/5 text-gray-300 hover:bg-white/[0.04]/10"}`}
           >
             <AlignCenter className="h-3.5 w-3.5 mx-auto" />
           </button>
           <button
             onClick={() => onUpdate({ align: "left" } as any)}
-            className={`flex-1 py-1.5 rounded-md cursor-pointer transition-all ${t.align === "left" ? "bg-blue-600 text-white" : "bg-white/5 text-gray-300 hover:bg-white/10"}`}
+            className={`flex-1 py-1.5 rounded-md cursor-pointer transition-all ${t.align === "left" ? "bg-blue-600 text-white" : "bg-white/[0.04]/5 text-gray-300 hover:bg-white/[0.04]/10"}`}
           >
             <AlignLeft className="h-3.5 w-3.5 mx-auto" />
           </button>
@@ -1135,7 +1135,7 @@ const PropertiesPanel: React.FC<{ obj: EditorObject; onUpdate: (patch: Partial<E
           <span>ظل خفيف (لوضوح النص فوق خلفيات مزدحمة)</span>
         </label>
         <div>
-          <label className="text-[9px] text-gray-400 font-bold block mb-1">الشفافية: {Math.round(t.opacity * 100)}%</label>
+          <label className="text-[9px] text-slate-500 font-bold block mb-1">الشفافية: {Math.round(t.opacity * 100)}%</label>
           <input
             type="range" min="0" max="100" value={t.opacity * 100}
             onChange={(e) => onUpdate({ opacity: parseInt(e.target.value) / 100 } as any)}
@@ -1148,11 +1148,11 @@ const PropertiesPanel: React.FC<{ obj: EditorObject; onUpdate: (patch: Partial<E
   if (obj.kind === "rect" || obj.kind === "ellipse" || obj.kind === "line" || obj.kind === "arrow") {
     const s = obj as ShapeEditorObject;
     return (
-      <div className="bg-white/5 border border-white/10 rounded-2xl p-3 space-y-3">
+      <div className="bg-white/[0.04]/5 border border-white/10 rounded-2xl p-3 space-y-3">
         <div className="text-[10px] font-black text-gray-300 uppercase tracking-wider">خصائص الشكل</div>
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="text-[9px] text-gray-400 font-bold block mb-1">لون الحدود</label>
+            <label className="text-[9px] text-slate-500 font-bold block mb-1">لون الحدود</label>
             <input
               type="color"
               value={s.strokeColor}
@@ -1161,7 +1161,7 @@ const PropertiesPanel: React.FC<{ obj: EditorObject; onUpdate: (patch: Partial<E
             />
           </div>
           <div>
-            <label className="text-[9px] text-gray-400 font-bold block mb-1">لون التعبئة</label>
+            <label className="text-[9px] text-slate-500 font-bold block mb-1">لون التعبئة</label>
             <input
               type="color"
               value={s.fillColor}
@@ -1171,7 +1171,7 @@ const PropertiesPanel: React.FC<{ obj: EditorObject; onUpdate: (patch: Partial<E
           </div>
         </div>
         <div>
-          <label className="text-[9px] text-gray-400 font-bold block mb-1">سماكة الحدود: {s.strokeWidth}px</label>
+          <label className="text-[9px] text-slate-500 font-bold block mb-1">سماكة الحدود: {s.strokeWidth}px</label>
           <input
             type="range" min="1" max="20" value={s.strokeWidth}
             onChange={(e) => onUpdate({ strokeWidth: parseInt(e.target.value) } as any)}
@@ -1188,7 +1188,7 @@ const PropertiesPanel: React.FC<{ obj: EditorObject; onUpdate: (patch: Partial<E
           <span>تعبئة لونية</span>
         </label>
         <div>
-          <label className="text-[9px] text-gray-400 font-bold block mb-1">الشفافية: {Math.round(s.opacity * 100)}%</label>
+          <label className="text-[9px] text-slate-500 font-bold block mb-1">الشفافية: {Math.round(s.opacity * 100)}%</label>
           <input
             type="range" min="0" max="100" value={s.opacity * 100}
             onChange={(e) => onUpdate({ opacity: parseInt(e.target.value) / 100 } as any)}
@@ -1197,7 +1197,7 @@ const PropertiesPanel: React.FC<{ obj: EditorObject; onUpdate: (patch: Partial<E
         </div>
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="text-[9px] text-gray-400 font-bold block mb-1">X</label>
+            <label className="text-[9px] text-slate-500 font-bold block mb-1">X</label>
             <input
               type="number" value={Math.round(s.x)}
               onChange={(e) => onUpdate({ x: parseInt(e.target.value) || 0 } as any)}
@@ -1205,7 +1205,7 @@ const PropertiesPanel: React.FC<{ obj: EditorObject; onUpdate: (patch: Partial<E
             />
           </div>
           <div>
-            <label className="text-[9px] text-gray-400 font-bold block mb-1">Y</label>
+            <label className="text-[9px] text-slate-500 font-bold block mb-1">Y</label>
             <input
               type="number" value={Math.round(s.y)}
               onChange={(e) => onUpdate({ y: parseInt(e.target.value) || 0 } as any)}
@@ -1213,7 +1213,7 @@ const PropertiesPanel: React.FC<{ obj: EditorObject; onUpdate: (patch: Partial<E
             />
           </div>
           <div>
-            <label className="text-[9px] text-gray-400 font-bold block mb-1">العرض</label>
+            <label className="text-[9px] text-slate-500 font-bold block mb-1">العرض</label>
             <input
               type="number" value={Math.round(s.width)}
               onChange={(e) => onUpdate({ width: parseInt(e.target.value) || 10 } as any)}
@@ -1221,7 +1221,7 @@ const PropertiesPanel: React.FC<{ obj: EditorObject; onUpdate: (patch: Partial<E
             />
           </div>
           <div>
-            <label className="text-[9px] text-gray-400 font-bold block mb-1">الارتفاع</label>
+            <label className="text-[9px] text-slate-500 font-bold block mb-1">الارتفاع</label>
             <input
               type="number" value={Math.round(s.height)}
               onChange={(e) => onUpdate({ height: parseInt(e.target.value) || 10 } as any)}
@@ -1230,7 +1230,7 @@ const PropertiesPanel: React.FC<{ obj: EditorObject; onUpdate: (patch: Partial<E
           </div>
         </div>
         <div>
-          <label className="text-[9px] text-gray-400 font-bold block mb-1">التدوير: {Math.round(s.rotation)}°</label>
+          <label className="text-[9px] text-slate-500 font-bold block mb-1">التدوير: {Math.round(s.rotation)}°</label>
           <input
             type="range" min="0" max="360" value={s.rotation}
             onChange={(e) => onUpdate({ rotation: parseInt(e.target.value) } as any)}
@@ -1243,10 +1243,10 @@ const PropertiesPanel: React.FC<{ obj: EditorObject; onUpdate: (patch: Partial<E
   if (obj.kind === "image") {
     const im = obj as ImageEditorObject;
     return (
-      <div className="bg-white/5 border border-white/10 rounded-2xl p-3 space-y-3">
+      <div className="bg-white/[0.04]/5 border border-white/10 rounded-2xl p-3 space-y-3">
         <div className="text-[10px] font-black text-gray-300 uppercase tracking-wider">خصائص الصورة</div>
         <div>
-          <label className="text-[9px] text-gray-400 font-bold block mb-1">العرض</label>
+          <label className="text-[9px] text-slate-500 font-bold block mb-1">العرض</label>
           <input
             type="number" value={Math.round(im.width)}
             onChange={(e) => onUpdate({ width: parseInt(e.target.value) || 10 } as any)}
@@ -1254,7 +1254,7 @@ const PropertiesPanel: React.FC<{ obj: EditorObject; onUpdate: (patch: Partial<E
           />
         </div>
         <div>
-          <label className="text-[9px] text-gray-400 font-bold block mb-1">الارتفاع</label>
+          <label className="text-[9px] text-slate-500 font-bold block mb-1">الارتفاع</label>
           <input
             type="number" value={Math.round(im.height)}
             onChange={(e) => onUpdate({ height: parseInt(e.target.value) || 10 } as any)}
@@ -1262,7 +1262,7 @@ const PropertiesPanel: React.FC<{ obj: EditorObject; onUpdate: (patch: Partial<E
           />
         </div>
         <div>
-          <label className="text-[9px] text-gray-400 font-bold block mb-1">الشفافية: {Math.round(im.opacity * 100)}%</label>
+          <label className="text-[9px] text-slate-500 font-bold block mb-1">الشفافية: {Math.round(im.opacity * 100)}%</label>
           <input
             type="range" min="0" max="100" value={im.opacity * 100}
             onChange={(e) => onUpdate({ opacity: parseInt(e.target.value) / 100 } as any)}
@@ -1270,7 +1270,7 @@ const PropertiesPanel: React.FC<{ obj: EditorObject; onUpdate: (patch: Partial<E
           />
         </div>
         <div>
-          <label className="text-[9px] text-gray-400 font-bold block mb-1">التدوير: {Math.round(im.rotation)}°</label>
+          <label className="text-[9px] text-slate-500 font-bold block mb-1">التدوير: {Math.round(im.rotation)}°</label>
           <input
             type="range" min="0" max="360" value={im.rotation}
             onChange={(e) => onUpdate({ rotation: parseInt(e.target.value) } as any)}
@@ -1300,15 +1300,15 @@ const LayersPanel: React.FC<{ activePage: number }> = ({ activePage }) => {
   const pageObjects = objects.filter((o) => o.page === activePage).sort((a, b) => b.zIndex - a.zIndex);
 
   return (
-    <div className="bg-white/5 border border-white/10 rounded-2xl p-3 space-y-2 h-full">
+    <div className="bg-white/[0.04]/5 border border-white/10 rounded-2xl p-3 space-y-2 h-full">
       <div className="flex items-center justify-between">
         <div className="text-[10px] font-black text-gray-300 uppercase tracking-wider">الطبقات</div>
-        <span className="text-[10px] font-bold text-gray-400">{pageObjects.length}</span>
+        <span className="text-[10px] font-bold text-slate-500">{pageObjects.length}</span>
       </div>
-      <div className="text-[10px] text-gray-400 font-bold">صفحة {activePage}</div>
+      <div className="text-[10px] text-slate-500 font-bold">صفحة {activePage}</div>
       <div className="space-y-1 max-h-[500px] overflow-y-auto safe-scrollbar">
         {pageObjects.length === 0 ? (
-          <div className="text-center text-[10px] text-gray-500 font-bold py-8">
+          <div className="text-center text-[10px] text-slate-500 font-bold py-8">
             لا توجد طبقات بعد.
             <br />
             استخدم أدوات اليسار لإضافة عناصر.
@@ -1319,7 +1319,7 @@ const LayersPanel: React.FC<{ activePage: number }> = ({ activePage }) => {
               key={obj.id}
               onClick={() => selectObject(obj.id)}
               className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-all ${
-                selectedId === obj.id ? "bg-blue-600/20 border border-blue-500/40" : "bg-white/5 hover:bg-white/10 border border-transparent"
+                selectedId === obj.id ? "bg-blue-600/20 border border-blue-500/40" : "bg-white/[0.04]/5 hover:bg-white/[0.04]/10 border border-transparent"
               }`}
             >
               <button
@@ -1327,7 +1327,7 @@ const LayersPanel: React.FC<{ activePage: number }> = ({ activePage }) => {
                   e.stopPropagation();
                   toggleVisible(obj.id);
                 }}
-                className="text-gray-400 hover:text-white transition-colors"
+                className="text-slate-500 hover:text-white transition-colors"
               >
                 {obj.visible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
               </button>
@@ -1336,7 +1336,7 @@ const LayersPanel: React.FC<{ activePage: number }> = ({ activePage }) => {
                   e.stopPropagation();
                   toggleLocked(obj.id);
                 }}
-                className="text-gray-400 hover:text-white transition-colors"
+                className="text-slate-500 hover:text-white transition-colors"
               >
                 {obj.locked ? <Lock className="h-3.5 w-3.5 text-amber-400" /> : <Unlock className="h-3.5 w-3.5" />}
               </button>
@@ -1357,7 +1357,7 @@ const LayersPanel: React.FC<{ activePage: number }> = ({ activePage }) => {
                     bringToFront(obj.id);
                   }}
                   title="للأمام"
-                  className="text-gray-400 hover:text-white p-0.5"
+                  className="text-slate-500 hover:text-white p-0.5"
                 >
                   <ChevronUp className="h-3 w-3" />
                 </button>
@@ -1367,7 +1367,7 @@ const LayersPanel: React.FC<{ activePage: number }> = ({ activePage }) => {
                     sendToBack(obj.id);
                   }}
                   title="للخلف"
-                  className="text-gray-400 hover:text-white p-0.5"
+                  className="text-slate-500 hover:text-white p-0.5"
                 >
                   <ChevronDown className="h-3 w-3" />
                 </button>

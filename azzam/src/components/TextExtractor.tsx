@@ -170,7 +170,7 @@ export const TextExtractor: React.FC<TextExtractorProps> = ({
       <>
         {parts.map((part, i) => 
           part.toLowerCase() === searchTerm.toLowerCase() ? (
-            <mark key={i} className="bg-yellow-200 text-gray-900 rounded-sm px-0.5 font-bold animate-pulse">
+            <mark key={i} className="bg-yellow-200 text-white rounded-sm px-0.5 font-bold animate-pulse">
               {part}
             </mark>
           ) : (
@@ -182,30 +182,30 @@ export const TextExtractor: React.FC<TextExtractorProps> = ({
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-3xs max-w-4xl mx-auto select-none space-y-6 text-right">
+    <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-6 shadow-3xs max-w-4xl mx-auto select-none space-y-6 text-right">
       
       {/* Brand Header & Mode Selector */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 pb-5">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/[0.08] pb-5">
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-50 to-indigo-100 text-indigo-600 border border-indigo-200/50">
             <FileText className="h-6 w-6 animate-pulse" />
           </div>
           <div>
-            <h3 className="text-sm font-black text-gray-800">منظومة استخراج وقراءة النصوص الذكية</h3>
-            <p className="text-[10px] text-gray-400 font-bold leading-normal">
+            <h3 className="text-sm font-black text-white">منظومة استخراج وقراءة النصوص الذكية</h3>
+            <p className="text-[10px] text-slate-500 font-bold leading-normal">
               تحليل وقراءة مستندات PDF رقمياً، أو تطبيق الـ OCR السحابي الشامل للصور الممسوحة ضوئياً.
             </p>
           </div>
         </div>
 
         {/* Mode Selector Tab */}
-        <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl border border-gray-200 self-start md:self-auto">
+        <div className="flex items-center gap-1 bg-white/[0.05] p-1 rounded-xl border border-white/[0.08] self-start md:self-auto">
           <button
             onClick={() => setMode("pdf")}
             className={`px-4 py-1.5 text-xs font-black rounded-lg transition-all cursor-pointer ${
               mode === "pdf"
-                ? "bg-white text-indigo-600 shadow-3xs"
-                : "text-gray-500 hover:text-gray-900"
+                ? "bg-white/[0.04] text-indigo-600 shadow-3xs"
+                : "text-slate-500 hover:text-white"
             }`}
           >
             استخراج نصوص PDF رقمياً
@@ -214,8 +214,8 @@ export const TextExtractor: React.FC<TextExtractorProps> = ({
             onClick={() => setMode("ocr")}
             className={`px-4 py-1.5 text-xs font-black rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
               mode === "ocr"
-                ? "bg-white text-indigo-600 shadow-3xs"
-                : "text-gray-500 hover:text-gray-900"
+                ? "bg-white/[0.04] text-indigo-600 shadow-3xs"
+                : "text-slate-500 hover:text-white"
             }`}
           >
             <Sparkles className="h-3.5 w-3.5" />
@@ -226,7 +226,7 @@ export const TextExtractor: React.FC<TextExtractorProps> = ({
 
       {/* Network HUD Progress Alert */}
       {networkProgress.isActive && (
-        <div className="bg-indigo-50/70 border border-indigo-100 rounded-xl p-4 text-indigo-900 animate-pulse text-xs font-bold flex flex-col gap-2">
+        <div className="bg-indigo-500/10/70 border border-indigo-500/20 rounded-xl p-4 text-indigo-200 animate-pulse text-xs font-bold flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-2">
               <RefreshCw className="h-4 w-4 animate-spin text-indigo-600" />
@@ -255,15 +255,15 @@ export const TextExtractor: React.FC<TextExtractorProps> = ({
       {mode === "pdf" ? (
         <>
           {/* Controls */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gray-50 p-3 rounded-xl border border-gray-150">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/[0.02] p-3 rounded-xl border border-white/[0.08]">
             {/* View Toggle */}
-            <div className="flex items-center gap-1 bg-white border border-gray-200 p-1 rounded-lg shadow-3xs self-start">
+            <div className="flex items-center gap-1 bg-white/[0.04] border border-white/[0.08] p-1 rounded-lg shadow-3xs self-start">
               <button
                 onClick={() => setActiveView("full")}
                 className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
                   activeView === "full"
                     ? "bg-indigo-600 text-white shadow-3xs"
-                    : "text-gray-550 hover:text-gray-900"
+                    : "text-gray-550 hover:text-white"
                 }`}
               >
                 النص الكامل للمستند
@@ -273,7 +273,7 @@ export const TextExtractor: React.FC<TextExtractorProps> = ({
                 className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
                   activeView === "pages"
                     ? "bg-indigo-600 text-white shadow-3xs"
-                    : "text-gray-550 hover:text-gray-900"
+                    : "text-gray-550 hover:text-white"
                 }`}
               >
                 تصفح صفحة بصفحة
@@ -282,28 +282,28 @@ export const TextExtractor: React.FC<TextExtractorProps> = ({
 
             {/* Search Input */}
             <div className="relative flex-1 max-w-md">
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="ابحث عن كلمة أو عبارة داخل النص المستخرج..."
-                className="w-full text-xs bg-white border border-gray-200 rounded-lg pr-9 pl-4 py-2 font-bold placeholder-gray-400 focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                className="w-full text-xs bg-white/[0.04] border border-white/[0.08] rounded-lg pr-9 pl-4 py-2 font-bold placeholder-gray-400 focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
               />
             </div>
           </div>
 
           {/* Page Selector */}
           {activeView === "pages" && pageTexts.length > 0 && (
-            <div className="flex items-center gap-2 overflow-x-auto py-1 safe-scrollbar border-b border-gray-100 max-w-full">
+            <div className="flex items-center gap-2 overflow-x-auto py-1 safe-scrollbar border-b border-white/[0.08] max-w-full">
               {pageTexts.map((p) => (
                 <button
                   key={p.pageNum}
                   onClick={() => setActivePage(p.pageNum)}
                   className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-all cursor-pointer shrink-0 ${
                     activePage === p.pageNum
-                      ? "border-indigo-600 bg-indigo-50 text-indigo-700 font-extrabold"
-                      : "border-gray-200 bg-white hover:border-gray-300 text-gray-600"
+                      ? "border-indigo-600 bg-indigo-500/10 text-indigo-700 font-extrabold"
+                      : "border-white/[0.08] bg-white/[0.04] hover:border-white/10 text-slate-400"
                   }`}
                 >
                   الصفحة {p.pageNum}
@@ -313,18 +313,18 @@ export const TextExtractor: React.FC<TextExtractorProps> = ({
           )}
 
           {/* Text Area */}
-          <div className="relative bg-gray-50/50 border border-gray-200 rounded-xl p-5 h-[340px] flex flex-col justify-between">
-            <div className="overflow-y-auto safe-scrollbar flex-1 text-xs font-bold text-gray-700 leading-relaxed whitespace-pre-wrap font-sans text-right select-text">
+          <div className="relative bg-white/[0.02]/50 border border-white/[0.08] rounded-xl p-5 h-[340px] flex flex-col justify-between">
+            <div className="overflow-y-auto safe-scrollbar flex-1 text-xs font-bold text-slate-300 leading-relaxed whitespace-pre-wrap font-sans text-right select-text">
               {isProcessing ? (
                 <div className="flex flex-col items-center justify-center h-full gap-2 animate-pulse">
                   <RefreshCw className="h-7 w-7 text-indigo-600 animate-spin" />
-                  <span className="text-gray-400">جاري مسح ومعالجة المستند رقمياً...</span>
+                  <span className="text-slate-500">جاري مسح ومعالجة المستند رقمياً...</span>
                 </div>
               ) : !extractedText ? (
                 <div className="flex flex-col items-center justify-center h-full text-center p-6 gap-2">
                   <FileCode className="h-10 w-10 text-gray-300" />
-                  <span className="text-gray-400 font-extrabold">لا يوجد نصوص قابلة للاستخراج في هذا المستند!</span>
-                  <p className="text-[10px] text-gray-400 max-w-md font-semibold">
+                  <span className="text-slate-500 font-extrabold">لا يوجد نصوص قابلة للاستخراج في هذا المستند!</span>
+                  <p className="text-[10px] text-slate-500 max-w-md font-semibold">
                     قم برفع ملف PDF يحتوي على نصوص مدمجة رقمياً في قسم التعديل، أو انتقل إلى علامة التبويب "قارئ الصور والمسح الضوئي" لمعالجة الصور والصفحات الممسوحة ضوئياً.
                   </p>
                 </div>
@@ -337,19 +337,19 @@ export const TextExtractor: React.FC<TextExtractorProps> = ({
 
             {/* Actions Footer */}
             {extractedText && !isProcessing && (
-              <div className="border-t border-gray-200/80 pt-3 mt-3 flex flex-col sm:flex-row items-center justify-between gap-3 text-[10px] text-gray-400 font-extrabold shrink-0">
+              <div className="border-t border-white/[0.08]/80 pt-3 mt-3 flex flex-col sm:flex-row items-center justify-between gap-3 text-[10px] text-slate-500 font-extrabold shrink-0">
                 <span className="flex items-center gap-1 text-indigo-600">
                   <Sparkles className="h-3.5 w-3.5" />
                   <span>تم استخراج النص رقمياً بنجاح وسرعة فائقة.</span>
                 </span>
                 <div className="flex items-center gap-4">
-                  <span>عدد الكلمات: <strong className="text-gray-700 font-black">{wordCount}</strong></span>
-                  <span>عدد الرموز: <strong className="text-gray-700 font-black">{characterCount}</strong></span>
+                  <span>عدد الكلمات: <strong className="text-slate-300 font-black">{wordCount}</strong></span>
+                  <span>عدد الرموز: <strong className="text-slate-300 font-black">{characterCount}</strong></span>
                   <button 
                     onClick={handleCopy}
                     className="flex items-center gap-1.5 text-indigo-600 hover:text-indigo-800 font-black transition-colors cursor-pointer"
                   >
-                    {copied ? <Check className="h-3.5 w-3.5 text-google-green" /> : <Copy className="h-3.5 w-3.5" />}
+                    {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
                     <span>{copied ? "تم النسخ!" : "نسخ النص"}</span>
                   </button>
                   <button 
@@ -377,8 +377,8 @@ export const TextExtractor: React.FC<TextExtractorProps> = ({
                 onClick={() => fileInputRef.current?.click()}
                 className={`border-2 border-dashed rounded-2xl p-10 text-center flex flex-col items-center justify-center gap-4 cursor-pointer transition-all duration-300 ${
                   dragActive 
-                    ? "border-indigo-600 bg-indigo-50/50 scale-[0.99]" 
-                    : "border-gray-200 hover:border-indigo-500 hover:bg-gray-50/50"
+                    ? "border-indigo-600 bg-indigo-500/10/50 scale-[0.99]" 
+                    : "border-white/[0.08] hover:border-indigo-500 hover:bg-white/[0.02]/50"
                 }`}
               >
                 <input 
@@ -388,12 +388,12 @@ export const TextExtractor: React.FC<TextExtractorProps> = ({
                   accept="image/*" 
                   className="hidden" 
                 />
-                <div className="h-14 w-14 rounded-full bg-indigo-50 border border-indigo-100/50 text-indigo-600 flex items-center justify-center shadow-3xs">
+                <div className="h-14 w-14 rounded-full bg-indigo-500/10 border border-indigo-500/20/50 text-indigo-600 flex items-center justify-center shadow-3xs">
                   <Upload className="h-6 w-6 animate-bounce" />
                 </div>
                 <div>
-                  <h4 className="text-xs font-black text-gray-800">اسحب وأفلت صورة مستندك هنا لتطبيق الـ OCR</h4>
-                  <p className="text-[10px] text-gray-400 mt-1 font-bold">
+                  <h4 className="text-xs font-black text-white">اسحب وأفلت صورة مستندك هنا لتطبيق الـ OCR</h4>
+                  <p className="text-[10px] text-slate-500 mt-1 font-bold">
                     يدعم الملفات ممسوحة ضوئياً وصور المخطوطات والكتب بصيغ PNG, JPEG, WebP.
                   </p>
                 </div>
@@ -402,12 +402,12 @@ export const TextExtractor: React.FC<TextExtractorProps> = ({
                 </button>
               </div>
             ) : (
-              <div className="relative bg-gray-50/50 border border-gray-200 rounded-xl p-5 h-[340px] flex flex-col justify-between">
-                <div className="overflow-y-auto safe-scrollbar flex-1 text-xs font-bold text-gray-700 leading-relaxed whitespace-pre-wrap font-sans text-right select-text">
+              <div className="relative bg-white/[0.02]/50 border border-white/[0.08] rounded-xl p-5 h-[340px] flex flex-col justify-between">
+                <div className="overflow-y-auto safe-scrollbar flex-1 text-xs font-bold text-slate-300 leading-relaxed whitespace-pre-wrap font-sans text-right select-text">
                   {isOcrProcessing ? (
                     <div className="flex flex-col items-center justify-center h-full gap-2 animate-pulse">
                       <RefreshCw className="h-7 w-7 text-indigo-600 animate-spin" />
-                      <span className="text-gray-400">جاري قراءة وتحليل الكلمات بالكامل سحابياً...</span>
+                      <span className="text-slate-500">جاري قراءة وتحليل الكلمات بالكامل سحابياً...</span>
                     </div>
                   ) : (
                     <div className="pr-1 pl-1">
@@ -418,19 +418,19 @@ export const TextExtractor: React.FC<TextExtractorProps> = ({
 
                 {/* OCR Actions Footer */}
                 {ocrText && !isOcrProcessing && (
-                  <div className="border-t border-gray-200/80 pt-3 mt-3 flex flex-col sm:flex-row items-center justify-between gap-3 text-[10px] text-gray-400 font-extrabold shrink-0">
+                  <div className="border-t border-white/[0.08]/80 pt-3 mt-3 flex flex-col sm:flex-row items-center justify-between gap-3 text-[10px] text-slate-500 font-extrabold shrink-0">
                     <span className="flex items-center gap-1 text-indigo-600">
                       <Sparkles className="h-3.5 w-3.5" />
-                      <span>الملف: <strong className="text-gray-700 font-black">{ocrFileName}</strong></span>
+                      <span>الملف: <strong className="text-slate-300 font-black">{ocrFileName}</strong></span>
                     </span>
                     <div className="flex items-center gap-4">
-                      <span>عدد الكلمات: <strong className="text-gray-700 font-black">{wordCount}</strong></span>
-                      <span>عدد الرموز: <strong className="text-gray-700 font-black">{characterCount}</strong></span>
+                      <span>عدد الكلمات: <strong className="text-slate-300 font-black">{wordCount}</strong></span>
+                      <span>عدد الرموز: <strong className="text-slate-300 font-black">{characterCount}</strong></span>
                       <button 
                         onClick={handleCopy}
                         className="flex items-center gap-1.5 text-indigo-600 hover:text-indigo-800 font-black transition-colors cursor-pointer"
                       >
-                        {copied ? <Check className="h-3.5 w-3.5 text-google-green" /> : <Copy className="h-3.5 w-3.5" />}
+                        {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
                         <span>{copied ? "تم النسخ!" : "نسخ النص"}</span>
                       </button>
                       <button 
@@ -460,7 +460,7 @@ export const TextExtractor: React.FC<TextExtractorProps> = ({
       )}
 
       {/* Guidance box */}
-      <div className="p-3.5 bg-indigo-50/40 border border-indigo-100/60 rounded-xl text-[11px] font-bold text-indigo-800 leading-relaxed flex items-start gap-2">
+      <div className="p-3.5 bg-indigo-500/10/40 border border-indigo-500/20/60 rounded-xl text-[11px] font-bold text-indigo-800 leading-relaxed flex items-start gap-2">
         <Sparkles className="h-4.5 w-4.5 text-indigo-600 shrink-0 mt-0.5 animate-pulse" />
         <div>
           <span>ميزة تصدير وقراءة النصوص الذكية من عزَّام:</span>

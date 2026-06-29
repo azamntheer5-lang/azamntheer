@@ -460,24 +460,24 @@ export const Scanner: React.FC<ScannerProps> = ({
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-3xs max-w-5xl mx-auto select-none space-y-6 text-right">
+    <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-6 shadow-3xs max-w-5xl mx-auto select-none space-y-6 text-right">
       
       {/* Vip Brand Banner for Azzam's Scanner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 pb-5">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/[0.08] pb-5">
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 text-white shadow-md shadow-amber-500/20">
             <Camera className="h-6 w-6 animate-pulse" />
           </div>
           <div>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-0.5 text-[10px] font-black text-amber-700 border border-amber-200/50 mb-1">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-black text-amber-700 border border-amber-200/50 mb-1">
               <Sparkles className="h-3 w-3 text-amber-500" />
               أداة مدمجة فائقة الدقة والوضوح
             </span>
-            <h3 className="text-base font-black text-gray-800 flex items-center gap-1.5">
+            <h3 className="text-base font-black text-white flex items-center gap-1.5">
               <span>ماسح عـزَّام الضوئي الاحترافي</span>
               <span className="text-xs text-amber-600 font-bold">(Azzam Smart Scan)</span>
             </h3>
-            <p className="text-xs text-gray-400 font-semibold mt-0.5">
+            <p className="text-xs text-slate-500 font-semibold mt-0.5">
               أقوى ماسح ضوئي ذكي في متصفحك يعزز جودة الصور، يطهر الخلفيات، ويحول الأوراق لمستندات PDF مطبوعة ونقية تماماً.
             </p>
           </div>
@@ -485,7 +485,7 @@ export const Scanner: React.FC<ScannerProps> = ({
 
         {/* Counter */}
         {scannedPages.length > 0 && (
-          <div className="flex items-center gap-2 bg-amber-50 border border-amber-100 px-3.5 py-1.5 rounded-xl self-start">
+          <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-100 px-3.5 py-1.5 rounded-xl self-start">
             <span className="h-2 w-2 rounded-full bg-amber-500 animate-ping" />
             <span className="text-xs font-black text-amber-800">
               عدد الصفحات الملتقطة: {scannedPages.length}
@@ -510,8 +510,8 @@ export const Scanner: React.FC<ScannerProps> = ({
               <div className="h-16 w-16 bg-amber-100 group-hover:bg-amber-200 text-amber-600 rounded-2xl flex items-center justify-center mb-4 transition-colors">
                 <Camera className="h-8 w-8" />
               </div>
-              <h4 className="text-sm font-black text-gray-800 mb-1">فتح كاميرا الجهاز والموبايل</h4>
-              <p className="text-xs text-gray-400 max-w-xs font-semibold leading-relaxed">
+              <h4 className="text-sm font-black text-white mb-1">فتح كاميرا الجهاز والموبايل</h4>
+              <p className="text-xs text-slate-500 max-w-xs font-semibold leading-relaxed">
                 مسح المستندات حياً باستخدام كاميرا الكمبيوتر أو الهاتف مع ميزة كشف الزوايا التلقائي وتصحيح الإضاءة.
               </p>
             </button>
@@ -524,17 +524,17 @@ export const Scanner: React.FC<ScannerProps> = ({
                 onChange={handlePhotoUpload}
                 className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
               />
-              <div className="h-16 w-16 bg-indigo-50 group-hover:bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mb-4 transition-colors">
+              <div className="h-16 w-16 bg-indigo-500/10 group-hover:bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mb-4 transition-colors">
                 <Upload className="h-8 w-8" />
               </div>
-              <h4 className="text-sm font-black text-gray-800 mb-1">معالجة صورة مستند جاهزة</h4>
-              <p className="text-xs text-gray-400 max-w-xs font-semibold leading-relaxed">
+              <h4 className="text-sm font-black text-white mb-1">معالجة صورة مستند جاهزة</h4>
+              <p className="text-xs text-slate-500 max-w-xs font-semibold leading-relaxed">
                 ارفع صورة تم التقاطها مسبقاً من ألبوم الصور الخاص بك لتحسينها وتحويلها فوراً إلى صفحة مستند رسمية مبيّضة وممسوحة ضوئياً.
               </p>
             </div>
           </motion.div>
 
-          <div className="mt-8 flex items-center justify-center gap-2 text-xs text-gray-400 font-bold max-w-md">
+          <div className="mt-8 flex items-center justify-center gap-2 text-xs text-slate-500 font-bold max-w-md">
             <Sparkle className="h-4 w-4 text-amber-500" />
             <span>يدعم معالجة متطورة بكسل تلو الآخر لتصفية الورق، إزالة الظلال، وجعل النصوص والخطوط فائقة الوضوح.</span>
           </div>
@@ -544,13 +544,13 @@ export const Scanner: React.FC<ScannerProps> = ({
       {/* VIEW: Capture Mode (Camera Active Feed) */}
       {source === "camera" && viewMode === "capture" && (
         <div className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3 bg-gray-50 p-3 rounded-xl border border-gray-150">
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-white/[0.02] p-3 rounded-xl border border-white/[0.08]">
             <div className="flex items-center gap-2">
-              <label className="text-xs font-black text-gray-700">اختر الكاميرا النشطة:</label>
+              <label className="text-xs font-black text-slate-300">اختر الكاميرا النشطة:</label>
               <select
                 value={selectedDeviceId}
                 onChange={(e) => setSelectedDeviceId(e.target.value)}
-                className="text-xs font-bold border border-gray-200 bg-white rounded-lg px-2 py-1 focus:outline-hidden"
+                className="text-xs font-bold border border-white/[0.08] bg-white/[0.04] rounded-lg px-2 py-1 focus:outline-hidden"
               >
                 {devices.map((d) => (
                   <option key={d.deviceId} value={d.deviceId}>
@@ -562,7 +562,7 @@ export const Scanner: React.FC<ScannerProps> = ({
 
             <button
               onClick={() => { setSource(null); stopCamera(); }}
-              className="text-xs font-bold text-gray-550 hover:text-gray-900 border border-gray-200 bg-white px-3 py-1.5 rounded-lg cursor-pointer"
+              className="text-xs font-bold text-gray-550 hover:text-white border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 rounded-lg cursor-pointer"
             >
               إلغاء والعودة
             </button>
@@ -579,7 +579,7 @@ export const Scanner: React.FC<ScannerProps> = ({
             ) : (
               <div className="flex flex-col items-center justify-center text-center p-6 gap-2">
                 <RefreshCw className="h-8 w-8 text-amber-500 animate-spin" />
-                <span className="text-xs text-gray-400 font-bold">جاري تشغيل عدسة الكاميرا عالية الدقة...</span>
+                <span className="text-xs text-slate-500 font-bold">جاري تشغيل عدسة الكاميرا عالية الدقة...</span>
               </div>
             )}
 
@@ -618,7 +618,7 @@ export const Scanner: React.FC<ScannerProps> = ({
                 className="h-16 w-16 rounded-full bg-red-600 hover:bg-red-700 border-4 border-white shadow-xl flex items-center justify-center cursor-pointer transition-transform hover:scale-105 active:scale-95"
                 title="التقاط صورة المستند الآن"
               >
-                <div className="h-6 w-6 rounded-full bg-white animate-pulse" />
+                <div className="h-6 w-6 rounded-full bg-white/[0.04] animate-pulse" />
               </button>
             </div>
           )}
@@ -631,12 +631,12 @@ export const Scanner: React.FC<ScannerProps> = ({
           
           {/* Left panel: Preview Canvas with filter/crop render */}
           <div className="lg:col-span-8 space-y-4">
-            <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 flex items-center justify-center relative min-h-[400px]">
+            <div className="bg-white/[0.02] border border-white/[0.08] rounded-2xl p-4 flex items-center justify-center relative min-h-[400px]">
               
               {/* Filter rendering canvas */}
               <canvas
                 ref={editCanvasRef}
-                className="max-w-full max-h-[460px] object-contain rounded-lg shadow-sm bg-white"
+                className="max-w-full max-h-[460px] object-contain rounded-lg shadow-sm bg-white/[0.04]"
               />
 
               {/* Crop control point overlay (Interactive mockup helper for perfect alignment) */}
@@ -660,10 +660,10 @@ export const Scanner: React.FC<ScannerProps> = ({
             </div>
 
             {/* Micro adjustments panel */}
-            <div className="flex flex-wrap items-center justify-center gap-4 bg-gray-50 border border-gray-200 p-3.5 rounded-xl">
+            <div className="flex flex-wrap items-center justify-center gap-4 bg-white/[0.02] border border-white/[0.08] p-3.5 rounded-xl">
               <button
                 onClick={handleRotateActive}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 hover:border-gray-300 rounded-lg text-xs font-bold text-gray-700 cursor-pointer shadow-3xs"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-white/[0.04] border border-white/[0.08] hover:border-white/10 rounded-lg text-xs font-bold text-slate-300 cursor-pointer shadow-3xs"
               >
                 <RotateCw className="h-3.5 w-3.5 text-indigo-600" />
                 <span>تدوير الصفحة 90°</span>
@@ -674,7 +674,7 @@ export const Scanner: React.FC<ScannerProps> = ({
                 className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-lg text-xs font-bold cursor-pointer shadow-3xs transition-all ${
                   isCropping 
                     ? "bg-amber-500 border-amber-500 text-white font-black" 
-                    : "bg-white border-gray-200 hover:border-gray-300 text-gray-700"
+                    : "bg-white/[0.04] border-white/[0.08] hover:border-white/10 text-slate-300"
                 }`}
               >
                 <Crop className="h-3.5 w-3.5" />
@@ -696,8 +696,8 @@ export const Scanner: React.FC<ScannerProps> = ({
           <div className="lg:col-span-4 space-y-5">
             
             {/* 1. Filter selectors */}
-            <div className="bg-gray-50 border border-gray-150 rounded-2xl p-4.5 space-y-3.5">
-              <h4 className="text-xs font-black text-gray-800 flex items-center gap-1.5">
+            <div className="bg-white/[0.02] border border-white/[0.08] rounded-2xl p-4.5 space-y-3.5">
+              <h4 className="text-xs font-black text-white flex items-center gap-1.5">
                 <Sliders className="h-4 w-4 text-amber-500" />
                 <span>اختر فلتر التبييض والمسح:</span>
               </h4>
@@ -715,29 +715,29 @@ export const Scanner: React.FC<ScannerProps> = ({
                     onClick={() => setActiveFilter(f.id as any)}
                     className={`p-3 rounded-xl text-right border transition-all cursor-pointer flex flex-col ${
                       activeFilter === f.id
-                        ? "border-amber-500 bg-amber-50/50 shadow-3xs"
-                        : "border-gray-200 bg-white hover:border-gray-300"
+                        ? "border-amber-500 bg-amber-500/10/50 shadow-3xs"
+                        : "border-white/[0.08] bg-white/[0.04] hover:border-white/10"
                     }`}
                   >
-                    <span className={`text-xs font-black ${activeFilter === f.id ? "text-amber-800" : "text-gray-700"}`}>
+                    <span className={`text-xs font-black ${activeFilter === f.id ? "text-amber-800" : "text-slate-300"}`}>
                       {f.label}
                     </span>
-                    <span className="text-[10px] text-gray-400 font-bold mt-1 leading-normal">{f.desc}</span>
+                    <span className="text-[10px] text-slate-500 font-bold mt-1 leading-normal">{f.desc}</span>
                   </button>
                 ))}
               </div>
             </div>
 
             {/* 2. Interactive Brightness & Contrast Sliders */}
-            <div className="bg-gray-50 border border-gray-150 rounded-2xl p-4.5 space-y-4">
-              <h4 className="text-xs font-black text-gray-800 flex items-center gap-1.5">
+            <div className="bg-white/[0.02] border border-white/[0.08] rounded-2xl p-4.5 space-y-4">
+              <h4 className="text-xs font-black text-white flex items-center gap-1.5">
                 <SlidersHorizontal className="h-4 w-4 text-amber-500" />
                 <span>تعديل السطوع والوضوح اليدوي:</span>
               </h4>
 
               {/* Brightness */}
               <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-[11px] font-bold text-gray-600">
+                <div className="flex items-center justify-between text-[11px] font-bold text-slate-400">
                   <span>إضاءة الصفحة (Brightness)</span>
                   <span className="font-mono text-amber-600">{brightness > 0 ? `+${brightness}` : brightness}</span>
                 </div>
@@ -753,7 +753,7 @@ export const Scanner: React.FC<ScannerProps> = ({
 
               {/* Contrast */}
               <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-[11px] font-bold text-gray-600">
+                <div className="flex items-center justify-between text-[11px] font-bold text-slate-400">
                   <span>حدة التباين (Contrast)</span>
                   <span className="font-mono text-amber-600">{contrast > 0 ? `+${contrast}` : contrast}</span>
                 </div>
@@ -794,7 +794,7 @@ export const Scanner: React.FC<ScannerProps> = ({
       {/* VIEW: Gallery / Multi-Page manager */}
       {viewMode === "gallery" && scannedPages.length > 0 && (
         <div className="space-y-6">
-          <div className="p-4 bg-amber-50/40 border border-amber-100 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="p-4 bg-amber-500/10/40 border border-amber-100 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="text-right">
               <h4 className="text-xs font-black text-amber-900">ترتيب صفحات المستند الممسوح ضوئياً</h4>
               <p className="text-[10px] text-amber-700 font-bold mt-0.5">
@@ -805,13 +805,13 @@ export const Scanner: React.FC<ScannerProps> = ({
             <div className="flex items-center gap-2">
               <button
                 onClick={() => { setViewMode("capture"); setSource("camera"); }}
-                className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-amber-200 hover:border-amber-400 text-amber-700 rounded-lg text-xs font-bold cursor-pointer shadow-3xs"
+                className="inline-flex items-center gap-1.5 px-3 py-2 bg-white/[0.04] border border-amber-200 hover:border-amber-400 text-amber-700 rounded-lg text-xs font-bold cursor-pointer shadow-3xs"
               >
                 <Plus className="h-4 w-4 text-amber-500" />
                 <span>التقاط صفحة إضافية</span>
               </button>
               
-              <label className="relative inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-indigo-200 hover:border-indigo-400 text-indigo-700 rounded-lg text-xs font-bold cursor-pointer shadow-3xs">
+              <label className="relative inline-flex items-center gap-1.5 px-3 py-2 bg-white/[0.04] border border-indigo-200 hover:border-indigo-400 text-indigo-700 rounded-lg text-xs font-bold cursor-pointer shadow-3xs">
                 <Upload className="h-4 w-4 text-indigo-500" />
                 <span>رفع صورة كصفحة</span>
                 <input
@@ -830,8 +830,8 @@ export const Scanner: React.FC<ScannerProps> = ({
               <motion.div
                 key={p.id}
                 whileHover={{ y: -3 }}
-                className={`relative bg-gray-50 border rounded-2xl p-2.5 flex flex-col justify-between ${
-                  currentPageId === p.id ? "border-amber-500 bg-amber-50/10 shadow-3xs" : "border-gray-200 hover:border-gray-300"
+                className={`relative bg-white/[0.02] border rounded-2xl p-2.5 flex flex-col justify-between ${
+                  currentPageId === p.id ? "border-amber-500 bg-amber-500/10/10 shadow-3xs" : "border-white/[0.08] hover:border-white/10"
                 }`}
               >
                 <div className="absolute top-2 right-2 bg-black/60 text-white text-[9px] font-black px-1.5 py-0.5 rounded-md z-10">
@@ -857,7 +857,7 @@ export const Scanner: React.FC<ScannerProps> = ({
                 </button>
 
                 {/* Thumbnail */}
-                <div className="aspect-[3/4] bg-white rounded-lg border border-gray-150 overflow-hidden flex items-center justify-center p-1 cursor-pointer mb-2.5"
+                <div className="aspect-[3/4] bg-white/[0.04] rounded-lg border border-white/[0.08] overflow-hidden flex items-center justify-center p-1 cursor-pointer mb-2.5"
                      onClick={() => { setCurrentPageId(p.id); setViewMode("editor"); }}>
                   <img
                     src={p.processedDataUrl}
@@ -866,7 +866,7 @@ export const Scanner: React.FC<ScannerProps> = ({
                   />
                 </div>
 
-                <div className="text-[10px] text-gray-400 font-bold text-center border-t border-gray-100 pt-1.5">
+                <div className="text-[10px] text-slate-500 font-bold text-center border-t border-white/[0.08] pt-1.5">
                   فلتر: {p.filter === "magic" ? "عزَّام السحري" : p.filter === "bw" ? "أبيض وأسود" : p.filter === "gray" ? "رمادي" : "أصلية"}
                 </div>
               </motion.div>
@@ -874,7 +874,7 @@ export const Scanner: React.FC<ScannerProps> = ({
           </div>
 
           {/* Compile and Save Actions */}
-          <div className="border-t border-gray-150 pt-5 mt-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="border-t border-white/[0.08] pt-5 mt-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={() => handleCompileScans("new")}

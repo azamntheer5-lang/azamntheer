@@ -165,7 +165,7 @@ export const OcrWorkspace: React.FC = () => {
     const parts = text.split(new RegExp(`(${search})`, "gi"));
     return parts.map((part, i) =>
       part.toLowerCase() === search.toLowerCase() ? (
-        <mark key={i} className="bg-yellow-300 text-gray-900 rounded px-0.5 font-bold">
+        <mark key={i} className="bg-yellow-300 text-white rounded px-0.5 font-bold">
           {part}
         </mark>
       ) : (
@@ -205,7 +205,7 @@ export const OcrWorkspace: React.FC = () => {
                   Gemini Vision
                 </span>
               </h2>
-              <p className="text-[11px] text-gray-400 font-bold mt-0.5">
+              <p className="text-[11px] text-slate-500 font-bold mt-0.5">
                 استخرج النصوص من الصور وملفات PDF الممسوحة — يدعم العربية والإنجليزية ولغات متعددة
               </p>
             </div>
@@ -213,8 +213,8 @@ export const OcrWorkspace: React.FC = () => {
 
           {/* Stats */}
           <div className="flex items-center gap-2 text-[10px] font-bold">
-            <div className="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5">
-              <span className="text-gray-400">إجمالي: </span>
+            <div className="bg-white/[0.04]/5 border border-white/10 rounded-lg px-3 py-1.5">
+              <span className="text-slate-500">إجمالي: </span>
               <span className="text-white font-black">{stats.total}</span>
             </div>
             <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-lg px-3 py-1.5">
@@ -258,7 +258,7 @@ export const OcrWorkspace: React.FC = () => {
           className={`relative border-2 border-dashed rounded-2xl p-10 flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
             dragActive
               ? "border-indigo-400 bg-indigo-500/10 scale-[1.01]"
-              : "border-white/15 hover:border-indigo-400/60 hover:bg-white/5"
+              : "border-white/15 hover:border-indigo-400/60 hover:bg-white/[0.04]/5"
           }`}
         >
           <input
@@ -273,7 +273,7 @@ export const OcrWorkspace: React.FC = () => {
             <UploadCloud className="h-7 w-7 animate-pulse" />
           </div>
           <h3 className="text-sm font-black text-white mb-1">اسحب وأفلت صوراً أو ملفات PDF هنا</h3>
-          <p className="text-[11px] text-gray-400 mb-4 max-w-md leading-relaxed">
+          <p className="text-[11px] text-slate-500 mb-4 max-w-md leading-relaxed">
             يدعم: PDF, JPG, PNG, WEBP, TIFF, HEIC, BMP — رفع جماعي مدعوم
           </p>
           <div className="flex flex-wrap items-center gap-2 justify-center">
@@ -291,7 +291,7 @@ export const OcrWorkspace: React.FC = () => {
         {/* Settings row */}
         <div className="glass-card rounded-2xl p-4 border border-white/10 grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
           <div>
-            <label className="text-[10px] text-gray-400 font-bold block mb-1 flex items-center gap-1">
+            <label className="text-[10px] text-slate-500 font-bold block mb-1 flex items-center gap-1">
               <Languages className="h-3 w-3" />
               <span>لغة الاستخراج</span>
             </label>
@@ -319,7 +319,7 @@ export const OcrWorkspace: React.FC = () => {
               <Wand2 className="h-4 w-4 text-indigo-400" />
               <span>معالجة ذكية مسبقة</span>
             </label>
-            <span className="text-[10px] text-gray-400 font-semibold">
+            <span className="text-[10px] text-slate-500 font-semibold">
               (deskew + إزالة الظلال + تحسين التباين)
             </span>
           </div>
@@ -337,9 +337,9 @@ export const OcrWorkspace: React.FC = () => {
         {/* Results list + active result view */}
         {results.length === 0 ? (
           <div className="glass-card rounded-2xl p-12 border border-white/10 text-center">
-            <Eye className="h-10 w-10 text-gray-500 mx-auto mb-3" />
+            <Eye className="h-10 w-10 text-slate-500 mx-auto mb-3" />
             <h3 className="text-sm font-black text-gray-300">لا توجد نتائج بعد</h3>
-            <p className="text-[11px] text-gray-500 mt-1">ارفع صورة أو ملف PDF لبدء الاستخراج.</p>
+            <p className="text-[11px] text-slate-500 mt-1">ارفع صورة أو ملف PDF لبدء الاستخراج.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
@@ -352,7 +352,7 @@ export const OcrWorkspace: React.FC = () => {
                   className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center gap-3 ${
                     activeResultId === r.id
                       ? "border-indigo-500 bg-indigo-500/10"
-                      : "border-white/5 bg-white/5 hover:border-white/15"
+                      : "border-white/5 bg-white/[0.04]/5 hover:border-white/15"
                   }`}
                 >
                   <div className="h-12 w-12 rounded-lg bg-slate-900/60 border border-white/10 overflow-hidden flex items-center justify-center shrink-0">
@@ -364,7 +364,7 @@ export const OcrWorkspace: React.FC = () => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-xs font-bold text-white truncate">{r.fileName}</div>
-                    <div className="text-[10px] text-gray-400 font-semibold flex items-center gap-2">
+                    <div className="text-[10px] text-slate-500 font-semibold flex items-center gap-2">
                       {r.status === "processing" && (
                         <span className="flex items-center gap-1 text-amber-400">
                           <RefreshCw className="h-3 w-3 animate-spin" /> قيد المعالجة
@@ -383,7 +383,7 @@ export const OcrWorkspace: React.FC = () => {
                       e.stopPropagation();
                       handleDelete(r.id);
                     }}
-                    className="text-gray-500 hover:text-rose-400 transition-colors p-1.5"
+                    className="text-slate-500 hover:text-rose-400 transition-colors p-1.5"
                     title="حذف"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
@@ -401,7 +401,7 @@ export const OcrWorkspace: React.FC = () => {
                       <span className="text-xs font-black text-white truncate max-w-[300px]">
                         {activeResult.fileName}
                       </span>
-                      <span className="text-[10px] text-gray-400 font-bold">
+                      <span className="text-[10px] text-slate-500 font-bold">
                         ({(activeResult.fileSize / 1024).toFixed(1)} KB)
                       </span>
                     </div>
@@ -427,7 +427,7 @@ export const OcrWorkspace: React.FC = () => {
 
                   {/* Search */}
                   <div className="relative mb-3">
-                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
                     <input
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
@@ -444,20 +444,20 @@ export const OcrWorkspace: React.FC = () => {
                         <span className="text-xs text-gray-300 font-bold">
                           جاري استخراج النص بالذكاء الاصطناعي...
                         </span>
-                        <span className="text-[10px] text-gray-500">قد يستغرق هذا بضع ثوانٍ</span>
+                        <span className="text-[10px] text-slate-500">قد يستغرق هذا بضع ثوانٍ</span>
                       </div>
                     ) : activeResult.status === "error" ? (
                       <div className="flex flex-col items-center justify-center h-full gap-2 text-center">
                         <X className="h-8 w-8 text-rose-400" />
                         <span className="text-xs text-rose-300 font-bold">فشل الاستخراج</span>
-                        <span className="text-[10px] text-gray-500 max-w-sm">{activeResult.errorMsg}</span>
+                        <span className="text-[10px] text-slate-500 max-w-sm">{activeResult.errorMsg}</span>
                       </div>
                     ) : activeResult.text ? (
                       <div className="text-xs font-bold text-gray-200 leading-relaxed whitespace-pre-wrap text-right select-text">
                         {highlightSearch(activeResult.text)}
                       </div>
                     ) : (
-                      <div className="text-center text-gray-400 text-xs font-bold py-12">
+                      <div className="text-center text-slate-500 text-xs font-bold py-12">
                         لم يتم العثور على نص في هذا الملف.
                       </div>
                     )}
@@ -465,7 +465,7 @@ export const OcrWorkspace: React.FC = () => {
 
                   {/* Word count footer */}
                   {activeResult.text && (
-                    <div className="pt-3 mt-3 border-t border-white/10 flex items-center justify-between text-[10px] text-gray-400 font-bold">
+                    <div className="pt-3 mt-3 border-t border-white/10 flex items-center justify-between text-[10px] text-slate-500 font-bold">
                       <span>
                         الكلمات: <strong className="text-white">{activeResult.text.trim().split(/\s+/).filter(Boolean).length}</strong>
                       </span>
@@ -477,7 +477,7 @@ export const OcrWorkspace: React.FC = () => {
                   )}
                 </>
               ) : (
-                <div className="flex-1 flex items-center justify-center text-gray-500 text-sm">
+                <div className="flex-1 flex items-center justify-center text-slate-500 text-sm">
                   اختر ملفاً من القائمة لعرض النتيجة
                 </div>
               )}

@@ -292,9 +292,9 @@ export const WordTools: React.FC = () => {
       {!file ? (
         <div className="w-full max-w-4xl mx-auto">
           {/* Section Description Card */}
-          <div className="bg-gradient-to-r from-blue-50 to-blue-100/30 border border-blue-100 p-6 rounded-2xl mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="bg-gradient-to-r from-blue-50 to-blue-100/30 border border-blue-500/20 p-6 rounded-2xl mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="space-y-1">
-              <h3 className="text-sm font-black text-blue-900 flex items-center gap-1.5 justify-end">
+              <h3 className="text-sm font-black text-blue-200 flex items-center gap-1.5 justify-end">
                 <span>أدوات عـزَّام الذكية لمعالجة مستندات Word</span>
                 <Sparkles className="h-4.5 w-4.5 text-blue-500 animate-pulse" />
               </h3>
@@ -302,7 +302,7 @@ export const WordTools: React.FC = () => {
                 قم برفع مستندات Word (.docx) للقيام باستخراج النصوص منها وتدقيقها بالكامل وتحويلها إلى مستندات PDF احترافية بسرعة وأمان تام داخل متصفحك.
               </p>
             </div>
-            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-blue-100/80 shadow-3xs shrink-0">
+            <div className="flex items-center gap-2 bg-white/[0.04] px-3 py-1.5 rounded-xl border border-blue-500/20/80 shadow-3xs shrink-0">
               <span className="text-[10px] font-black text-blue-600">CLIENT-SIDE PROCESSING</span>
               <div className="h-2 w-2 rounded-full bg-blue-500" />
             </div>
@@ -317,8 +317,8 @@ export const WordTools: React.FC = () => {
             onClick={triggerFileInput}
             className={`border-2 border-dashed rounded-2xl p-12 flex flex-col items-center justify-center transition-all cursor-pointer ${
               dragActive 
-                ? "border-blue-500 bg-blue-50/50 scale-[1.01]" 
-                : "border-gray-200 bg-white hover:border-blue-400 hover:bg-gray-50/30"
+                ? "border-blue-500 bg-blue-500/10/50 scale-[1.01]" 
+                : "border-white/[0.08] bg-white/[0.04] hover:border-blue-400 hover:bg-white/[0.02]/30"
             }`}
           >
             <input
@@ -329,12 +329,12 @@ export const WordTools: React.FC = () => {
               className="hidden"
             />
             
-            <div className="p-4.5 bg-blue-50 rounded-2xl text-blue-600 mb-4 shadow-3xs">
+            <div className="p-4.5 bg-blue-500/10 rounded-2xl text-blue-600 mb-4 shadow-3xs">
               <FileText className="h-10 w-10 animate-bounce" />
             </div>
 
-            <h3 className="text-sm font-black text-gray-800 mb-1">اسحب ملف Word (.docx) هنا أو اضغط للتصفح</h3>
-            <p className="text-[11px] font-bold text-gray-400">يدعم مستندات Microsoft Word بدقة قراءة فائقة للغة العربية</p>
+            <h3 className="text-sm font-black text-white mb-1">اسحب ملف Word (.docx) هنا أو اضغط للتصفح</h3>
+            <p className="text-[11px] font-bold text-slate-500">يدعم مستندات Microsoft Word بدقة قراءة فائقة للغة العربية</p>
           </div>
         </div>
       ) : (
@@ -344,20 +344,20 @@ export const WordTools: React.FC = () => {
           <div className="lg:col-span-4 space-y-6">
             
             {/* Document Profile Card */}
-            <div className="bg-white border border-gray-150 rounded-2xl p-5 shadow-3xs space-y-4">
-              <div className="flex justify-between items-center pb-3 border-b border-gray-100">
+            <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-5 shadow-3xs space-y-4">
+              <div className="flex justify-between items-center pb-3 border-b border-white/[0.08]">
                 <button
                   onClick={handleReset}
-                  className="text-[11px] font-black text-red-500 hover:text-red-600 bg-red-50 hover:bg-red-100/50 px-3 py-1.5 rounded-lg transition-all cursor-pointer"
+                  className="text-[11px] font-black text-red-500 hover:text-red-600 bg-rose-500/10 hover:bg-red-100/50 px-3 py-1.5 rounded-lg transition-all cursor-pointer"
                 >
                   حذف وإغلاق
                 </button>
                 <div className="flex items-center gap-2">
                   <div className="text-right">
-                    <h4 className="text-xs font-black text-gray-800 line-clamp-1 max-w-[150px]">{file.name}</h4>
-                    <span className="text-[10px] text-gray-400 font-bold">{(file.size / 1024).toFixed(1)} KB</span>
+                    <h4 className="text-xs font-black text-white line-clamp-1 max-w-[150px]">{file.name}</h4>
+                    <span className="text-[10px] text-slate-500 font-bold">{(file.size / 1024).toFixed(1)} KB</span>
                   </div>
-                  <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
+                  <div className="p-2 bg-blue-500/10 text-blue-600 rounded-xl">
                     <FileText className="h-5 w-5" />
                   </div>
                 </div>
@@ -385,7 +385,7 @@ export const WordTools: React.FC = () => {
 
                 <button
                   onClick={handleCopyText}
-                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gray-50 border border-gray-200 hover:bg-gray-100 px-4 py-3 text-xs font-bold text-gray-700 active:scale-98 cursor-pointer"
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-white/[0.02] border border-white/[0.08] hover:bg-white/[0.05] px-4 py-3 text-xs font-bold text-slate-300 active:scale-98 cursor-pointer"
                 >
                   <Copy className="h-4 w-4" />
                   <span>نسخ النص الكامل للمستند</span>
@@ -394,36 +394,36 @@ export const WordTools: React.FC = () => {
             </div>
 
             {/* Live Statistics Cards */}
-            <div className="bg-white border border-gray-150 rounded-2xl p-5 shadow-3xs space-y-4">
-              <h3 className="text-xs font-black text-gray-800 pb-2 border-b border-gray-100 flex items-center gap-1.5 justify-end">
+            <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-5 shadow-3xs space-y-4">
+              <h3 className="text-xs font-black text-white pb-2 border-b border-white/[0.08] flex items-center gap-1.5 justify-end">
                 <span>إحصائيات وتحليل المستند</span>
                 <BookOpen className="h-4 w-4 text-amber-500 animate-pulse" />
               </h3>
 
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-gray-50/50 border border-gray-100 p-3.5 rounded-xl text-center">
-                  <span className="text-[10px] font-bold text-gray-400 block mb-0.5">عدد الكلمات</span>
-                  <span className="text-sm font-black text-gray-800">{stats.words}</span>
+                <div className="bg-white/[0.02]/50 border border-white/[0.08] p-3.5 rounded-xl text-center">
+                  <span className="text-[10px] font-bold text-slate-500 block mb-0.5">عدد الكلمات</span>
+                  <span className="text-sm font-black text-white">{stats.words}</span>
                 </div>
-                <div className="bg-gray-50/50 border border-gray-100 p-3.5 rounded-xl text-center">
-                  <span className="text-[10px] font-bold text-gray-400 block mb-0.5">عدد الفقرات</span>
-                  <span className="text-sm font-black text-gray-800">{stats.paragraphs}</span>
+                <div className="bg-white/[0.02]/50 border border-white/[0.08] p-3.5 rounded-xl text-center">
+                  <span className="text-[10px] font-bold text-slate-500 block mb-0.5">عدد الفقرات</span>
+                  <span className="text-sm font-black text-white">{stats.paragraphs}</span>
                 </div>
-                <div className="bg-gray-50/50 border border-gray-100 p-3.5 rounded-xl text-center col-span-2">
-                  <span className="text-[10px] font-bold text-gray-400 block mb-0.5">عدد الحروف (مع المسافات)</span>
-                  <span className="text-sm font-black text-gray-800">{stats.charsWithSpaces}</span>
+                <div className="bg-white/[0.02]/50 border border-white/[0.08] p-3.5 rounded-xl text-center col-span-2">
+                  <span className="text-[10px] font-bold text-slate-500 block mb-0.5">عدد الحروف (مع المسافات)</span>
+                  <span className="text-sm font-black text-white">{stats.charsWithSpaces}</span>
                 </div>
-                <div className="bg-gray-50/50 border border-gray-100 p-3.5 rounded-xl text-center col-span-2">
-                  <span className="text-[10px] font-bold text-gray-400 block mb-0.5">عدد الحروف (بدون مسافات)</span>
-                  <span className="text-sm font-black text-gray-800">{stats.charsNoSpaces}</span>
+                <div className="bg-white/[0.02]/50 border border-white/[0.08] p-3.5 rounded-xl text-center col-span-2">
+                  <span className="text-[10px] font-bold text-slate-500 block mb-0.5">عدد الحروف (بدون مسافات)</span>
+                  <span className="text-sm font-black text-white">{stats.charsNoSpaces}</span>
                 </div>
               </div>
 
-              <div className="bg-blue-50/60 border border-blue-100 p-3.5 rounded-xl flex items-center justify-between gap-3 text-right">
+              <div className="bg-blue-500/10/60 border border-blue-500/20 p-3.5 rounded-xl flex items-center justify-between gap-3 text-right">
                 <Clock className="h-4 w-4 text-blue-600 animate-pulse shrink-0" />
                 <div className="space-y-0.5">
                   <span className="text-[10px] font-bold text-blue-500 block">وقت القراءة المتوقع</span>
-                  <span className="text-xs font-black text-blue-900">{stats.readingTime} دقيقة تقريباً</span>
+                  <span className="text-xs font-black text-blue-200">{stats.readingTime} دقيقة تقريباً</span>
                 </div>
               </div>
             </div>
@@ -431,21 +431,21 @@ export const WordTools: React.FC = () => {
           </div>
 
           {/* Right Panel: Rendered HTML/Text Document (8 cols) */}
-          <div className="lg:col-span-8 bg-white border border-gray-150 rounded-2xl p-6 shadow-3xs space-y-4 min-h-[500px] flex flex-col">
-            <div className="flex justify-between items-center pb-3 border-b border-gray-100 shrink-0">
-              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">LIVE INTERACTIVE VIEW</span>
-              <h3 className="text-sm font-black text-gray-800 flex items-center gap-1.5">
+          <div className="lg:col-span-8 bg-white/[0.04] border border-white/[0.08] rounded-2xl p-6 shadow-3xs space-y-4 min-h-[500px] flex flex-col">
+            <div className="flex justify-between items-center pb-3 border-b border-white/[0.08] shrink-0">
+              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">LIVE INTERACTIVE VIEW</span>
+              <h3 className="text-sm font-black text-white flex items-center gap-1.5">
                 <FileCheck className="h-4.5 w-4.5 text-emerald-500 animate-pulse" />
                 <span>مستعرض محتويات المستند</span>
               </h3>
             </div>
 
             {/* Document Text Box */}
-            <div className="flex-1 overflow-y-auto safe-scrollbar max-h-[600px] p-4 bg-gray-50/30 border border-gray-100 rounded-xl text-right leading-relaxed text-sm font-medium text-gray-700 whitespace-pre-wrap select-text">
+            <div className="flex-1 overflow-y-auto safe-scrollbar max-h-[600px] p-4 bg-white/[0.02]/30 border border-white/[0.08] rounded-xl text-right leading-relaxed text-sm font-medium text-slate-300 whitespace-pre-wrap select-text">
               {htmlContent ? (
                 <div dangerouslySetInnerHTML={{ __html: htmlContent }} className="word-docx-viewer" />
               ) : (
-                <p className="text-center text-gray-400 my-10 font-bold">يرجى رفع ملف لرؤية المحتويات هنا.</p>
+                <p className="text-center text-slate-500 my-10 font-bold">يرجى رفع ملف لرؤية المحتويات هنا.</p>
               )}
             </div>
           </div>

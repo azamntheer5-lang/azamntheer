@@ -328,7 +328,7 @@ export const ImageTools: React.FC = () => {
                 استوديو متقدم للتعامل مع الصور؛ قم بضغط حجمها، تغيير أبعادها بدقة مع الحفاظ على الأبعاد، تحويلها إلى صيغ PNG أو WebP أو JPG، أو دمج مجموعة صور كاملة في ملف PDF واحد منسق.
               </p>
             </div>
-            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-purple-100/80 shadow-3xs shrink-0">
+            <div className="flex items-center gap-2 bg-white/[0.04] px-3 py-1.5 rounded-xl border border-purple-100/80 shadow-3xs shrink-0">
               <span className="text-[10px] font-black text-purple-600">CANVAS GPU ENGINE</span>
               <div className="h-2 w-2 rounded-full bg-purple-500" />
             </div>
@@ -343,8 +343,8 @@ export const ImageTools: React.FC = () => {
             onClick={triggerFileInput}
             className={`border-2 border-dashed rounded-2xl p-12 flex flex-col items-center justify-center transition-all cursor-pointer ${
               dragActive 
-                ? "border-purple-500 bg-purple-50/50 scale-[1.01]" 
-                : "border-gray-200 bg-white hover:border-purple-400 hover:bg-gray-50/30"
+                ? "border-purple-500 bg-purple-500/10/50 scale-[1.01]" 
+                : "border-white/[0.08] bg-white/[0.04] hover:border-purple-400 hover:bg-white/[0.02]/30"
             }`}
           >
             <input
@@ -356,12 +356,12 @@ export const ImageTools: React.FC = () => {
               className="hidden"
             />
             
-            <div className="p-4.5 bg-purple-50 rounded-2xl text-purple-600 mb-4 shadow-3xs">
+            <div className="p-4.5 bg-purple-500/10 rounded-2xl text-purple-600 mb-4 shadow-3xs">
               <Image className="h-10 w-10 animate-pulse" />
             </div>
 
-            <h3 className="text-sm font-black text-gray-800 mb-1">اسحب الصور هنا أو اضغط للتصفح والرفع</h3>
-            <p className="text-[11px] font-bold text-gray-400">يدعم رفع مجموعة صور متعددة معاً للتحويل والدمج المباشر</p>
+            <h3 className="text-sm font-black text-white mb-1">اسحب الصور هنا أو اضغط للتصفح والرفع</h3>
+            <p className="text-[11px] font-bold text-slate-500">يدعم رفع مجموعة صور متعددة معاً للتحويل والدمج المباشر</p>
           </div>
         </div>
       ) : (
@@ -371,15 +371,15 @@ export const ImageTools: React.FC = () => {
           <div className="lg:col-span-4 space-y-6">
             
             {/* Global Actions Card */}
-            <div className="bg-white border border-gray-150 rounded-2xl p-5 shadow-3xs space-y-4">
-              <div className="flex justify-between items-center pb-3 border-b border-gray-100">
+            <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-5 shadow-3xs space-y-4">
+              <div className="flex justify-between items-center pb-3 border-b border-white/[0.08]">
                 <button
                   onClick={() => setImages([])}
-                  className="text-[11px] font-black text-red-500 hover:text-red-600 bg-red-50 hover:bg-red-100/50 px-3 py-1.5 rounded-lg transition-all cursor-pointer"
+                  className="text-[11px] font-black text-red-500 hover:text-red-600 bg-rose-500/10 hover:bg-red-100/50 px-3 py-1.5 rounded-lg transition-all cursor-pointer"
                 >
                   إفراغ الاستوديو
                 </button>
-                <h3 className="text-xs font-black text-gray-800">قائمة الصور المرفوعة ({images.length})</h3>
+                <h3 className="text-xs font-black text-white">قائمة الصور المرفوعة ({images.length})</h3>
               </div>
 
               {/* PDF Compiler button for multiple images */}
@@ -394,14 +394,14 @@ export const ImageTools: React.FC = () => {
 
               <button
                 onClick={triggerFileInput}
-                className="w-full text-center py-2 border border-dashed border-gray-200 hover:border-purple-300 text-xs font-bold text-gray-500 hover:text-purple-600 rounded-xl cursor-pointer"
+                className="w-full text-center py-2 border border-dashed border-white/[0.08] hover:border-purple-300 text-xs font-bold text-slate-500 hover:text-purple-600 rounded-xl cursor-pointer"
               >
                 + إضافة المزيد من الصور
               </button>
             </div>
 
             {/* List items with visually interactive thumbnail reordering */}
-            <div className="bg-white border border-gray-150 rounded-2xl p-4 shadow-3xs space-y-3.5 max-h-[380px] overflow-y-auto safe-scrollbar">
+            <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 shadow-3xs space-y-3.5 max-h-[380px] overflow-y-auto safe-scrollbar">
               {images.map((img, idx) => (
                 <div
                   key={img.id}
@@ -412,8 +412,8 @@ export const ImageTools: React.FC = () => {
                   }}
                   className={`flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer ${
                     activeSingleIdx === idx 
-                      ? "bg-purple-50/50 border-purple-200" 
-                      : "bg-transparent border-gray-100/60 hover:bg-gray-50/50"
+                      ? "bg-purple-500/10/50 border-purple-200" 
+                      : "bg-transparent border-white/[0.08]/60 hover:bg-white/[0.02]/50"
                   }`}
                 >
                   {/* Sorting & Deletion controllers */}
@@ -422,14 +422,14 @@ export const ImageTools: React.FC = () => {
                       <button 
                         disabled={idx === 0}
                         onClick={(e) => { e.stopPropagation(); handleMoveImage(idx, "up"); }}
-                        className="p-1 hover:bg-gray-100 text-gray-400 hover:text-gray-800 rounded-md cursor-pointer disabled:opacity-30"
+                        className="p-1 hover:bg-white/[0.05] text-slate-500 hover:text-white rounded-md cursor-pointer disabled:opacity-30"
                       >
                         <ArrowUp className="h-3.5 w-3.5" />
                       </button>
                       <button 
                         disabled={idx === images.length - 1}
                         onClick={(e) => { e.stopPropagation(); handleMoveImage(idx, "down"); }}
-                        className="p-1 hover:bg-gray-100 text-gray-400 hover:text-gray-800 rounded-md cursor-pointer disabled:opacity-30"
+                        className="p-1 hover:bg-white/[0.05] text-slate-500 hover:text-white rounded-md cursor-pointer disabled:opacity-30"
                       >
                         <ArrowDown className="h-3.5 w-3.5" />
                       </button>
@@ -437,7 +437,7 @@ export const ImageTools: React.FC = () => {
 
                     <button
                       onClick={(e) => { e.stopPropagation(); handleRemoveImage(img.id, idx); }}
-                      className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all cursor-pointer"
+                      className="p-1.5 text-red-400 hover:text-red-600 hover:bg-rose-500/10 rounded-lg transition-all cursor-pointer"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -446,13 +446,13 @@ export const ImageTools: React.FC = () => {
                   {/* Thumbnail & Dimensions */}
                   <div className="flex items-center gap-2 text-right">
                     <div>
-                      <h4 className="text-[11px] font-bold text-gray-700 line-clamp-1 max-w-[120px]">{img.name}</h4>
-                      <span className="text-[9px] text-gray-400 font-bold block">{img.width}x{img.height} px • {(img.size / 1024).toFixed(0)} KB</span>
+                      <h4 className="text-[11px] font-bold text-slate-300 line-clamp-1 max-w-[120px]">{img.name}</h4>
+                      <span className="text-[9px] text-slate-500 font-bold block">{img.width}x{img.height} px • {(img.size / 1024).toFixed(0)} KB</span>
                     </div>
                     <img
                       src={img.dataUrl}
                       alt="Thumbnail"
-                      className="h-10 w-10 rounded-lg object-cover border border-gray-150"
+                      className="h-10 w-10 rounded-lg object-cover border border-white/[0.08]"
                     />
                   </div>
                 </div>
@@ -463,35 +463,35 @@ export const ImageTools: React.FC = () => {
 
           {/* Right panel: Active selected image editor studio (8 cols) */}
           {activeImg && (
-            <div className="lg:col-span-8 bg-white border border-gray-150 rounded-2xl p-6 shadow-3xs space-y-6">
-              <div className="flex justify-between items-center pb-3 border-b border-gray-100">
-                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">ACTIVE IMAGE RUNTIME</span>
-                <h3 className="text-sm font-black text-gray-800 flex items-center gap-1.5">
+            <div className="lg:col-span-8 bg-white/[0.04] border border-white/[0.08] rounded-2xl p-6 shadow-3xs space-y-6">
+              <div className="flex justify-between items-center pb-3 border-b border-white/[0.08]">
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">ACTIVE IMAGE RUNTIME</span>
+                <h3 className="text-sm font-black text-white flex items-center gap-1.5">
                   <FileCheck className="h-4.5 w-4.5 text-purple-600 animate-pulse" />
                   <span>لوحة معالجة الصورة النشطة: {activeImg.name}</span>
                 </h3>
               </div>
 
               {/* Dynamic canvas wrapper & original info */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center bg-gray-50/50 border border-gray-100 p-5 rounded-2xl">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center bg-white/[0.02]/50 border border-white/[0.08] p-5 rounded-2xl">
                 <div className="flex justify-center">
                   <img
                     src={activeImg.dataUrl}
                     alt="Active Preview"
-                    className="max-h-[220px] rounded-xl object-contain shadow-sm border border-gray-200"
+                    className="max-h-[220px] rounded-xl object-contain shadow-sm border border-white/[0.08]"
                   />
                 </div>
 
                 <div className="space-y-3.5">
-                  <h4 className="text-xs font-black text-gray-700">بيانات الصورة الأصلية:</h4>
+                  <h4 className="text-xs font-black text-slate-300">بيانات الصورة الأصلية:</h4>
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-white border border-gray-150 p-2.5 rounded-xl text-center shadow-3xs">
-                      <span className="text-[9px] font-bold text-gray-400 block mb-0.5">الحجم الحالي</span>
-                      <span className="text-xs font-black text-gray-800">{(activeImg.size / 1024).toFixed(1)} KB</span>
+                    <div className="bg-white/[0.04] border border-white/[0.08] p-2.5 rounded-xl text-center shadow-3xs">
+                      <span className="text-[9px] font-bold text-slate-500 block mb-0.5">الحجم الحالي</span>
+                      <span className="text-xs font-black text-white">{(activeImg.size / 1024).toFixed(1)} KB</span>
                     </div>
-                    <div className="bg-white border border-gray-150 p-2.5 rounded-xl text-center shadow-3xs">
-                      <span className="text-[9px] font-bold text-gray-400 block mb-0.5">الأبعاد الأصلية</span>
-                      <span className="text-xs font-black text-gray-800">{activeImg.width} x {activeImg.height}</span>
+                    <div className="bg-white/[0.04] border border-white/[0.08] p-2.5 rounded-xl text-center shadow-3xs">
+                      <span className="text-[9px] font-bold text-slate-500 block mb-0.5">الأبعاد الأصلية</span>
+                      <span className="text-xs font-black text-white">{activeImg.width} x {activeImg.height}</span>
                     </div>
                   </div>
                 </div>
@@ -503,7 +503,7 @@ export const ImageTools: React.FC = () => {
                 {/* 1. Format and Compression */}
                 <div className="space-y-4">
                   <div>
-                    <h3 className="text-xs font-black text-gray-800 mb-2 flex items-center gap-1.5 justify-end">
+                    <h3 className="text-xs font-black text-white mb-2 flex items-center gap-1.5 justify-end">
                       <span>صيغة الصورة المطلوبة</span>
                       <Sliders className="h-4 w-4 text-purple-600" />
                     </h3>
@@ -515,7 +515,7 @@ export const ImageTools: React.FC = () => {
                           className={`py-2 text-xs font-black rounded-xl border transition-all cursor-pointer ${
                             targetFormat === fmt 
                               ? "bg-purple-600 text-white border-purple-600 shadow-md shadow-purple-500/10" 
-                              : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                              : "bg-white/[0.04] border-white/[0.08] text-slate-400 hover:bg-white/[0.02]"
                           }`}
                         >
                           {fmt.toUpperCase()}
@@ -528,7 +528,7 @@ export const ImageTools: React.FC = () => {
                     <div className="space-y-2">
                       <div className="flex justify-between items-center">
                         <span className="text-xs font-black text-purple-600">{compressionQuality}%</span>
-                        <span className="text-xs font-black text-gray-700">جودة وضغط الصورة (توفير مساحة)</span>
+                        <span className="text-xs font-black text-slate-300">جودة وضغط الصورة (توفير مساحة)</span>
                       </div>
                       <input
                         type="range"
@@ -538,7 +538,7 @@ export const ImageTools: React.FC = () => {
                         onChange={(e) => setCompressionQuality(Number(e.target.value))}
                         className="w-full accent-purple-600 cursor-pointer"
                       />
-                      <div className="flex justify-between text-[9px] font-bold text-gray-400">
+                      <div className="flex justify-between text-[9px] font-bold text-slate-500">
                         <span>أعلى ضغط (حجم أصغر)</span>
                         <span>أعلى جودة (حجم أكبر)</span>
                       </div>
@@ -553,13 +553,13 @@ export const ImageTools: React.FC = () => {
                       onClick={() => setMaintainAspect(!maintainAspect)}
                       className={`text-[10px] font-black px-2.5 py-1 rounded-lg border transition-all cursor-pointer ${
                         maintainAspect 
-                          ? "bg-purple-50 border-purple-200 text-purple-700" 
-                          : "bg-gray-50 border-gray-200 text-gray-400"
+                          ? "bg-purple-500/10 border-purple-200 text-purple-700" 
+                          : "bg-white/[0.02] border-white/[0.08] text-slate-500"
                       }`}
                     >
                       {maintainAspect ? "🔒 تناسب الأبعاد مفعّل" : "🔓 أبعاد حرة"}
                     </button>
-                    <h3 className="text-xs font-black text-gray-800 flex items-center gap-1.5">
+                    <h3 className="text-xs font-black text-white flex items-center gap-1.5">
                       <span>تغيير الأبعاد (Resize)</span>
                       <Minimize2 className="h-4 w-4 text-purple-600" />
                     </h3>
@@ -567,21 +567,21 @@ export const ImageTools: React.FC = () => {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
-                      <label className="text-[10px] font-black text-gray-400">العرض (Width - px)</label>
+                      <label className="text-[10px] font-black text-slate-500">العرض (Width - px)</label>
                       <input
                         type="number"
                         value={resizeWidth}
                         onChange={(e) => handleWidthChange(Number(e.target.value))}
-                        className="w-full p-2.5 text-xs font-black rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white text-center outline-none"
+                        className="w-full p-2.5 text-xs font-black rounded-xl border border-white/[0.08] bg-white/[0.02]/50 focus:bg-white/[0.04] text-center outline-none"
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[10px] font-black text-gray-400">الارتفاع (Height - px)</label>
+                      <label className="text-[10px] font-black text-slate-500">الارتفاع (Height - px)</label>
                       <input
                         type="number"
                         value={resizeHeight}
                         onChange={(e) => handleHeightChange(Number(e.target.value))}
-                        className="w-full p-2.5 text-xs font-black rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white text-center outline-none"
+                        className="w-full p-2.5 text-xs font-black rounded-xl border border-white/[0.08] bg-white/[0.02]/50 focus:bg-white/[0.04] text-center outline-none"
                       />
                     </div>
                   </div>
@@ -590,7 +590,7 @@ export const ImageTools: React.FC = () => {
               </div>
 
               {/* Action process button */}
-              <div className="pt-4 border-t border-gray-100 flex justify-end">
+              <div className="pt-4 border-t border-white/[0.08] flex justify-end">
                 <button
                   onClick={handleProcessSingleImage}
                   disabled={isProcessing}

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Gauge, ArrowLeftRight, Check, RefreshCw, Sparkles } from "lucide-react";
+import { Gauge, Check, RefreshCw, Sparkles, TrendingDown } from "lucide-react";
 
 interface CompressionPanelProps {
   onCompress: (level: "light" | "medium" | "aggressive") => Promise<void>;
@@ -8,134 +8,128 @@ interface CompressionPanelProps {
   isProcessing: boolean;
 }
 
+const LEVELS = [
+  {
+    id: "light" as const,
+    title: "ضغط خفيف",
+    desc: "إزالة البيانات الزائدة مع الاحتفاظ بجودة الصور الأصلية.",
+    badge: "جودة 100%",
+    color: "border-emerald-500/30 bg-emerald-500/5",
+    activeBg: "border-emerald-500 bg-emerald-500/10",
+    dotColor: "bg-emerald-400",
+  },
+  {
+    id: "medium" as const,
+    title: "متوسط (مُوصَى به)",
+    desc: "ضغط الصور ومقاطع الدقة مع الحفاظ على الجودة بشكل ملحوظ.",
+    badge: "الأفضل توازناً",
+    color: "border-blue-500/30 bg-blue-500/5",
+    activeBg: "border-blue-500 bg-blue-500/10",
+    dotColor: "bg-blue-400",
+  },
+  {
+    id: "aggressive" as const,
+    title: "ضغط قوي",
+    desc: "أقصى تقليص ممكن للحجم للمشاركة السريعة.",
+    badge: "أصغر حجم",
+    color: "border-amber-500/30 bg-amber-500/5",
+    activeBg: "border-amber-500 bg-amber-500/10",
+    dotColor: "bg-amber-400",
+  },
+] as const;
+
+const fmt = (bytes: number | null) => {
+  if (!bytes) return "—";
+  if (bytes >= 1_048_576) return `${(bytes / 1_048_576).toFixed(1)} MB`;
+  return `${(bytes / 1024).toFixed(0)} KB`;
+};
+
 export const CompressionPanel: React.FC<CompressionPanelProps> = ({
-  onCompress,
-  originalSize,
-  compressedSize,
-  isProcessing
+  onCompress, originalSize, compressedSize, isProcessing,
 }) => {
-  const [compressLevel, setCompressLevel] = useState<"light" | "medium" | "aggressive">("medium");
+  const [level, setLevel] = useState<"light" | "medium" | "aggressive">("medium");
 
-  const formatBytes = (bytes: number | null) => {
-    if (bytes === null) return "—";
-    if (bytes === 0) return "0 B";
-    const k = 1024;
-    const sizes = ["B", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
-  };
-
-  const calculateSavings = () => {
-    if (!originalSize || !compressedSize) return null;
-    const diff = originalSize - compressedSize;
-    if (diff <= 0) return 0;
-    return Math.round((diff / originalSize) * 100);
-  };
-
-  const savingsPercent = calculateSavings();
+  const savings =
+    originalSize && compressedSize && compressedSize < originalSize
+      ? Math.round(((originalSize - compressedSize) / originalSize) * 100)
+      : null;
 
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-3xs max-w-3xl mx-auto select-none space-y-6">
-      <div className="flex items-center gap-2">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-google-blue">
+    <div className="max-w-3xl mx-auto space-y-5 select-none">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <div className="h-10 w-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
           <Gauge className="h-5 w-5" />
         </div>
         <div>
-          <h3 className="text-sm font-bold text-gray-800">تقليل ضغط حجم ملف PDF</h3>
-          <p className="text-[10px] text-gray-400 font-semibold">تحسين وإعادة ضغط الملف لتوفير مساحة التخزين وسرعة المشاركة.</p>
+          <h3 className="text-xs font-black text-white">ضغط حجم ملف PDF</h3>
+          <p className="text-[10px] text-slate-500 font-medium mt-0.5">تقليص الحجم مع الحفاظ على الجودة</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-        {[
-          {
-            id: "light",
-            title: "ضغط خفيف",
-            desc: "إزالة المخرجات والبيانات الزائدة والغير مرئية مع الاحتفاظ بدقة الصور الأصلية بالكامل."
-          },
-          {
-            id: "medium",
-            title: "متوسط (مستحسن)",
-            desc: "ضغط الصور ومقاطع الدقة وإعادة ترتيب فهرسة الكائنات دون خسارة ملحوظة في جودة المستند."
-          },
-          {
-            id: "aggressive",
-            title: "ضغط قوي",
-            desc: "تقليص دقة الصور والعناصر المكونة إلى الحد الأقصى للحصول على أصغر حجم ملف ممكن للمشاركة السريعة."
-          }
-        ].map(level => (
-          <div
-            key={level.id}
-            onClick={() => setCompressLevel(level.id as any)}
-            className={`cursor-pointer rounded-xl border p-4 transition-all relative flex flex-col justify-between ${
-              compressLevel === level.id
-                ? "border-google-blue bg-blue-50/20 shadow-xs"
-                : "border-gray-200 bg-white hover:border-gray-300"
+      {/* Level selector */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        {LEVELS.map((l) => (
+          <button
+            key={l.id}
+            onClick={() => setLevel(l.id)}
+            className={`cursor-pointer rounded-xl border p-4 transition-all text-right relative ${
+              level === l.id ? l.activeBg : l.color + " hover:brightness-110"
             }`}
           >
-            <div>
-              <div className="flex justify-between items-center mb-1.5">
-                <span className="text-xs font-bold text-gray-800">{level.title}</span>
-                {compressLevel === level.id && (
-                  <span className="h-4.5 w-4.5 rounded-full bg-google-blue text-white flex items-center justify-center text-[10px] shadow-sm">
-                    <Check className="h-2.5 w-2.5" />
-                  </span>
-                )}
-              </div>
-              <p className="text-[10px] text-gray-400 leading-relaxed font-semibold">{level.desc}</p>
+            <div className="flex items-center justify-between mb-2">
+              <span className={`badge text-[9px] ${level === l.id ? "badge-blue" : "bg-white/[0.04]/5 text-slate-500 border border-white/10"}`}>
+                {l.badge}
+              </span>
+              {level === l.id && (
+                <div className={`h-5 w-5 rounded-full ${l.dotColor} flex items-center justify-center`}>
+                  <Check className="h-3 w-3 text-white" />
+                </div>
+              )}
             </div>
-          </div>
+            <p className="text-xs font-black text-white mb-1">{l.title}</p>
+            <p className="text-[10px] text-slate-500 leading-relaxed font-medium">{l.desc}</p>
+          </button>
         ))}
       </div>
 
-      {/* Comparative Gauge */}
+      {/* Stats */}
       {originalSize && (
-        <div className="bg-gray-50/60 border border-gray-150 rounded-xl p-4.5 space-y-4">
-          <div className="flex justify-between items-center text-xs font-bold text-gray-700">
-            <span>مقياس مقارنة المساحة قبل وبعد الضغط:</span>
-          </div>
-
-          <div className="grid grid-cols-3 gap-2 text-center">
-            <div className="bg-white border border-gray-100 rounded-lg p-3">
-              <span className="text-[10px] text-gray-400 font-bold block mb-0.5">الحجم الأصلي:</span>
-              <span className="text-base font-extrabold text-gray-800">{formatBytes(originalSize)}</span>
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { label: "الحجم الأصلي", value: fmt(originalSize), color: "text-white" },
+            { label: "الحجم الجديد",  value: compressedSize ? fmt(compressedSize) : "—",  color: "text-blue-400" },
+            { label: "التوفير",        value: savings ? `${savings}%` : "—",              color: "text-emerald-400" },
+          ].map((s) => (
+            <div key={s.label} className="glass-card rounded-xl p-3 border border-white/[0.06] text-center">
+              <p className={`text-lg font-black ${s.color}`}>{s.value}</p>
+              <p className="text-[10px] text-slate-500 font-semibold mt-0.5">{s.label}</p>
             </div>
-
-            <div className="bg-white border border-gray-100 rounded-lg p-3">
-              <span className="text-[10px] text-gray-400 font-bold block mb-0.5">الحجم الجديد:</span>
-              <span className="text-base font-extrabold text-google-blue">
-                {compressedSize ? formatBytes(compressedSize) : "قيد المعالجة"}
-              </span>
-            </div>
-
-            <div className="bg-white border border-gray-100 rounded-lg p-3">
-              <span className="text-[10px] text-gray-400 font-bold block mb-0.5">نسبة التوفير:</span>
-              <span className="text-base font-extrabold text-google-green">
-                {savingsPercent && savingsPercent > 0 ? `${savingsPercent}%` : "—"}
-              </span>
-            </div>
-          </div>
-
-          {savingsPercent && savingsPercent > 0 ? (
-            <div className="flex items-center gap-1.5 text-xs text-google-green font-bold bg-green-50 border border-green-100 p-2.5 rounded-lg">
-              <Sparkles className="h-4 w-4" />
-              <span>مدهش! تم تقليص المستند وتوفير مساحة بمقدار {formatBytes(originalSize - (compressedSize || 0))}.</span>
-            </div>
-          ) : (
-            <p className="text-[10px] text-gray-400 leading-normal font-semibold">
-              💡 اضغط على زر تطبيق الضغط بالأدنى لبدء المعالجة. يعتمد التوفير الفعلي على حجم الصور والنقوش المرفوعة بالملف.
-            </p>
-          )}
+          ))}
         </div>
       )}
 
+      {/* Savings callout */}
+      {savings && savings > 0 && (
+        <div className="flex items-center gap-2 p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+          <Sparkles className="h-4 w-4 text-emerald-400 shrink-0" />
+          <p className="text-xs text-emerald-300 font-bold">
+            تم توفير {fmt(originalSize! - compressedSize!)} — {savings}% تقليص في الحجم
+          </p>
+        </div>
+      )}
+
+      {/* Action */}
       <button
-        onClick={() => onCompress(compressLevel)}
+        onClick={() => onCompress(level)}
         disabled={isProcessing}
-        className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-google-blue hover:bg-blue-600 py-3 text-xs font-bold text-white shadow-md shadow-blue-500/10 transition-all cursor-pointer disabled:opacity-45"
+        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl btn-primary text-white text-xs font-bold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {isProcessing ? <RefreshCw className="h-4.5 w-4.5 animate-spin" /> : <Gauge className="h-4.5 w-4.5" />}
-        <span>تطبيق ضغط حجم الملف الآن</span>
+        {isProcessing
+          ? <RefreshCw className="h-4 w-4 animate-spin" />
+          : <TrendingDown className="h-4 w-4" />
+        }
+        {isProcessing ? "جاري الضغط..." : "تطبيق الضغط الآن"}
       </button>
     </div>
   );

@@ -377,7 +377,7 @@ export const ExcelTools: React.FC = () => {
                 ارفع جداول بيانات Excel (.xlsx, .xls) أو ملفات CSV لتصفح الجداول، واستخلاص الأعمدة، وتحويلها إلى كود HTML جاهز، بالإضافة إلى تحويلها وتصديرها كتقارير PDF أنيقة جداً.
               </p>
             </div>
-            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-emerald-100/80 shadow-3xs shrink-0">
+            <div className="flex items-center gap-2 bg-white/[0.04] px-3 py-1.5 rounded-xl border border-emerald-100/80 shadow-3xs shrink-0">
               <span className="text-[10px] font-black text-emerald-600">FULLY PRIVATE</span>
               <div className="h-2 w-2 rounded-full bg-emerald-500" />
             </div>
@@ -392,8 +392,8 @@ export const ExcelTools: React.FC = () => {
             onClick={triggerFileInput}
             className={`border-2 border-dashed rounded-2xl p-12 flex flex-col items-center justify-center transition-all cursor-pointer ${
               dragActive 
-                ? "border-emerald-500 bg-emerald-50/50 scale-[1.01]" 
-                : "border-gray-200 bg-white hover:border-emerald-400 hover:bg-gray-50/30"
+                ? "border-emerald-500 bg-emerald-500/10/50 scale-[1.01]" 
+                : "border-white/[0.08] bg-white/[0.04] hover:border-emerald-400 hover:bg-white/[0.02]/30"
             }`}
           >
             <input
@@ -404,12 +404,12 @@ export const ExcelTools: React.FC = () => {
               className="hidden"
             />
             
-            <div className="p-4.5 bg-emerald-50 rounded-2xl text-emerald-600 mb-4 shadow-3xs">
+            <div className="p-4.5 bg-emerald-500/10 rounded-2xl text-emerald-600 mb-4 shadow-3xs">
               <FileSpreadsheet className="h-10 w-10 animate-pulse" />
             </div>
 
-            <h3 className="text-sm font-black text-gray-800 mb-1">اسحب ملف Excel أو CSV هنا أو اضغط للتصفح</h3>
-            <p className="text-[11px] font-bold text-gray-400">يدعم تنسيق ورقات العمل المتعددة مع الترتيب والبحث فوري</p>
+            <h3 className="text-sm font-black text-white mb-1">اسحب ملف Excel أو CSV هنا أو اضغط للتصفح</h3>
+            <p className="text-[11px] font-bold text-slate-500">يدعم تنسيق ورقات العمل المتعددة مع الترتيب والبحث فوري</p>
           </div>
         </div>
       ) : (
@@ -419,20 +419,20 @@ export const ExcelTools: React.FC = () => {
           <div className="xl:col-span-4 space-y-6">
             
             {/* Control & Export Card */}
-            <div className="bg-white border border-gray-150 rounded-2xl p-5 shadow-3xs space-y-4">
-              <div className="flex justify-between items-center pb-3 border-b border-gray-100">
+            <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-5 shadow-3xs space-y-4">
+              <div className="flex justify-between items-center pb-3 border-b border-white/[0.08]">
                 <button
                   onClick={handleReset}
-                  className="text-[11px] font-black text-red-500 hover:text-red-600 bg-red-50 hover:bg-red-100/50 px-3 py-1.5 rounded-lg transition-all cursor-pointer"
+                  className="text-[11px] font-black text-red-500 hover:text-red-600 bg-rose-500/10 hover:bg-red-100/50 px-3 py-1.5 rounded-lg transition-all cursor-pointer"
                 >
                   إغلاق الملف
                 </button>
                 <div className="flex items-center gap-2 text-right">
                   <div>
-                    <h4 className="text-xs font-black text-gray-800 line-clamp-1 max-w-[150px]">{file.name}</h4>
-                    <span className="text-[10px] text-gray-400 font-bold">{(file.size / 1024).toFixed(1)} KB</span>
+                    <h4 className="text-xs font-black text-white line-clamp-1 max-w-[150px]">{file.name}</h4>
+                    <span className="text-[10px] text-slate-500 font-bold">{(file.size / 1024).toFixed(1)} KB</span>
                   </div>
-                  <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
+                  <div className="p-2 bg-emerald-500/10 text-emerald-600 rounded-xl">
                     <FileSpreadsheet className="h-5 w-5" />
                   </div>
                 </div>
@@ -462,8 +462,8 @@ export const ExcelTools: React.FC = () => {
                   onClick={() => setShowHtmlExport(!showHtmlExport)}
                   className={`w-full inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-xs font-bold transition-all active:scale-98 cursor-pointer ${
                     showHtmlExport 
-                      ? "bg-amber-50 border-amber-300 text-amber-800"
-                      : "bg-gray-50 border-gray-200 hover:bg-gray-100 text-gray-700"
+                      ? "bg-amber-500/10 border-amber-300 text-amber-800"
+                      : "bg-white/[0.02] border-white/[0.08] hover:bg-white/[0.05] text-slate-300"
                   }`}
                 >
                   <Code className="h-4 w-4" />
@@ -474,8 +474,8 @@ export const ExcelTools: React.FC = () => {
 
             {/* Sheets Switcher Card */}
             {sheetNames.length > 1 && (
-              <div className="bg-white border border-gray-150 rounded-2xl p-5 shadow-3xs space-y-3">
-                <h3 className="text-xs font-black text-gray-800 pb-2 border-b border-gray-100 flex items-center gap-1.5 justify-end">
+              <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-5 shadow-3xs space-y-3">
+                <h3 className="text-xs font-black text-white pb-2 border-b border-white/[0.08] flex items-center gap-1.5 justify-end">
                   <span>أوراق العمل المتاحة</span>
                   <ArrowRightLeft className="h-4 w-4 text-emerald-500 animate-pulse" />
                 </h3>
@@ -489,8 +489,8 @@ export const ExcelTools: React.FC = () => {
                       }}
                       className={`w-full text-right px-4.5 py-2.5 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
                         activeSheet === name 
-                          ? "bg-emerald-50 border-emerald-200 text-emerald-700 shadow-3xs" 
-                          : "bg-transparent border-transparent text-gray-600 hover:bg-gray-50"
+                          ? "bg-emerald-500/10 border-emerald-200 text-emerald-700 shadow-3xs" 
+                          : "bg-transparent border-transparent text-slate-400 hover:bg-white/[0.02]"
                       }`}
                     >
                       📄 {name}
@@ -501,18 +501,18 @@ export const ExcelTools: React.FC = () => {
             )}
 
             {/* Column Extraction Card (Interactive Selection) */}
-            <div className="bg-white border border-gray-150 rounded-2xl p-5 shadow-3xs space-y-3">
-              <div className="flex justify-between items-center pb-2 border-b border-gray-100">
+            <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-5 shadow-3xs space-y-3">
+              <div className="flex justify-between items-center pb-2 border-b border-white/[0.08]">
                 <button 
                   onClick={toggleAllColumns}
                   className="text-[10px] font-black text-emerald-600 hover:underline cursor-pointer"
                 >
                   {selectedColumns.length === headerRow.length ? "إلغاء الكل" : "تحديد الكل"}
                 </button>
-                <h3 className="text-xs font-black text-gray-800">تحديد أعمدة مخصصة للاستخراج</h3>
+                <h3 className="text-xs font-black text-white">تحديد أعمدة مخصصة للاستخراج</h3>
               </div>
 
-              <p className="text-[11px] font-bold text-gray-400">حدد الأعمدة التي تريد تصفيتها وتضمينها فقط في الجدول أو تصدير الـ HTML.</p>
+              <p className="text-[11px] font-bold text-slate-500">حدد الأعمدة التي تريد تصفيتها وتضمينها فقط في الجدول أو تصدير الـ HTML.</p>
 
               <div className="grid grid-cols-2 gap-2 max-h-[160px] overflow-y-auto safe-scrollbar">
                 {headerRow.map((col, idx) => {
@@ -525,8 +525,8 @@ export const ExcelTools: React.FC = () => {
                       onClick={() => toggleColumnSelection(idx)}
                       className={`flex items-center gap-1.5 px-3 py-2 border rounded-xl text-right transition-all cursor-pointer ${
                         isSelected 
-                          ? "border-emerald-200 bg-emerald-50/40 text-emerald-800 font-bold" 
-                          : "border-gray-100 text-gray-400"
+                          ? "border-emerald-200 bg-emerald-500/10/40 text-emerald-800 font-bold" 
+                          : "border-white/[0.08] text-slate-500"
                       }`}
                     >
                       {isSelected ? (
@@ -575,10 +575,10 @@ export const ExcelTools: React.FC = () => {
                 </pre>
               </div>
             ) : (
-              <div className="bg-white border border-gray-150 rounded-2xl p-6 shadow-3xs space-y-4 flex flex-col">
+              <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-6 shadow-3xs space-y-4 flex flex-col">
                 
                 {/* Search and Metadata row */}
-                <div className="flex flex-col md:flex-row gap-4 items-center justify-between pb-4 border-b border-gray-100">
+                <div className="flex flex-col md:flex-row gap-4 items-center justify-between pb-4 border-b border-white/[0.08]">
                   
                   {/* Search grid input */}
                   <div className="relative w-full md:w-80">
@@ -587,21 +587,21 @@ export const ExcelTools: React.FC = () => {
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="بحث فوري في خلايا الجدول..."
-                      className="w-full pr-9 pl-4 py-2.5 text-xs font-bold rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:border-emerald-500 outline-none text-right"
+                      className="w-full pr-9 pl-4 py-2.5 text-xs font-bold rounded-xl border border-white/[0.08] bg-white/[0.02]/50 focus:bg-white/[0.04] focus:border-emerald-500 outline-none text-right"
                     />
-                    <Search className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
+                    <Search className="absolute right-3 top-3 h-4 w-4 text-slate-500" />
                   </div>
 
-                  <h3 className="text-sm font-black text-gray-800 flex items-center gap-1.5">
+                  <h3 className="text-sm font-black text-white flex items-center gap-1.5">
                     <FileCheck className="h-4.5 w-4.5 text-emerald-500 animate-pulse" />
                     <span>مستعرض البيانات: {activeSheet} ({filteredBodyRows.length} صفّ)</span>
                   </h3>
                 </div>
 
                 {/* Main Interactive Spreadsheet Grid */}
-                <div className="overflow-x-auto max-w-full rounded-xl border border-gray-100 shadow-2xs safe-scrollbar max-h-[500px] overflow-y-auto">
+                <div className="overflow-x-auto max-w-full rounded-xl border border-white/[0.08] shadow-2xs safe-scrollbar max-h-[500px] overflow-y-auto">
                   <table className="w-full text-right border-collapse">
-                    <thead className="bg-gray-50/80 sticky top-0 z-10 border-b border-gray-200">
+                    <thead className="bg-white/[0.02]/80 sticky top-0 z-10 border-b border-white/[0.08]">
                       <tr>
                         {headerRow.map((col, idx) => {
                           const isSelected = selectedColumns.includes(idx) || selectedColumns.length === 0;
@@ -610,7 +610,7 @@ export const ExcelTools: React.FC = () => {
                           return (
                             <th 
                               key={idx} 
-                              className="px-4 py-3 text-xs font-black text-gray-700 bg-gray-100/90 border border-gray-200 select-none min-w-[120px]"
+                              className="px-4 py-3 text-xs font-black text-slate-300 bg-white/[0.05]/90 border border-white/[0.08] select-none min-w-[120px]"
                             >
                               {col !== undefined ? String(col) : `عمود ${idx + 1}`}
                             </th>
@@ -623,7 +623,7 @@ export const ExcelTools: React.FC = () => {
                         <tr>
                           <td 
                             colSpan={headerRow.length} 
-                            className="px-4 py-12 text-center text-xs font-bold text-gray-400"
+                            className="px-4 py-12 text-center text-xs font-bold text-slate-500"
                           >
                             لا يوجد نتائج بحث مطابقة.
                           </td>
@@ -632,7 +632,7 @@ export const ExcelTools: React.FC = () => {
                         filteredBodyRows.map((row, rIdx) => (
                           <tr 
                             key={rIdx} 
-                            className="hover:bg-emerald-50/15 transition-all even:bg-gray-50/40"
+                            className="hover:bg-emerald-500/10/15 transition-all even:bg-white/[0.02]/40"
                           >
                             {row.map((cell, cIdx) => {
                               const isSelected = selectedColumns.includes(cIdx) || selectedColumns.length === 0;
@@ -641,7 +641,7 @@ export const ExcelTools: React.FC = () => {
                               return (
                                 <td 
                                   key={cIdx} 
-                                  className="px-4 py-2.5 text-xs text-gray-700 font-medium border border-gray-100 max-w-[200px] truncate"
+                                  className="px-4 py-2.5 text-xs text-slate-300 font-medium border border-white/[0.08] max-w-[200px] truncate"
                                   title={cell !== undefined ? String(cell) : ""}
                                 >
                                   {cell !== undefined ? String(cell) : ""}

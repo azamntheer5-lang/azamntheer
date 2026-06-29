@@ -107,7 +107,7 @@ export const CommandPalette: React.FC = () => {
           shouldFilter={false}
         >
           <div className="flex items-center gap-3 border-b border-white/10 px-4">
-            <SearchIcon className="h-4 w-4 text-gray-400 shrink-0" />
+            <SearchIcon className="h-4 w-4 text-slate-500 shrink-0" />
             <CommandPrimitive.Input
               value={query}
               onValueChange={setQuery}
@@ -115,14 +115,14 @@ export const CommandPalette: React.FC = () => {
               autoFocus
               className="flex-1 bg-transparent text-sm text-white placeholder-gray-500 outline-none py-4 font-medium"
             />
-            <kbd className="text-[10px] text-gray-400 font-mono border border-white/10 rounded px-1.5 py-0.5">
+            <kbd className="text-[10px] text-slate-500 font-mono border border-white/10 rounded px-1.5 py-0.5">
               ESC
             </kbd>
           </div>
 
           <CommandPrimitive.List className="max-h-[60vh] overflow-y-auto safe-scrollbar p-2">
             {grouped.length === 0 && (
-              <CommandPrimitive.Empty className="py-12 text-center text-sm text-gray-500">
+              <CommandPrimitive.Empty className="py-12 text-center text-sm text-slate-500">
                 لا توجد نتائج مطابقة
               </CommandPrimitive.Empty>
             )}
@@ -146,7 +146,7 @@ export const CommandPalette: React.FC = () => {
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-bold truncate">{c.title}</div>
                         {c.subtitle && (
-                          <div className="text-[11px] text-gray-400 truncate">{c.subtitle}</div>
+                          <div className="text-[11px] text-slate-500 truncate">{c.subtitle}</div>
                         )}
                       </div>
                       {c.shortcut && (
@@ -154,14 +154,14 @@ export const CommandPalette: React.FC = () => {
                           {c.shortcut.map((k, i) => (
                             <kbd
                               key={i}
-                              className="text-[10px] text-gray-400 font-mono border border-white/10 rounded px-1.5 py-0.5"
+                              className="text-[10px] text-slate-500 font-mono border border-white/10 rounded px-1.5 py-0.5"
                             >
                               {k}
                             </kbd>
                           ))}
                         </div>
                       )}
-                      <CornerDownLeft className="h-3 w-3 text-gray-500 opacity-0 aria-selected:opacity-100" />
+                      <CornerDownLeft className="h-3 w-3 text-slate-500 opacity-0 aria-selected:opacity-100" />
                     </CommandPrimitive.Item>
                   );
                 })}
@@ -169,7 +169,7 @@ export const CommandPalette: React.FC = () => {
             ))}
           </CommandPrimitive.List>
 
-          <div className="border-t border-white/10 px-4 py-2.5 flex items-center justify-between text-[10px] text-gray-500">
+          <div className="border-t border-white/10 px-4 py-2.5 flex items-center justify-between text-[10px] text-slate-500">
             <div className="flex items-center gap-3">
               <span className="flex items-center gap-1">
                 <ChevronRight className="h-3 w-3" />

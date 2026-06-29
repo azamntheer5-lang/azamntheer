@@ -95,7 +95,7 @@ const typeColor = (type: string) => {
     excel: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
     image: "bg-orange-500/10 text-orange-400 border-orange-500/20",
   };
-  return map[type] ?? "bg-white/5 text-slate-400 border-white/10";
+  return map[type] ?? "bg-white/[0.04]/5 text-slate-400 border-white/10";
 };
 
 /* ────────────────────────────────── component ── */

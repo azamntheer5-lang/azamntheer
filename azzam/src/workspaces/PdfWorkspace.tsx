@@ -805,7 +805,7 @@ export const PdfWorkspace: React.FC = () => {
             <div className="flex justify-between items-center glass-card p-4.5 rounded-2xl border border-white/10 text-white shadow-md">
               <button
                 onClick={() => setShowScannerStandalone(false)}
-                className="px-4.5 py-2 text-xs font-black text-gray-300 bg-white/5 border border-white/10 hover:bg-white/10 rounded-xl cursor-pointer"
+                className="px-4.5 py-2 text-xs font-black text-gray-300 bg-white/[0.04]/5 border border-white/10 hover:bg-white/[0.04]/10 rounded-xl cursor-pointer"
               >
                 ◀ إلغاء والعودة
               </button>
@@ -851,7 +851,7 @@ export const PdfWorkspace: React.FC = () => {
                   className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer whitespace-nowrap ${
                     activeTab === tab.id
                       ? "bg-blue-600 text-white shadow-md"
-                      : "text-gray-400 hover:text-white hover:bg-white/5"
+                      : "text-slate-500 hover:text-white hover:bg-white/[0.04]/5"
                   }`}
                 >
                   <Icon className="h-4 w-4" />
@@ -866,7 +866,7 @@ export const PdfWorkspace: React.FC = () => {
             <div className="flex items-center gap-3">
               <div className="h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
               <span className="text-xs font-bold text-white max-w-md truncate">{doc.name}</span>
-              <span className="text-[10px] bg-white/10 text-blue-300 border border-white/10 px-2 py-0.5 rounded-md font-bold">
+              <span className="text-[10px] bg-white/[0.04]/10 text-blue-300 border border-white/10 px-2 py-0.5 rounded-md font-bold">
                 {doc.totalPages} صفحات
               </span>
             </div>

@@ -477,32 +477,32 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch select-none">
       
       {/* 1. LEFT SIDE: THE INTERACTIVE DOCUMENT PREVIEW STAGE (8 COLS) */}
-      <div className="lg:col-span-7 flex flex-col items-center bg-gray-100 rounded-2xl border border-gray-200 p-4 min-h-[500px] justify-between shadow-inner">
+      <div className="lg:col-span-7 flex flex-col items-center bg-white/[0.05] rounded-2xl border border-white/[0.08] p-4 min-h-[500px] justify-between shadow-inner">
         
         {/* Page selector bar */}
-        <div className="flex items-center gap-3 w-full justify-between border-b border-gray-200 pb-3 mb-3">
+        <div className="flex items-center gap-3 w-full justify-between border-b border-white/[0.08] pb-3 mb-3">
           <div className="flex items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-google-blue text-white text-xs font-bold">
+            <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-blue-500 text-white text-xs font-bold">
               {selectedPage}
             </span>
-            <span className="text-xs font-bold text-gray-700">معاينة وتعديل الصفحة الحالية</span>
+            <span className="text-xs font-bold text-slate-300">معاينة وتعديل الصفحة الحالية</span>
           </div>
 
           <div className="flex items-center gap-2">
             <button
               onClick={() => setSelectedPage(p => Math.max(1, p - 1))}
               disabled={selectedPage === 1 || pageLoading}
-              className="px-3 py-1 text-xs font-bold rounded-lg bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-40 cursor-pointer"
+              className="px-3 py-1 text-xs font-bold rounded-lg bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.02] disabled:opacity-40 cursor-pointer"
             >
               السابق
             </button>
-            <span className="text-xs font-semibold text-gray-500">
+            <span className="text-xs font-semibold text-slate-500">
               {selectedPage} / {totalPages}
             </span>
             <button
               onClick={() => setSelectedPage(p => Math.min(totalPages, p + 1))}
               disabled={selectedPage === totalPages || pageLoading}
-              className="px-3 py-1 text-xs font-bold rounded-lg bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-40 cursor-pointer"
+              className="px-3 py-1 text-xs font-bold rounded-lg bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.02] disabled:opacity-40 cursor-pointer"
             >
               التالي
             </button>
@@ -510,11 +510,11 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
         </div>
 
         {/* The interactive canvas preview box */}
-        <div className="relative border border-gray-200 bg-white shadow-md rounded-xl overflow-hidden max-w-full group">
+        <div className="relative border border-white/[0.08] bg-white/[0.04] shadow-md rounded-xl overflow-hidden max-w-full group">
           {pageLoading && (
-            <div className="absolute inset-0 bg-white/80 backdrop-blur-xs flex flex-col items-center justify-center z-10">
-              <RefreshCw className="h-8 w-8 text-google-blue animate-spin mb-2" />
-              <span className="text-xs font-bold text-gray-700">جاري رسم وتحضير محتوى الصفحة...</span>
+            <div className="absolute inset-0 bg-white/[0.04]/80 backdrop-blur-xs flex flex-col items-center justify-center z-10">
+              <RefreshCw className="h-8 w-8 text-blue-400 animate-spin mb-2" />
+              <span className="text-xs font-bold text-slate-300">جاري رسم وتحضير محتوى الصفحة...</span>
             </div>
           )}
 
@@ -537,7 +537,7 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
         </div>
 
         {/* Action hints */}
-        <div className="w-full flex items-center gap-2 mt-4 bg-blue-50 border border-blue-100 p-2.5 rounded-xl text-[11px] text-google-blue leading-relaxed font-semibold">
+        <div className="w-full flex items-center gap-2 mt-4 bg-blue-500/10 border border-blue-500/20 p-2.5 rounded-xl text-[11px] text-blue-400 leading-relaxed font-semibold">
           <Info className="h-4 w-4 shrink-0" />
           {activeEditorMode === "signature" && (
             <span>💡 ارسم توقيعك أو حمّل صورتك/ختمك بالجانب، ثم **انقر بنقرة واحدة** على أي مكان في المعاينة أعلاه لتثبيته بدقة متناهية.</span>
@@ -558,7 +558,7 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
       <div className="lg:col-span-5 flex flex-col gap-4 select-none">
         
         {/* Editor tabs */}
-        <div className="grid grid-cols-4 gap-1.5 p-1 bg-gray-100 rounded-xl">
+        <div className="grid grid-cols-4 gap-1.5 p-1 bg-white/[0.05] rounded-xl">
           {[
             { id: "signature", label: "صور وتوقيع", icon: PenTool },
             { id: "text", label: "نصوص", icon: Type },
@@ -572,8 +572,8 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
                 onClick={() => setActiveEditorMode(btn.id as any)}
                 className={`flex flex-col items-center py-2.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
                   activeEditorMode === btn.id
-                    ? "bg-white text-google-blue shadow-xs"
-                    : "text-gray-500 hover:text-gray-800"
+                    ? "bg-white/[0.04] text-blue-400 shadow-xs"
+                    : "text-slate-500 hover:text-white"
                 }`}
               >
                 <Icon className="h-4 w-4 mb-1" />
@@ -584,20 +584,20 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
         </div>
 
         {/* Active Tool Config panel */}
-        <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-3xs flex-1 flex flex-col justify-between">
+        <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 shadow-3xs flex-1 flex flex-col justify-between">
           
           {/* A. DIGITAL SIGNATURE & IMAGE STAMP WRAPPER */}
           {activeEditorMode === "signature" && (
             <div className="space-y-4 flex-1 flex flex-col justify-between">
               <div>
                 {/* Segmented Control for Signature Type */}
-                <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 rounded-xl mb-4">
+                <div className="grid grid-cols-2 gap-2 p-1 bg-white/[0.05] rounded-xl mb-4">
                   <button
                     onClick={() => setSignatureType("draw")}
                     className={`py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                       signatureType === "draw"
-                        ? "bg-white text-google-blue shadow-xs"
-                        : "text-gray-500 hover:text-gray-800"
+                        ? "bg-white/[0.04] text-blue-400 shadow-xs"
+                        : "text-slate-500 hover:text-white"
                     }`}
                   >
                     ✍️ رسم توقيع يدوي
@@ -606,8 +606,8 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
                     onClick={() => setSignatureType("upload")}
                     className={`py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                       signatureType === "upload"
-                        ? "bg-white text-google-blue shadow-xs"
-                        : "text-gray-500 hover:text-gray-800"
+                        ? "bg-white/[0.04] text-blue-400 shadow-xs"
+                        : "text-slate-500 hover:text-white"
                     }`}
                   >
                     🖼️ رفع صورة أو ختم
@@ -617,16 +617,16 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
                 {signatureType === "draw" ? (
                   <div className="space-y-4">
                     <div className="flex justify-between items-center mb-1.5">
-                      <span className="text-xs font-bold text-gray-800">ارسم توقيعك على اللوحة:</span>
+                      <span className="text-xs font-bold text-white">ارسم توقيعك على اللوحة:</span>
                       <button
                         onClick={resetSigCanvas}
-                        className="text-[10px] font-bold text-google-red hover:bg-red-50 px-2 py-1 rounded-md transition-colors"
+                        className="text-[10px] font-bold text-rose-400 hover:bg-rose-500/10 px-2 py-1 rounded-md transition-colors"
                       >
                         مسح اللوحة
                       </button>
                     </div>
 
-                    <div className="border-2 border-gray-200 rounded-xl overflow-hidden bg-white shadow-inner relative h-[150px]">
+                    <div className="border-2 border-white/[0.08] rounded-xl overflow-hidden bg-white/[0.04] shadow-inner relative h-[150px]">
                       <canvas
                         ref={sigCanvasRef}
                         width={450}
@@ -645,24 +645,24 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
                     {/* Draw parameters */}
                     <div className="grid grid-cols-2 gap-3 mt-3">
                       <div>
-                        <label className="text-[10px] text-gray-400 font-semibold block mb-1">لون القلم:</label>
+                        <label className="text-[10px] text-slate-500 font-semibold block mb-1">لون القلم:</label>
                         <div className="flex gap-1.5 items-center">
                           <input
                             type="color"
                             value={sigColor}
                             onChange={e => setSigColor(e.target.value)}
-                            className="w-8 h-8 rounded-lg border border-gray-200 p-0.5 bg-white cursor-pointer"
+                            className="w-8 h-8 rounded-lg border border-white/[0.08] p-0.5 bg-white/[0.04] cursor-pointer"
                           />
                           <span className="text-xs font-semibold">{sigColor}</span>
                         </div>
                       </div>
 
                       <div>
-                        <label className="text-[10px] text-gray-400 font-semibold block mb-1">سمك الخط:</label>
+                        <label className="text-[10px] text-slate-500 font-semibold block mb-1">سمك الخط:</label>
                         <select
                           value={sigPenSize}
                           onChange={e => setSigPenSize(parseFloat(e.target.value))}
-                          className="w-full text-xs bg-gray-50 border border-gray-200 rounded-lg p-2 font-semibold"
+                          className="w-full text-xs bg-white/[0.02] border border-white/[0.08] rounded-lg p-2 font-semibold"
                         >
                           <option value="1.5">رفيع جداً (1.5)</option>
                           <option value="2.5">متوسط (2.5)</option>
@@ -674,34 +674,34 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
                   </div>
                 ) : (
                   <div className="space-y-4 animate-fade-in">
-                    <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-2xl p-4 bg-gray-50 hover:bg-gray-100 transition-colors relative cursor-pointer group">
+                    <div className="flex flex-col items-center justify-center border-2 border-dashed border-white/10 rounded-2xl p-4 bg-white/[0.02] hover:bg-white/[0.05] transition-colors relative cursor-pointer group">
                       <input
                         type="file"
                         accept="image/png, image/jpeg, image/jpg, image/webp"
                         onChange={handleImageUpload}
                         className="absolute inset-0 opacity-0 cursor-pointer z-10"
                       />
-                      <Plus className="h-6 w-6 text-gray-400 mb-1.5 group-hover:text-google-blue transition-colors" />
-                      <span className="text-xs font-bold text-gray-700">اضغط أو اسحب صورة/ختم هنا</span>
-                      <span className="text-[10px] text-gray-400 mt-1">يدعم PNG, JPG, WEBP</span>
+                      <Plus className="h-6 w-6 text-slate-500 mb-1.5 group-hover:text-blue-400 transition-colors" />
+                      <span className="text-xs font-bold text-slate-300">اضغط أو اسحب صورة/ختم هنا</span>
+                      <span className="text-[10px] text-slate-500 mt-1">يدعم PNG, JPG, WEBP</span>
                     </div>
 
                     {uploadedImagePreview && (
-                      <div className="bg-gray-50 p-3 rounded-xl border border-gray-150 space-y-3.5">
+                      <div className="bg-white/[0.02] p-3 rounded-xl border border-white/[0.08] space-y-3.5">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-gray-700">معاينة الصورة المرفوعة:</span>
+                          <span className="text-xs font-bold text-slate-300">معاينة الصورة المرفوعة:</span>
                           <button
                             onClick={() => {
                               setUploadedImagePreview(null);
                               setUploadedImageBytes(null);
                             }}
-                            className="text-[10px] font-bold text-google-red hover:bg-red-50 px-2 py-1 rounded-md transition-colors"
+                            className="text-[10px] font-bold text-rose-400 hover:bg-rose-500/10 px-2 py-1 rounded-md transition-colors"
                           >
                             حذف الصورة
                           </button>
                         </div>
 
-                        <div className="flex justify-center bg-white p-2.5 rounded-lg border border-gray-200 max-h-[140px] overflow-hidden items-center">
+                        <div className="flex justify-center bg-white/[0.04] p-2.5 rounded-lg border border-white/[0.08] max-h-[140px] overflow-hidden items-center">
                           <img
                             src={uploadedImagePreview}
                             alt="Uploaded Stamp"
@@ -712,8 +712,8 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
                         {/* Image scale controller */}
                         <div className="space-y-1.5">
                           <div className="flex justify-between items-center">
-                            <label className="text-[10px] text-gray-500 font-bold">عرض الصورة (نقطة):</label>
-                            <span className="text-xs font-bold text-google-blue">{uploadedImageWidth}px × {uploadedImageHeight}px</span>
+                            <label className="text-[10px] text-slate-500 font-bold">عرض الصورة (نقطة):</label>
+                            <span className="text-xs font-bold text-blue-400">{uploadedImageWidth}px × {uploadedImageHeight}px</span>
                           </div>
                           <input
                             type="range"
@@ -740,7 +740,7 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
                 )}
               </div>
 
-              <div className="bg-purple-50 border border-purple-100 p-3 rounded-xl text-[11px] text-purple-800 leading-relaxed font-semibold mt-4">
+              <div className="bg-purple-500/10 border border-purple-100 p-3 rounded-xl text-[11px] text-purple-800 leading-relaxed font-semibold mt-4">
                 {signatureType === "draw" 
                   ? "✍️ بعد رسم التوقيع المطلوب، انقر فوق أي مكان بالصفحة في شاشة المعاينة اليسرى لإدراج التوقيع وتضمينه في الملف فوراً."
                   : "🖼️ بعد تحميل الصورة، انقر فوق أي مكان بالصفحة في شاشة المعاينة اليسرى لإدراج الختم أو الصورة وتثبيتها بدقة."}
@@ -752,23 +752,23 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
           {activeEditorMode === "text" && (
             <div className="space-y-4">
               <div>
-                <label className="text-xs font-bold text-gray-700 block mb-1.5">اكتب النص المراد إدراجه:</label>
+                <label className="text-xs font-bold text-slate-300 block mb-1.5">اكتب النص المراد إدراجه:</label>
                 <textarea
                   value={textToInsert}
                   onChange={e => setTextToInsert(e.target.value)}
                   placeholder="مثال: تمت مراجعته والموافقة عليه"
                   rows={2}
-                  className="w-full text-xs bg-gray-50 border border-gray-200 rounded-xl p-3 outline-none focus:border-google-blue font-semibold text-gray-800 resize-none"
+                  className="w-full text-xs bg-white/[0.02] border border-white/[0.08] rounded-xl p-3 outline-none focus:border-google-blue font-semibold text-white resize-none"
                 />
               </div>
 
               {/* Font Family Selector */}
               <div>
-                <label className="text-[10px] text-gray-400 font-bold block mb-1">نوع الخط:</label>
+                <label className="text-[10px] text-slate-500 font-bold block mb-1">نوع الخط:</label>
                 <select
                   value={textFontFamily}
                   onChange={e => setTextFontFamily(e.target.value)}
-                  className="w-full text-xs bg-gray-50 border border-gray-200 rounded-lg p-2 font-bold"
+                  className="w-full text-xs bg-white/[0.02] border border-white/[0.08] rounded-lg p-2 font-bold"
                 >
                   <option value="Cairo">Cairo (كايرو)</option>
                   <option value="Tajawal">Tajawal (تاجاوال)</option>
@@ -781,20 +781,20 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
               {/* Font Colors and Font Sizes */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] text-gray-400 font-bold block mb-1">لون النص:</label>
+                  <label className="text-[10px] text-slate-500 font-bold block mb-1">لون النص:</label>
                   <div className="flex gap-1.5 items-center">
                     <input
                       type="color"
                       value={textHexColor}
                       onChange={e => setTextHexColor(e.target.value)}
-                      className="w-8 h-8 rounded-lg border border-gray-200 p-0.5 bg-white cursor-pointer"
+                      className="w-8 h-8 rounded-lg border border-white/[0.08] p-0.5 bg-white/[0.04] cursor-pointer"
                     />
                     <span className="text-xs font-semibold">{textHexColor}</span>
                   </div>
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[10px] text-gray-400 font-bold block mb-1">حجم الخط ({textFontSize}px):</label>
+                  <label className="text-[10px] text-slate-500 font-bold block mb-1">حجم الخط ({textFontSize}px):</label>
                   <input
                     type="range"
                     min={6}
@@ -807,7 +807,7 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
               </div>
 
               {/* Text background and Text border */}
-              <div className="bg-gray-50 p-3 rounded-xl border border-gray-150 space-y-3">
+              <div className="bg-white/[0.02] p-3 rounded-xl border border-white/[0.08] space-y-3">
                 {/* Background settings */}
                 <div className="space-y-2">
                   <label className="flex items-center gap-2 cursor-pointer text-xs font-bold">
@@ -815,44 +815,44 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
                       type="checkbox"
                       checked={textUseBg}
                       onChange={e => setTextUseBg(e.target.checked)}
-                      className="h-4 w-4 text-google-blue rounded-xs accent-google-blue cursor-pointer"
+                      className="h-4 w-4 text-blue-400 rounded-xs accent-google-blue cursor-pointer"
                     />
                     <span>إضافة خلفية ملونة خلف النص</span>
                   </label>
 
                   {textUseBg && (
                     <div className="flex items-center gap-2 animate-fade-in pl-6">
-                      <span className="text-[10px] text-gray-400 font-semibold">لون الخلفية:</span>
+                      <span className="text-[10px] text-slate-500 font-semibold">لون الخلفية:</span>
                       <input
                         type="color"
                         value={textBgColor}
                         onChange={e => setTextBgColor(e.target.value)}
-                        className="w-6 h-6 rounded-md border border-gray-200 p-0.5 cursor-pointer"
+                        className="w-6 h-6 rounded-md border border-white/[0.08] p-0.5 cursor-pointer"
                       />
                     </div>
                   )}
                 </div>
 
                 {/* Stroke/Border settings */}
-                <div className="space-y-2 pt-1 border-t border-gray-200">
+                <div className="space-y-2 pt-1 border-t border-white/[0.08]">
                   <label className="flex items-center gap-2 cursor-pointer text-xs font-bold">
                     <input
                       type="checkbox"
                       checked={textUseStroke}
                       onChange={e => setTextUseStroke(e.target.checked)}
-                      className="h-4 w-4 text-google-blue rounded-xs accent-google-blue cursor-pointer"
+                      className="h-4 w-4 text-blue-400 rounded-xs accent-google-blue cursor-pointer"
                     />
                     <span>إضافة إطار/حدود لمربع النص</span>
                   </label>
 
                   {textUseStroke && (
                     <div className="flex items-center gap-2 animate-fade-in pl-6">
-                      <span className="text-[10px] text-gray-400 font-semibold">لون الإطار:</span>
+                      <span className="text-[10px] text-slate-500 font-semibold">لون الإطار:</span>
                       <input
                         type="color"
                         value={textStrokeColor}
                         onChange={e => setTextStrokeColor(e.target.value)}
-                        className="w-6 h-6 rounded-md border border-gray-200 p-0.5 cursor-pointer"
+                        className="w-6 h-6 rounded-md border border-white/[0.08] p-0.5 cursor-pointer"
                       />
                     </div>
                   )}
@@ -866,40 +866,40 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
             <div className="space-y-4">
               
               {/* Redaction box */}
-              <div className="space-y-3.5 bg-gray-50/60 p-3 rounded-xl border border-gray-150">
-                <div className="flex items-center gap-1 text-xs font-bold text-google-red">
+              <div className="space-y-3.5 bg-white/[0.02]/60 p-3 rounded-xl border border-white/[0.08]">
+                <div className="flex items-center gap-1 text-xs font-bold text-rose-400">
                   <ShieldCheck className="h-4 w-4" />
                   <span>طمس الكلمات الحساسة (عبر المستند بالكامل)</span>
                 </div>
 
                 <div>
-                  <label className="text-[10px] text-gray-400 font-semibold block mb-1">الكلمات للطمس (افصل بينها بفاصلة):</label>
+                  <label className="text-[10px] text-slate-500 font-semibold block mb-1">الكلمات للطمس (افصل بينها بفاصلة):</label>
                   <input
                     type="text"
                     value={redactWords}
                     onChange={e => setRedactWords(e.target.value)}
                     placeholder="مثال: سري، مالي، 123456"
-                    className="w-full text-xs bg-white border border-gray-200 rounded-lg p-2.5 font-semibold text-gray-800"
+                    className="w-full text-xs bg-white/[0.04] border border-white/[0.08] rounded-lg p-2.5 font-semibold text-white"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="text-[10px] text-gray-400 font-semibold block mb-1">لون الطمس:</label>
+                    <label className="text-[10px] text-slate-500 font-semibold block mb-1">لون الطمس:</label>
                     <input
                       type="color"
                       value={redactBoxColor}
                       onChange={e => setRedactBoxColor(e.target.value)}
-                      className="w-full h-8 rounded-lg border border-gray-200 p-0.5 bg-white cursor-pointer"
+                      className="w-full h-8 rounded-lg border border-white/[0.08] p-0.5 bg-white/[0.04] cursor-pointer"
                     />
                   </div>
 
                   <div>
-                    <label className="text-[10px] text-gray-400 font-semibold block mb-1">الشفافية:</label>
+                    <label className="text-[10px] text-slate-500 font-semibold block mb-1">الشفافية:</label>
                     <select
                       value={redactOpacity}
                       onChange={e => setRedactOpacity(parseInt(e.target.value))}
-                      className="w-full text-xs bg-white border border-gray-200 rounded-lg p-2 font-semibold"
+                      className="w-full text-xs bg-white/[0.04] border border-white/[0.08] rounded-lg p-2 font-semibold"
                     >
                       <option value="100">معتم بالكامل (100%)</option>
                       <option value="85">طمس خفيف (85%)</option>
@@ -909,7 +909,7 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
                 </div>
 
                 {/* Replacement options */}
-                <div className="border-t border-gray-200 pt-2.5 space-y-2">
+                <div className="border-t border-white/[0.08] pt-2.5 space-y-2">
                   <label className="flex items-center gap-2 cursor-pointer text-xs font-bold">
                     <input
                       type="checkbox"
@@ -927,15 +927,15 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
                         value={redactReplaceText}
                         onChange={e => setRedactReplaceText(e.target.value)}
                         placeholder="مثال: [بيانات مطموسة]"
-                        className="w-full text-xs bg-white border border-gray-200 rounded-lg p-2"
+                        className="w-full text-xs bg-white/[0.04] border border-white/[0.08] rounded-lg p-2"
                       />
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-[10px] text-gray-400 font-bold">لون النص:</span>
+                        <span className="text-[10px] text-slate-500 font-bold">لون النص:</span>
                         <input
                           type="color"
                           value={redactReplaceTextColor}
                           onChange={e => setRedactReplaceTextColor(e.target.value)}
-                          className="w-6 h-6 rounded-md border border-gray-200 p-0.5 cursor-pointer"
+                          className="w-6 h-6 rounded-md border border-white/[0.08] p-0.5 cursor-pointer"
                         />
                       </div>
                     </div>
@@ -945,15 +945,15 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
                 <button
                   onClick={triggerRedact}
                   disabled={isProcessing}
-                  className="w-full py-2 bg-google-red hover:bg-red-600 text-white text-xs font-bold rounded-lg cursor-pointer"
+                  className="w-full py-2 bg-rose-500 hover:bg-red-600 text-white text-xs font-bold rounded-lg cursor-pointer"
                 >
                   تطبيق الطمس الآمن
                 </button>
               </div>
 
               {/* Search and Replace Box */}
-              <div className="space-y-3 bg-blue-50/20 p-3 rounded-xl border border-blue-100">
-                <div className="flex items-center gap-1 text-xs font-bold text-google-blue">
+              <div className="space-y-3 bg-blue-500/10/20 p-3 rounded-xl border border-blue-500/20">
+                <div className="flex items-center gap-1 text-xs font-bold text-blue-400">
                   <Search className="h-4 w-4" />
                   <span>البحث والاستبدال (تجريبي)</span>
                 </div>
@@ -964,21 +964,21 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
                     value={searchText}
                     onChange={e => setSearchText(e.target.value)}
                     placeholder="ابحث عن..."
-                    className="text-xs bg-white border border-gray-200 rounded-lg p-2"
+                    className="text-xs bg-white/[0.04] border border-white/[0.08] rounded-lg p-2"
                   />
                   <input
                     type="text"
                     value={replaceText}
                     onChange={e => setReplaceText(e.target.value)}
                     placeholder="استبدل بـ..."
-                    className="text-xs bg-white border border-gray-200 rounded-lg p-2"
+                    className="text-xs bg-white/[0.04] border border-white/[0.08] rounded-lg p-2"
                   />
                 </div>
 
                 <button
                   onClick={triggerSearchReplace}
                   disabled={isProcessing}
-                  className="w-full py-2 bg-google-blue hover:bg-blue-600 text-white text-xs font-bold rounded-lg cursor-pointer"
+                  className="w-full py-2 bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold rounded-lg cursor-pointer"
                 >
                   استبدال النص
                 </button>
@@ -991,9 +991,9 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
             <div className="space-y-4">
               
               {/* Watermark panel */}
-              <div className="space-y-3 bg-gray-50/60 p-3 rounded-xl border border-gray-150">
-                <div className="text-xs font-bold text-gray-800 flex items-center gap-1">
-                  <Layers className="h-4 w-4 text-google-blue animate-pulse" />
+              <div className="space-y-3 bg-white/[0.02]/60 p-3 rounded-xl border border-white/[0.08]">
+                <div className="text-xs font-bold text-white flex items-center gap-1">
+                  <Layers className="h-4 w-4 text-blue-400 animate-pulse" />
                   <span>إضافة علامة مائية مائلة (جميع الصفحات)</span>
                 </div>
 
@@ -1002,37 +1002,37 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
                   value={wmText}
                   onChange={e => setWmText(e.target.value)}
                   placeholder="مثال: سري للغاية - COPY"
-                  className="w-full text-xs bg-white border border-gray-200 rounded-lg p-2 font-bold"
+                  className="w-full text-xs bg-white/[0.04] border border-white/[0.08] rounded-lg p-2 font-bold"
                 />
 
                 <div className="grid grid-cols-3 gap-1.5 text-xs font-semibold">
                   <div>
-                    <label className="text-[9px] text-gray-400 block mb-0.5">الحجم:</label>
+                    <label className="text-[9px] text-slate-500 block mb-0.5">الحجم:</label>
                     <input
                       type="number"
                       value={wmSize}
                       onChange={e => setWmSize(parseInt(e.target.value) || 24)}
-                      className="w-full bg-white border border-gray-200 rounded-lg p-1 text-center"
+                      className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg p-1 text-center"
                     />
                   </div>
                   <div>
-                    <label className="text-[9px] text-gray-400 block mb-0.5">الشفافية:</label>
+                    <label className="text-[9px] text-slate-500 block mb-0.5">الشفافية:</label>
                     <input
                       type="number"
                       value={wmOpacity}
                       min={5}
                       max={90}
                       onChange={e => setWmOpacity(parseInt(e.target.value) || 20)}
-                      className="w-full bg-white border border-gray-200 rounded-lg p-1 text-center"
+                      className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg p-1 text-center"
                     />
                   </div>
                   <div>
-                    <label className="text-[9px] text-gray-400 block mb-0.5">اللون:</label>
+                    <label className="text-[9px] text-slate-500 block mb-0.5">اللون:</label>
                     <input
                       type="color"
                       value={wmColor}
                       onChange={e => setWmColor(e.target.value)}
-                      className="w-full h-7 rounded-lg border border-gray-200 p-0.5 bg-white cursor-pointer"
+                      className="w-full h-7 rounded-lg border border-white/[0.08] p-0.5 bg-white/[0.04] cursor-pointer"
                     />
                   </div>
                 </div>
@@ -1040,26 +1040,26 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
                 <button
                   onClick={triggerWatermark}
                   disabled={isProcessing}
-                  className="w-full py-2 bg-google-blue hover:bg-blue-600 text-white text-xs font-bold rounded-lg cursor-pointer"
+                  className="w-full py-2 bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold rounded-lg cursor-pointer"
                 >
                   إضافة علامة مائية
                 </button>
               </div>
 
               {/* Page numbers panel */}
-              <div className="space-y-3 bg-blue-50/20 p-3 rounded-xl border border-blue-100">
-                <div className="text-xs font-bold text-gray-800 flex items-center gap-1">
-                  <TextIcon className="h-4 w-4 text-google-green" />
+              <div className="space-y-3 bg-blue-500/10/20 p-3 rounded-xl border border-blue-500/20">
+                <div className="text-xs font-bold text-white flex items-center gap-1">
+                  <TextIcon className="h-4 w-4 text-emerald-400" />
                   <span>ترقيم الصفحات التلقائي</span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div>
-                    <label className="text-[9px] text-gray-400 block mb-0.5">الموضع:</label>
+                    <label className="text-[9px] text-slate-500 block mb-0.5">الموضع:</label>
                     <select
                       value={numPosition}
                       onChange={e => setNumPosition(e.target.value)}
-                      className="w-full bg-white border border-gray-200 rounded-lg p-1.5"
+                      className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg p-1.5"
                     >
                       <option value="bottom-center">أسفل الوسط</option>
                       <option value="bottom-right">أسفل اليمين</option>
@@ -1069,13 +1069,13 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
                   </div>
 
                   <div>
-                    <label className="text-[9px] text-gray-400 block mb-0.5">رقم البداية:</label>
+                    <label className="text-[9px] text-slate-500 block mb-0.5">رقم البداية:</label>
                     <input
                       type="number"
                       value={numStart}
                       min={1}
                       onChange={e => setNumStart(parseInt(e.target.value) || 1)}
-                      className="w-full bg-white border border-gray-200 rounded-lg p-1 text-center"
+                      className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg p-1 text-center"
                     />
                   </div>
                 </div>
@@ -1083,7 +1083,7 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
                 <button
                   onClick={triggerPageNumbers}
                   disabled={isProcessing}
-                  className="w-full py-2 bg-google-green hover:bg-green-600 text-white text-xs font-bold rounded-lg cursor-pointer"
+                  className="w-full py-2 bg-emerald-500 hover:bg-green-600 text-white text-xs font-bold rounded-lg cursor-pointer"
                 >
                   ترقيم الصفحات الآن
                 </button>

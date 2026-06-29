@@ -138,24 +138,24 @@ export const PngConverter: React.FC<PngConverterProps> = ({
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-3xs max-w-3xl mx-auto select-none space-y-5">
+    <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-6 shadow-3xs max-w-3xl mx-auto select-none space-y-5">
       <div className="flex items-center gap-2">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-google-blue">
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500/10 text-blue-400">
           <Image className="h-5 w-5" />
         </div>
         <div>
-          <h3 className="text-sm font-bold text-gray-800">تصدير صفحات PDF إلى صور PNG</h3>
-          <p className="text-[10px] text-gray-400 font-semibold">استخرج كل صفحة كملف صورة عالي الدقة بصيغة PNG لمشاركتها كصور.</p>
+          <h3 className="text-sm font-bold text-white">تصدير صفحات PDF إلى صور PNG</h3>
+          <p className="text-[10px] text-slate-500 font-semibold">استخرج كل صفحة كملف صورة عالي الدقة بصيغة PNG لمشاركتها كصور.</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="text-xs font-bold text-gray-700 block mb-1">جودة وكثافة البكسل للصور:</label>
+          <label className="text-xs font-bold text-slate-300 block mb-1">جودة وكثافة البكسل للصور:</label>
           <select
             value={qualityScale}
             onChange={(e) => setQualityScale(parseFloat(e.target.value))}
-            className="w-full text-xs bg-gray-50 border border-gray-200 rounded-lg p-2.5 font-bold"
+            className="w-full text-xs bg-white/[0.02] border border-white/[0.08] rounded-lg p-2.5 font-bold"
           >
             <option value="1">جودة قياسية خفيفة (72 DPI)</option>
             <option value="2">جودة عالية ممتازة (144 DPI)</option>
@@ -164,11 +164,11 @@ export const PngConverter: React.FC<PngConverterProps> = ({
         </div>
 
         <div>
-          <label className="text-xs font-bold text-gray-700 block mb-1">طريقة التحميل والتنزيل:</label>
+          <label className="text-xs font-bold text-slate-300 block mb-1">طريقة التحميل والتنزيل:</label>
           <select
             value={downloadMode}
             onChange={(e) => setDownloadMode(e.target.value as any)}
-            className="w-full text-xs bg-gray-50 border border-gray-200 rounded-lg p-2.5 font-bold"
+            className="w-full text-xs bg-white/[0.02] border border-white/[0.08] rounded-lg p-2.5 font-bold"
           >
             <option value="zip">تنزيل كملف مضغوط ZIP (جميع الصور مجمعة)</option>
             <option value="individual">تنزيل كل صورة منفردة تلقائياً</option>
@@ -176,9 +176,9 @@ export const PngConverter: React.FC<PngConverterProps> = ({
         </div>
       </div>
 
-      <div className="space-y-3 bg-gray-50 p-4 rounded-xl border border-gray-150">
+      <div className="space-y-3 bg-white/[0.02] p-4 rounded-xl border border-white/[0.08]">
         <div className="flex items-center justify-between">
-          <label className="text-xs font-bold text-gray-700">تحديد الصفحات المراد استخراجها:</label>
+          <label className="text-xs font-bold text-slate-300">تحديد الصفحات المراد استخراجها:</label>
           <div className="flex gap-4">
             <label className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold">
               <input
@@ -204,7 +204,7 @@ export const PngConverter: React.FC<PngConverterProps> = ({
         </div>
 
         {pageRange === "range" && (
-          <div className="flex items-center gap-3 pt-2 border-t border-gray-200 animate-fade-in text-xs font-bold">
+          <div className="flex items-center gap-3 pt-2 border-t border-white/[0.08] animate-fade-in text-xs font-bold">
             <div className="flex items-center gap-2">
               <span>من صفحة:</span>
               <input
@@ -213,7 +213,7 @@ export const PngConverter: React.FC<PngConverterProps> = ({
                 min={1}
                 max={totalPages}
                 onChange={(e) => setFromPage(parseInt(e.target.value) || 1)}
-                className="w-16 bg-white border border-gray-200 rounded-lg p-1.5 text-center"
+                className="w-16 bg-white/[0.04] border border-white/[0.08] rounded-lg p-1.5 text-center"
               />
             </div>
             <div className="flex items-center gap-2">
@@ -224,7 +224,7 @@ export const PngConverter: React.FC<PngConverterProps> = ({
                 min={1}
                 max={totalPages}
                 onChange={(e) => setToPage(parseInt(e.target.value) || totalPages)}
-                className="w-16 bg-white border border-gray-200 rounded-lg p-1.5 text-center"
+                className="w-16 bg-white/[0.04] border border-white/[0.08] rounded-lg p-1.5 text-center"
               />
             </div>
           </div>
@@ -234,16 +234,16 @@ export const PngConverter: React.FC<PngConverterProps> = ({
       {/* Progress display */}
       {progress > 0 && (
         <div className="space-y-1.5 animate-fade-in">
-          <div className="flex justify-between items-center text-[10px] text-gray-400 font-bold">
-            <span className="flex items-center gap-1 text-google-blue">
+          <div className="flex justify-between items-center text-[10px] text-slate-500 font-bold">
+            <span className="flex items-center gap-1 text-blue-400">
               <RefreshCw className="h-3.5 w-3.5 animate-spin" />
               {statusMessage}
             </span>
             <span>{progress}%</span>
           </div>
-          <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+          <div className="h-2 w-full bg-white/[0.05] rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-google-blue to-blue-600 transition-all duration-300 rounded-full"
+              className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-300 rounded-full"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -253,7 +253,7 @@ export const PngConverter: React.FC<PngConverterProps> = ({
       <button
         onClick={triggerExport}
         disabled={isProcessing}
-        className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-google-blue hover:bg-blue-600 py-3 text-xs font-bold text-white shadow-md shadow-blue-500/10 transition-all cursor-pointer disabled:opacity-45"
+        className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-blue-500 hover:bg-blue-600 py-3 text-xs font-bold text-white shadow-md shadow-blue-500/10 transition-all cursor-pointer disabled:opacity-45"
       >
         {isProcessing ? <RefreshCw className="h-4.5 w-4.5 animate-spin" /> : <Layers className="h-4.5 w-4.5" />}
         <span>بدء تصدير وتحميل صفحات الـ PDF كصور</span>
