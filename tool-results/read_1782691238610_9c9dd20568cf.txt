@@ -1,0 +1,1102 @@
+     1→import React, { useState, useEffect, useRef } from "react";
+     2→import * as pdfjsLib from "pdfjs-dist";
+     3→import { 
+     4→  Sparkles, PenTool, Type, Search, Eye, ShieldCheck, 
+     5→  Trash2, Plus, Info, Check, RefreshCw, Type as TextIcon,
+     6→  Layers, Lock, Compass, HelpCircle
+     7→} from "lucide-react";
+     8→
+     9→interface InteractiveCanvasProps {
+    10→  pdfBytes: Uint8Array;
+    11→  totalPages: number;
+    12→  onApplyTextAnnotation: (
+    13→    pageNum: number,
+    14→    text: string,
+    15→    x: number,
+    16→    y: number,
+    17→    fontSize: number,
+    18→    color: string,
+    19→    useBg: boolean,
+    20→    bgColor: string,
+    21→    fontFamily?: string,
+    22→    strokeColor?: string,
+    23→    useStroke?: boolean
+    24→  ) => Promise<void>;
+    25→  onApplySignature: (
+    26→    pageNum: number,
+    27→    sigPngBytes: Uint8Array,
+    28→    x: number,
+    29→    y: number,
+    30→    width: number,
+    31→    height: number
+    32→  ) => Promise<void>;
+    33→  onApplyRedaction: (
+    34→    words: string[],
+    35→    boxColor: string,
+    36→    opacity: number,
+    37→    replaceText: string,
+    38→    replaceTextColor: string,
+    39→    replaceTextSize: string
+    40→  ) => Promise<void>;
+    41→  onApplyWatermark: (
+    42→    text: string,
+    43→    size: number,
+    44→    color: string,
+    45→    opacity: number
+    46→  ) => Promise<void>;
+    47→  onApplyPageNumbers: (
+    48→    pos: string,
+    49→    start: number,
+    50→    size: number,
+    51→    color: string
+    52→  ) => Promise<void>;
+    53→  onApplySearchReplace: (
+    54→    search: string,
+    55→    replace: string
+    56→  ) => Promise<void>;
+    57→  isProcessing: boolean;
+    58→}
+    59→
+    60→export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
+    61→  pdfBytes,
+    62→  totalPages,
+    63→  onApplyTextAnnotation,
+    64→  onApplySignature,
+    65→  onApplyRedaction,
+    66→  onApplyWatermark,
+    67→  onApplyPageNumbers,
+    68→  onApplySearchReplace,
+    69→  isProcessing
+    70→}) => {
+    71→  // Page selector state
+    72→  const [selectedPage, setSelectedPage] = useState(1);
+    73→  const [pageLoading, setPageLoading] = useState(false);
+    74→  const [activeEditorMode, setActiveEditorMode] = useState<"signature" | "text" | "redact" | "search_replace" | "watermark">("signature");
+    75→
+    76→  // Page Dimension caches for scaling coordinate translations
+    77→  const [pdfPageWidth, setPdfPageWidth] = useState(595); // default A4 width
+    78→  const [pdfPageHeight, setPdfPageHeight] = useState(842); // default A4 height
+    79→  const [canvasRenderWidth, setCanvasRenderWidth] = useState(400);
+    80→  const [canvasRenderHeight, setCanvasRenderHeight] = useState(600);
+    81→
+    82→  // References
+    83→  const previewCanvasRef = useRef<HTMLCanvasElement>(null);
+    84→  const sigCanvasRef = useRef<HTMLCanvasElement>(null);
+    85→
+    86→  // Signature states
+    87→  const [sigColor, setSigColor] = useState("#000000");
+    88→  const [sigPenSize, setSigPenSize] = useState(2.5);
+    89→  const [isDrawingSig, setIsDrawingSig] = useState(false);
+    90→  const [sigHasInk, setSigHasInk] = useState(false);
+    91→
+    92→  // Text inputs
+    93→  const [textToInsert, setTextToInsert] = useState("");
+    94→  const [textFontSize, setTextFontSize] = useState(14);
+    95→  const [textHexColor, setTextHexColor] = useState("#ea4335");
+    96→  const [textUseBg, setTextUseBg] = useState(false);
+    97→  const [textBgColor, setTextBgColor] = useState("#ffffff");
+    98→  const [textFontFamily, setTextFontFamily] = useState("Tajawal");
+    99→  const [textUseStroke, setTextUseStroke] = useState(false);
+   100→  const [textStrokeColor, setTextStrokeColor] = useState("#000000");
+   101→
+   102→  // Signature & Custom Image states
+   103→  const [signatureType, setSignatureType] = useState<"draw" | "upload">("draw");
+   104→  const [uploadedImageBytes, setUploadedImageBytes] = useState<Uint8Array | null>(null);
+   105→  const [uploadedImagePreview, setUploadedImagePreview] = useState<string | null>(null);
+   106→  const [uploadedImageWidth, setUploadedImageWidth] = useState(120);
+   107→  const [uploadedImageHeight, setUploadedImageHeight] = useState(120);
+   108→
+   109→  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+   110→    if (e.target.files && e.target.files[0]) {
+   111→      const file = e.target.files[0];
+   112→      const reader = new FileReader();
+   113→      reader.onload = (event) => {
+   114→        const dataUrl = event.target?.result as string;
+   115→        setUploadedImagePreview(dataUrl);
+   116→
+   117→        // Load into an HTML Image to preserve aspect ratio and serialize as PNG bytes
+   118→        const img = new Image();
+   119→        img.onload = () => {
+   120→          const canvas = document.createElement("canvas");
+   121→          canvas.width = img.naturalWidth;
+   122→          canvas.height = img.naturalHeight;
+   123→          const ctx = canvas.getContext("2d");
+   124→          if (ctx) {
+   125→            ctx.drawImage(img, 0, 0);
+   126→            const pngUrl = canvas.toDataURL("image/png");
+   127→            const base64 = pngUrl.split(",")[1];
+   128→            const binStr = atob(base64);
+   129→            const bytes = new Uint8Array(binStr.length);
+   130→            for (let i = 0; i < binStr.length; i++) {
+   131→              bytes[i] = binStr.charCodeAt(i);
+   132→            }
+   133→            setUploadedImageBytes(bytes);
+   134→            
+   135→            const aspect = img.naturalHeight / img.naturalWidth;
+   136→            setUploadedImageWidth(140);
+   137→            setUploadedImageHeight(Math.round(140 * aspect));
+   138→          }
+   139→        };
+   140→        img.src = dataUrl;
+   141→      };
+   142→      reader.readAsDataURL(file);
+   143→    }
+   144→  };
+   145→
+   146→  // Redaction inputs
+   147→  const [redactWords, setRedactWords] = useState("");
+   148→  const [redactBoxColor, setRedactBoxColor] = useState("#202124");
+   149→  const [redactOpacity, setRedactOpacity] = useState(100);
+   150→  const [redactUseReplace, setRedactUseReplace] = useState(false);
+   151→  const [redactReplaceText, setRedactReplaceText] = useState("");
+   152→  const [redactReplaceTextColor, setRedactReplaceTextColor] = useState("#ffffff");
+   153→  const [redactReplaceTextSize, setRedactReplaceTextSize] = useState("auto");
+   154→
+   155→  // Search & Replace inputs
+   156→  const [searchText, setSearchText] = useState("");
+   157→  const [replaceText, setReplaceText] = useState("");
+   158→
+   159→  // Watermark inputs
+   160→  const [wmText, setWmText] = useState("");
+   161→  const [wmSize, setWmSize] = useState(48);
+   162→  const [wmColor, setWmColor] = useState("#ea4335");
+   163→  const [wmOpacity, setWmOpacity] = useState(25);
+   164→
+   165→  // Page numbering inputs
+   166→  const [numPosition, setNumPosition] = useState("bottom-center");
+   167→  const [numStart, setNumStart] = useState(1);
+   168→  const [numSize, setNumSize] = useState(11);
+   169→  const [numColor, setNumColor] = useState("#202124");
+   170→
+   171→  // --- RENDER SELECTED PAGE ON PREVIEW CANVAS ---
+   172→  useEffect(() => {
+   173→    let active = true;
+   174→    setPageLoading(true);
+   175→
+   176→    const renderPage = async () => {
+   177→      try {
+   178→        const version = pdfjsLib.version || "4.0.379";
+   179→        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${version}/build/pdf.worker.min.js`;
+   180→
+   181→        const loadingTask = pdfjsLib.getDocument({ data: pdfBytes });
+   182→        const pdf = await loadingTask.promise;
+   183→
+   184→        if (!active) return;
+   185→        const page = await pdf.getPage(selectedPage);
+   186→
+   187→        if (!active) return;
+   188→        const canvas = previewCanvasRef.current;
+   189→        if (!canvas) return;
+   190→
+   191→        const ctx = canvas.getContext("2d");
+   192→        if (!ctx) return;
+   193→
+   194→        // Save native PDF point dimensions
+   195→        const rawViewport = page.getViewport({ scale: 1.0 });
+   196→        setPdfPageWidth(rawViewport.width);
+   197→        setPdfPageHeight(rawViewport.height);
+   198→
+   199→        // Render at suitable viewing size (max 520px wide or max 650px high)
+   200→        let scale = 520 / rawViewport.width;
+   201→        if (rawViewport.height * scale > 650) {
+   202→          scale = 650 / rawViewport.height;
+   203→        }
+   204→
+   205→        const viewport = page.getViewport({ scale });
+   206→        setCanvasRenderWidth(viewport.width);
+   207→        setCanvasRenderHeight(viewport.height);
+   208→
+   209→        canvas.width = viewport.width;
+   210→        canvas.height = viewport.height;
+   211→
+   212→        ctx.fillStyle = "#ffffff";
+   213→        ctx.fillRect(0, 0, canvas.width, canvas.height);
+   214→
+   215→        const renderContext = {
+   216→          canvasContext: ctx,
+   217→          viewport: viewport,
+   218→          canvas: canvas,
+   219→        };
+   220→
+   221→        await page.render(renderContext).promise;
+   222→        if (active) setPageLoading(false);
+   223→      } catch (err) {
+   224→        console.error("Failed to render page:", err);
+   225→        if (active) setPageLoading(false);
+   226→      }
+   227→    };
+   228→
+   229→    renderPage();
+   230→
+   231→    return () => {
+   232→      active = false;
+   233→    };
+   234→  }, [pdfBytes, selectedPage]);
+   235→
+   236→  // --- SIGNATURE DRAWING CANVAS LOGIC ---
+   237→  useEffect(() => {
+   238→    const canvas = sigCanvasRef.current;
+   239→    if (!canvas) return;
+   240→
+   241→    const ctx = canvas.getContext("2d");
+   242→    if (!ctx) return;
+   243→
+   244→    // Reset with grid background
+   245→    resetSigCanvas();
+   246→  }, [activeEditorMode]);
+   247→
+   248→  const resetSigCanvas = () => {
+   249→    const canvas = sigCanvasRef.current;
+   250→    if (!canvas) return;
+   251→    const ctx = canvas.getContext("2d");
+   252→    if (!ctx) return;
+   253→
+   254→    ctx.fillStyle = "#ffffff";
+   255→    ctx.fillRect(0, 0, canvas.width, canvas.height);
+   256→
+   257→    // Light guidelines
+   258→    ctx.strokeStyle = "#f1f3f4";
+   259→    ctx.lineWidth = 1;
+   260→    for (let x = 0; x < canvas.width; x += 40) {
+   261→      ctx.beginPath();
+   262→      ctx.moveTo(x, 0);
+   263→      ctx.lineTo(x, canvas.height);
+   264→      ctx.stroke();
+   265→    }
+   266→    for (let y = 0; y < canvas.height; y += 40) {
+   267→      ctx.beginPath();
+   268→      ctx.moveTo(0, y);
+   269→      ctx.lineTo(canvas.width, y);
+   270→      ctx.stroke();
+   271→    }
+   272→
+   273→    // Baseline indicator
+   274→    ctx.strokeStyle = "#dadce0";
+   275→    ctx.lineWidth = 1.5;
+   276→    ctx.setLineDash([4, 4]);
+   277→    ctx.beginPath();
+   278→    ctx.moveTo(20, canvas.height - 35);
+   279→    ctx.lineTo(canvas.width - 20, canvas.height - 35);
+   280→    ctx.stroke();
+   281→    ctx.setLineDash([]);
+   282→
+   283→    setSigHasInk(false);
+   284→  };
+   285→
+   286→  const getEventCoords = (e: React.MouseEvent | React.TouchEvent | MouseEvent | TouchEvent, canvas: HTMLCanvasElement) => {
+   287→    const rect = canvas.getBoundingClientRect();
+   288→    let clientX, clientY;
+   289→    if ("touches" in e) {
+   290→      clientX = e.touches[0].clientX;
+   291→      clientY = e.touches[0].clientY;
+   292→    } else {
+   293→      clientX = e.clientX;
+   294→      clientY = e.clientY;
+   295→    }
+   296→    return {
+   297→      x: (clientX - rect.left) * (canvas.width / rect.width),
+   298→      y: (clientY - rect.top) * (canvas.height / rect.height)
+   299→    };
+   300→  };
+   301→
+   302→  const startSigDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+   303→    e.preventDefault();
+   304→    setIsDrawingSig(true);
+   305→    const canvas = sigCanvasRef.current;
+   306→    if (!canvas) return;
+   307→    const ctx = canvas.getContext("2d");
+   308→    if (!ctx) return;
+   309→
+   310→    const { x, y } = getEventCoords(e.nativeEvent, canvas);
+   311→    ctx.beginPath();
+   312→    ctx.moveTo(x, y);
+   313→    ctx.strokeStyle = sigColor;
+   314→    ctx.lineWidth = sigPenSize;
+   315→    ctx.lineCap = "round";
+   316→    ctx.lineJoin = "round";
+   317→    setSigHasInk(true);
+   318→  };
+   319→
+   320→  const drawSig = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+   321→    if (!isDrawingSig) return;
+   322→    e.preventDefault();
+   323→    const canvas = sigCanvasRef.current;
+   324→    if (!canvas) return;
+   325→    const ctx = canvas.getContext("2d");
+   326→    if (!ctx) return;
+   327→
+   328→    const { x, y } = getEventCoords(e.nativeEvent, canvas);
+   329→    ctx.lineTo(x, y);
+   330→    ctx.stroke();
+   331→  };
+   332→
+   333→  const stopSigDrawing = () => {
+   334→    setIsDrawingSig(false);
+   335→  };
+   336→
+   337→  // --- CLICK PAGE PREVIEW TO STAMP/ANNOTATE ---
+   338→  const handlePageClick = async (e: React.MouseEvent<HTMLCanvasElement>) => {
+   339→    if (isProcessing) return;
+   340→    const canvas = previewCanvasRef.current;
+   341→    if (!canvas) return;
+   342→
+   343→    // Get click coords on rendering canvas scale
+   344→    const rect = canvas.getBoundingClientRect();
+   345→    const clickX = e.clientX - rect.left;
+   346→    const clickY = e.clientY - rect.top;
+   347→
+   348→    // Translate coordinates to standard PDF coordinate space (BOTTOM-LEFT origin!)
+   349→    // PDF width: pdfPageWidth, PDF height: pdfPageHeight
+   350→    // Canvas render width: canvasRenderWidth, height: canvasRenderHeight
+   351→    const scaleX = pdfPageWidth / canvasRenderWidth;
+   352→    const scaleY = pdfPageHeight / canvasRenderHeight;
+   353→
+   354→    const pdfX = clickX * scaleX;
+   355→    // In PDF space, Y=0 is at the BOTTOM of the page
+   356→    const pdfY = (canvasRenderHeight - clickY) * scaleY;
+   357→
+   358→    if (activeEditorMode === "text") {
+   359→      if (!textToInsert.trim()) {
+   360→        alert("⚠️ يرجى كتابة نص التعليق أولاً في الحقل الجانبي!");
+   361→        return;
+   362→      }
+   363→      setPageLoading(true);
+   364→      await onApplyTextAnnotation(
+   365→        selectedPage,
+   366→        textToInsert,
+   367→        pdfX,
+   368→        pdfY,
+   369→        textFontSize,
+   370→        textHexColor,
+   371→        textUseBg,
+   372→        textBgColor,
+   373→        textFontFamily,
+   374→        textStrokeColor,
+   375→        textUseStroke
+   376→      );
+   377→      setTextToInsert(""); // Clear text input after insertion
+   378→    } else if (activeEditorMode === "signature") {
+   379→      if (signatureType === "upload") {
+   380→        if (!uploadedImageBytes || !uploadedImagePreview) {
+   381→          alert("⚠️ يرجى تحميل صورة أو ختم أولاً من اللوحة الجانبية!");
+   382→          return;
+   383→        }
+   384→        setPageLoading(true);
+   385→        await onApplySignature(
+   386→          selectedPage,
+   387→          uploadedImageBytes,
+   388→          pdfX - uploadedImageWidth / 2,
+   389→          pdfY - uploadedImageHeight / 2,
+   390→          uploadedImageWidth,
+   391→          uploadedImageHeight
+   392→        );
+   393→      } else {
+   394→        const sigCanvas = sigCanvasRef.current;
+   395→        if (!sigCanvas || !sigHasInk) {
+   396→          alert("⚠️ يرجى رسم توقيعك على اللوحة الجانبية أولاً قبل لصقه!");
+   397→          return;
+   398→        }
+   399→        
+   400→        setPageLoading(true);
+   401→
+   402→        // Convert drawing to raw PNG bytes
+   403→        const dataUrl = sigCanvas.toDataURL("image/png");
+   404→        const base64 = dataUrl.split(",")[1];
+   405→        const binStr = atob(base64);
+   406→        const pngBytes = new Uint8Array(binStr.length);
+   407→        for (let i = 0; i < binStr.length; i++) {
+   408→          pngBytes[i] = binStr.charCodeAt(i);
+   409→        }
+   410→
+   411→        // Stamp with size around width=140pt
+   412→        const sigW = 140;
+   413→        const aspect = sigCanvas.height / sigCanvas.width;
+   414→        const sigH = sigW * aspect;
+   415→
+   416→        // Adjust Y so the signature centers around the clicked point
+   417→        await onApplySignature(
+   418→          selectedPage,
+   419→          pngBytes,
+   420→          pdfX - sigW / 2,
+   421→          pdfY - sigH / 2,
+   422→          sigW,
+   423→          sigH
+   424→        );
+   425→      }
+   426→    }
+   427→  };
+   428→
+   429→  // Redact Action
+   430→  const triggerRedact = async () => {
+   431→    if (!redactWords.trim()) {
+   432→      alert("⚠️ يرجى إدخال كلمات للطمس أولاً!");
+   433→      return;
+   434→    }
+   435→    const list = redactWords.split(",").map(w => w.trim()).filter(Boolean);
+   436→    setPageLoading(true);
+   437→    await onApplyRedaction(
+   438→      list,
+   439→      redactBoxColor,
+   440→      redactOpacity,
+   441→      redactUseReplace ? redactReplaceText : "",
+   442→      redactReplaceTextColor,
+   443→      redactReplaceTextSize
+   444→    );
+   445→    setRedactWords("");
+   446→  };
+   447→
+   448→  // Search & Replace Action
+   449→  const triggerSearchReplace = async () => {
+   450→    if (!searchText.trim()) {
+   451→      alert("⚠️ أدخل الكلمة للبحث عنها أولاً!");
+   452→      return;
+   453→    }
+   454→    setPageLoading(true);
+   455→    await onApplySearchReplace(searchText.trim(), replaceText.trim());
+   456→    setSearchText("");
+   457→    setReplaceText("");
+   458→  };
+   459→
+   460→  // Watermark Action
+   461→  const triggerWatermark = async () => {
+   462→    if (!wmText.trim()) {
+   463→      alert("⚠️ أدخل نص العلامة المائية أولاً!");
+   464→      return;
+   465→    }
+   466→    setPageLoading(true);
+   467→    await onApplyWatermark(wmText.trim(), wmSize, wmColor, wmOpacity);
+   468→    setWmText("");
+   469→  };
+   470→
+   471→  // Page Numbers Action
+   472→  const triggerPageNumbers = async () => {
+   473→    setPageLoading(true);
+   474→    await onApplyPageNumbers(numPosition, numStart, numSize, numColor);
+   475→  };
+   476→
+   477→  return (
+   478→    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch select-none">
+   479→      
+   480→      {/* 1. LEFT SIDE: THE INTERACTIVE DOCUMENT PREVIEW STAGE (8 COLS) */}
+   481→      <div className="lg:col-span-7 flex flex-col items-center bg-gray-100 rounded-2xl border border-gray-200 p-4 min-h-[500px] justify-between shadow-inner">
+   482→        
+   483→        {/* Page selector bar */}
+   484→        <div className="flex items-center gap-3 w-full justify-between border-b border-gray-200 pb-3 mb-3">
+   485→          <div className="flex items-center gap-2">
+   486→            <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-google-blue text-white text-xs font-bold">
+   487→              {selectedPage}
+   488→            </span>
+   489→            <span className="text-xs font-bold text-gray-700">معاينة وتعديل الصفحة الحالية</span>
+   490→          </div>
+   491→
+   492→          <div className="flex items-center gap-2">
+   493→            <button
+   494→              onClick={() => setSelectedPage(p => Math.max(1, p - 1))}
+   495→              disabled={selectedPage === 1 || pageLoading}
+   496→              className="px-3 py-1 text-xs font-bold rounded-lg bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-40 cursor-pointer"
+   497→            >
+   498→              السابق
+   499→            </button>
+   500→            <span className="text-xs font-semibold text-gray-500">
+   501→              {selectedPage} / {totalPages}
+   502→            </span>
+   503→            <button
+   504→              onClick={() => setSelectedPage(p => Math.min(totalPages, p + 1))}
+   505→              disabled={selectedPage === totalPages || pageLoading}
+   506→              className="px-3 py-1 text-xs font-bold rounded-lg bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-40 cursor-pointer"
+   507→            >
+   508→              التالي
+   509→            </button>
+   510→          </div>
+   511→        </div>
+   512→
+   513→        {/* The interactive canvas preview box */}
+   514→        <div className="relative border border-gray-200 bg-white shadow-md rounded-xl overflow-hidden max-w-full group">
+   515→          {pageLoading && (
+   516→            <div className="absolute inset-0 bg-white/80 backdrop-blur-xs flex flex-col items-center justify-center z-10">
+   517→              <RefreshCw className="h-8 w-8 text-google-blue animate-spin mb-2" />
+   518→              <span className="text-xs font-bold text-gray-700">جاري رسم وتحضير محتوى الصفحة...</span>
+   519→            </div>
+   520→          )}
+   521→
+   522→          <canvas
+   523→            ref={previewCanvasRef}
+   524→            onClick={handlePageClick}
+   525→            className={`block max-w-full ${
+   526→              isProcessing ? "cursor-wait" : 
+   527→              activeEditorMode === "text" ? "cursor-text" : "cursor-crosshair"
+   528→            }`}
+   529→            title={activeEditorMode === "text" ? "انقر على أي مكان بالصفحة لوضع النص المكتوب" : "انقر لوضع التوقيع هنا"}
+   530→          />
+   531→
+   532→          {/* Interactive cursor helper overlay */}
+   533→          {!pageLoading && !isProcessing && (
+   534→            <div className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+   535→              <div className="absolute inset-0 bg-blue-500/3 mix-blend-multiply" />
+   536→            </div>
+   537→          )}
+   538→        </div>
+   539→
+   540→        {/* Action hints */}
+   541→        <div className="w-full flex items-center gap-2 mt-4 bg-blue-50 border border-blue-100 p-2.5 rounded-xl text-[11px] text-google-blue leading-relaxed font-semibold">
+   542→          <Info className="h-4 w-4 shrink-0" />
+   543→          {activeEditorMode === "signature" && (
+   544→            <span>💡 ارسم توقيعك أو حمّل صورتك/ختمك بالجانب، ثم **انقر بنقرة واحدة** على أي مكان في المعاينة أعلاه لتثبيته بدقة متناهية.</span>
+   545→          )}
+   546→          {activeEditorMode === "text" && (
+   547→            <span>💡 اكتب التعليق المطلوب بالجانب، حدد اللون والحجم، ثم **انقر بنقرة واحدة** على الصفحة أعلاه لوضعه في ذلك الموضع فوراً.</span>
+   548→          )}
+   549→          {activeEditorMode === "redact" && (
+   550→            <span>💡 التعقيم الأمني: يطمس الكلمات تلقائياً بكامل المستند ويدعم إدراج نصوص بديلة.</span>
+   551→          )}
+   552→          {activeEditorMode === "watermark" && (
+   553→            <span>💡 العلامة المائية تظهر بشكل مائل جذاب على كافة صفحات المستند.</span>
+   554→          )}
+   555→        </div>
+   556→      </div>
+   557→
+   558→      {/* 2. RIGHT SIDE: TOOLBOX CONFIGURATIONS (5 COLS) */}
+   559→      <div className="lg:col-span-5 flex flex-col gap-4 select-none">
+   560→        
+   561→        {/* Editor tabs */}
+   562→        <div className="grid grid-cols-4 gap-1.5 p-1 bg-gray-100 rounded-xl">
+   563→          {[
+   564→            { id: "signature", label: "صور وتوقيع", icon: PenTool },
+   565→            { id: "text", label: "نصوص", icon: Type },
+   566→            { id: "redact", label: "طمس", icon: ShieldCheck },
+   567→            { id: "watermark", label: "إضافات", icon: Compass }
+   568→          ].map(btn => {
+   569→            const Icon = btn.icon;
+   570→            return (
+   571→              <button
+   572→                key={btn.id}
+   573→                onClick={() => setActiveEditorMode(btn.id as any)}
+   574→                className={`flex flex-col items-center py-2.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+   575→                  activeEditorMode === btn.id
+   576→                    ? "bg-white text-google-blue shadow-xs"
+   577→                    : "text-gray-500 hover:text-gray-800"
+   578→                }`}
+   579→              >
+   580→                <Icon className="h-4 w-4 mb-1" />
+   581→                {btn.label}
+   582→              </button>
+   583→            );
+   584→          })}
+   585→        </div>
+   586→
+   587→        {/* Active Tool Config panel */}
+   588→        <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-3xs flex-1 flex flex-col justify-between">
+   589→          
+   590→          {/* A. DIGITAL SIGNATURE & IMAGE STAMP WRAPPER */}
+   591→          {activeEditorMode === "signature" && (
+   592→            <div className="space-y-4 flex-1 flex flex-col justify-between">
+   593→              <div>
+   594→                {/* Segmented Control for Signature Type */}
+   595→                <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 rounded-xl mb-4">
+   596→                  <button
+   597→                    onClick={() => setSignatureType("draw")}
+   598→                    className={`py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+   599→                      signatureType === "draw"
+   600→                        ? "bg-white text-google-blue shadow-xs"
+   601→                        : "text-gray-500 hover:text-gray-800"
+   602→                    }`}
+   603→                  >
+   604→                    ✍️ رسم توقيع يدوي
+   605→                  </button>
+   606→                  <button
+   607→                    onClick={() => setSignatureType("upload")}
+   608→                    className={`py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+   609→                      signatureType === "upload"
+   610→                        ? "bg-white text-google-blue shadow-xs"
+   611→                        : "text-gray-500 hover:text-gray-800"
+   612→                    }`}
+   613→                  >
+   614→                    🖼️ رفع صورة أو ختم
+   615→                  </button>
+   616→                </div>
+   617→
+   618→                {signatureType === "draw" ? (
+   619→                  <div className="space-y-4">
+   620→                    <div className="flex justify-between items-center mb-1.5">
+   621→                      <span className="text-xs font-bold text-gray-800">ارسم توقيعك على اللوحة:</span>
+   622→                      <button
+   623→                        onClick={resetSigCanvas}
+   624→                        className="text-[10px] font-bold text-google-red hover:bg-red-50 px-2 py-1 rounded-md transition-colors"
+   625→                      >
+   626→                        مسح اللوحة
+   627→                      </button>
+   628→                    </div>
+   629→
+   630→                    <div className="border-2 border-gray-200 rounded-xl overflow-hidden bg-white shadow-inner relative h-[150px]">
+   631→                      <canvas
+   632→                        ref={sigCanvasRef}
+   633→                        width={450}
+   634→                        height={150}
+   635→                        onMouseDown={startSigDrawing}
+   636→                        onMouseMove={drawSig}
+   637→                        onMouseUp={stopSigDrawing}
+   638→                        onMouseLeave={stopSigDrawing}
+   639→                        onTouchStart={startSigDrawing}
+   640→                        onTouchMove={drawSig}
+   641→                        onTouchEnd={stopSigDrawing}
+   642→                        className="block w-full h-full cursor-crosshair touch-none"
+   643→                      />
+   644→                    </div>
+   645→
+   646→                    {/* Draw parameters */}
+   647→                    <div className="grid grid-cols-2 gap-3 mt-3">
+   648→                      <div>
+   649→                        <label className="text-[10px] text-gray-400 font-semibold block mb-1">لون القلم:</label>
+   650→                        <div className="flex gap-1.5 items-center">
+   651→                          <input
+   652→                            type="color"
+   653→                            value={sigColor}
+   654→                            onChange={e => setSigColor(e.target.value)}
+   655→                            className="w-8 h-8 rounded-lg border border-gray-200 p-0.5 bg-white cursor-pointer"
+   656→                          />
+   657→                          <span className="text-xs font-semibold">{sigColor}</span>
+   658→                        </div>
+   659→                      </div>
+   660→
+   661→                      <div>
+   662→                        <label className="text-[10px] text-gray-400 font-semibold block mb-1">سمك الخط:</label>
+   663→                        <select
+   664→                          value={sigPenSize}
+   665→                          onChange={e => setSigPenSize(parseFloat(e.target.value))}
+   666→                          className="w-full text-xs bg-gray-50 border border-gray-200 rounded-lg p-2 font-semibold"
+   667→                        >
+   668→                          <option value="1.5">رفيع جداً (1.5)</option>
+   669→                          <option value="2.5">متوسط (2.5)</option>
+   670→                          <option value="4">سميك (4.0)</option>
+   671→                          <option value="6">عريض (6.0)</option>
+   672→                        </select>
+   673→                      </div>
+   674→                    </div>
+   675→                  </div>
+   676→                ) : (
+   677→                  <div className="space-y-4 animate-fade-in">
+   678→                    <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-2xl p-4 bg-gray-50 hover:bg-gray-100 transition-colors relative cursor-pointer group">
+   679→                      <input
+   680→                        type="file"
+   681→                        accept="image/png, image/jpeg, image/jpg, image/webp"
+   682→                        onChange={handleImageUpload}
+   683→                        className="absolute inset-0 opacity-0 cursor-pointer z-10"
+   684→                      />
+   685→                      <Plus className="h-6 w-6 text-gray-400 mb-1.5 group-hover:text-google-blue transition-colors" />
+   686→                      <span className="text-xs font-bold text-gray-700">اضغط أو اسحب صورة/ختم هنا</span>
+   687→                      <span className="text-[10px] text-gray-400 mt-1">يدعم PNG, JPG, WEBP</span>
+   688→                    </div>
+   689→
+   690→                    {uploadedImagePreview && (
+   691→                      <div className="bg-gray-50 p-3 rounded-xl border border-gray-150 space-y-3.5">
+   692→                        <div className="flex items-center justify-between">
+   693→                          <span className="text-xs font-bold text-gray-700">معاينة الصورة المرفوعة:</span>
+   694→                          <button
+   695→                            onClick={() => {
+   696→                              setUploadedImagePreview(null);
+   697→                              setUploadedImageBytes(null);
+   698→                            }}
+   699→                            className="text-[10px] font-bold text-google-red hover:bg-red-50 px-2 py-1 rounded-md transition-colors"
+   700→                          >
+   701→                            حذف الصورة
+   702→                          </button>
+   703→                        </div>
+   704→
+   705→                        <div className="flex justify-center bg-white p-2.5 rounded-lg border border-gray-200 max-h-[140px] overflow-hidden items-center">
+   706→                          <img
+   707→                            src={uploadedImagePreview}
+   708→                            alt="Uploaded Stamp"
+   709→                            className="max-h-[120px] object-contain rounded-sm"
+   710→                          />
+   711→                        </div>
+   712→
+   713→                        {/* Image scale controller */}
+   714→                        <div className="space-y-1.5">
+   715→                          <div className="flex justify-between items-center">
+   716→                            <label className="text-[10px] text-gray-500 font-bold">عرض الصورة (نقطة):</label>
+   717→                            <span className="text-xs font-bold text-google-blue">{uploadedImageWidth}px × {uploadedImageHeight}px</span>
+   718→                          </div>
+   719→                          <input
+   720→                            type="range"
+   721→                            min={25}
+   722→                            max={450}
+   723→                            value={uploadedImageWidth}
+   724→                            onChange={e => {
+   725→                              const newW = parseInt(e.target.value);
+   726→                              setUploadedImageWidth(newW);
+   727→                              // Maintain aspect ratio
+   728→                              const img = new Image();
+   729→                              img.onload = () => {
+   730→                                const aspect = img.naturalHeight / img.naturalWidth;
+   731→                                setUploadedImageHeight(Math.round(newW * aspect));
+   732→                              };
+   733→                              if (uploadedImagePreview) img.src = uploadedImagePreview;
+   734→                            }}
+   735→                            className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-google-blue"
+   736→                          />
+   737→                        </div>
+   738→                      </div>
+   739→                    )}
+   740→                  </div>
+   741→                )}
+   742→              </div>
+   743→
+   744→              <div className="bg-purple-50 border border-purple-100 p-3 rounded-xl text-[11px] text-purple-800 leading-relaxed font-semibold mt-4">
+   745→                {signatureType === "draw" 
+   746→                  ? "✍️ بعد رسم التوقيع المطلوب، انقر فوق أي مكان بالصفحة في شاشة المعاينة اليسرى لإدراج التوقيع وتضمينه في الملف فوراً."
+   747→                  : "🖼️ بعد تحميل الصورة، انقر فوق أي مكان بالصفحة في شاشة المعاينة اليسرى لإدراج الختم أو الصورة وتثبيتها بدقة."}
+   748→              </div>
+   749→            </div>
+   750→          )}
+   751→
+   752→          {/* B. TEXT ANNOTATION WRAPPER */}
+   753→          {activeEditorMode === "text" && (
+   754→            <div className="space-y-4">
+   755→              <div>
+   756→                <label className="text-xs font-bold text-gray-700 block mb-1.5">اكتب النص المراد إدراجه:</label>
+   757→                <textarea
+   758→                  value={textToInsert}
+   759→                  onChange={e => setTextToInsert(e.target.value)}
+   760→                  placeholder="مثال: تمت مراجعته والموافقة عليه"
+   761→                  rows={2}
+   762→                  className="w-full text-xs bg-gray-50 border border-gray-200 rounded-xl p-3 outline-none focus:border-google-blue font-semibold text-gray-800 resize-none"
+   763→                />
+   764→              </div>
+   765→
+   766→              {/* Font Family Selector */}
+   767→              <div>
+   768→                <label className="text-[10px] text-gray-400 font-bold block mb-1">نوع الخط:</label>
+   769→                <select
+   770→                  value={textFontFamily}
+   771→                  onChange={e => setTextFontFamily(e.target.value)}
+   772→                  className="w-full text-xs bg-gray-50 border border-gray-200 rounded-lg p-2 font-bold"
+   773→                >
+   774→                  <option value="Cairo">Cairo (كايرو)</option>
+   775→                  <option value="Tajawal">Tajawal (تاجاوال)</option>
+   776→                  <option value="Amiri">Amiri (كلاسيكي أميري)</option>
+   777→                  <option value="Almarai">Almarai (المراعي)</option>
+   778→                  <option value="Inter">Inter (إنجليزي)</option>
+   779→                </select>
+   780→              </div>
+   781→
+   782→              {/* Font Colors and Font Sizes */}
+   783→              <div className="grid grid-cols-2 gap-3">
+   784→                <div>
+   785→                  <label className="text-[10px] text-gray-400 font-bold block mb-1">لون النص:</label>
+   786→                  <div className="flex gap-1.5 items-center">
+   787→                    <input
+   788→                      type="color"
+   789→                      value={textHexColor}
+   790→                      onChange={e => setTextHexColor(e.target.value)}
+   791→                      className="w-8 h-8 rounded-lg border border-gray-200 p-0.5 bg-white cursor-pointer"
+   792→                    />
+   793→                    <span className="text-xs font-semibold">{textHexColor}</span>
+   794→                  </div>
+   795→                </div>
+   796→
+   797→                <div className="space-y-1">
+   798→                  <label className="text-[10px] text-gray-400 font-bold block mb-1">حجم الخط ({textFontSize}px):</label>
+   799→                  <input
+   800→                    type="range"
+   801→                    min={6}
+   802→                    max={72}
+   803→                    value={textFontSize}
+   804→                    onChange={e => setTextFontSize(parseInt(e.target.value) || 12)}
+   805→                    className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-google-blue"
+   806→                  />
+   807→                </div>
+   808→              </div>
+   809→
+   810→              {/* Text background and Text border */}
+   811→              <div className="bg-gray-50 p-3 rounded-xl border border-gray-150 space-y-3">
+   812→                {/* Background settings */}
+   813→                <div className="space-y-2">
+   814→                  <label className="flex items-center gap-2 cursor-pointer text-xs font-bold">
+   815→                    <input
+   816→                      type="checkbox"
+   817→                      checked={textUseBg}
+   818→                      onChange={e => setTextUseBg(e.target.checked)}
+   819→                      className="h-4 w-4 text-google-blue rounded-xs accent-google-blue cursor-pointer"
+   820→                    />
+   821→                    <span>إضافة خلفية ملونة خلف النص</span>
+   822→                  </label>
+   823→
+   824→                  {textUseBg && (
+   825→                    <div className="flex items-center gap-2 animate-fade-in pl-6">
+   826→                      <span className="text-[10px] text-gray-400 font-semibold">لون الخلفية:</span>
+   827→                      <input
+   828→                        type="color"
+   829→                        value={textBgColor}
+   830→                        onChange={e => setTextBgColor(e.target.value)}
+   831→                        className="w-6 h-6 rounded-md border border-gray-200 p-0.5 cursor-pointer"
+   832→                      />
+   833→                    </div>
+   834→                  )}
+   835→                </div>
+   836→
+   837→                {/* Stroke/Border settings */}
+   838→                <div className="space-y-2 pt-1 border-t border-gray-200">
+   839→                  <label className="flex items-center gap-2 cursor-pointer text-xs font-bold">
+   840→                    <input
+   841→                      type="checkbox"
+   842→                      checked={textUseStroke}
+   843→                      onChange={e => setTextUseStroke(e.target.checked)}
+   844→                      className="h-4 w-4 text-google-blue rounded-xs accent-google-blue cursor-pointer"
+   845→                    />
+   846→                    <span>إضافة إطار/حدود لمربع النص</span>
+   847→                  </label>
+   848→
+   849→                  {textUseStroke && (
+   850→                    <div className="flex items-center gap-2 animate-fade-in pl-6">
+   851→                      <span className="text-[10px] text-gray-400 font-semibold">لون الإطار:</span>
+   852→                      <input
+   853→                        type="color"
+   854→                        value={textStrokeColor}
+   855→                        onChange={e => setTextStrokeColor(e.target.value)}
+   856→                        className="w-6 h-6 rounded-md border border-gray-200 p-0.5 cursor-pointer"
+   857→                      />
+   858→                    </div>
+   859→                  )}
+   860→                </div>
+   861→              </div>
+   862→            </div>
+   863→          )}
+   864→
+   865→          {/* C. SECURITY REDACTION & SEARCH & REPLACE */}
+   866→          {activeEditorMode === "redact" && (
+   867→            <div className="space-y-4">
+   868→              
+   869→              {/* Redaction box */}
+   870→              <div className="space-y-3.5 bg-gray-50/60 p-3 rounded-xl border border-gray-150">
+   871→                <div className="flex items-center gap-1 text-xs font-bold text-google-red">
+   872→                  <ShieldCheck className="h-4 w-4" />
+   873→                  <span>طمس الكلمات الحساسة (عبر المستند بالكامل)</span>
+   874→                </div>
+   875→
+   876→                <div>
+   877→                  <label className="text-[10px] text-gray-400 font-semibold block mb-1">الكلمات للطمس (افصل بينها بفاصلة):</label>
+   878→                  <input
+   879→                    type="text"
+   880→                    value={redactWords}
+   881→                    onChange={e => setRedactWords(e.target.value)}
+   882→                    placeholder="مثال: سري، مالي، 123456"
+   883→                    className="w-full text-xs bg-white border border-gray-200 rounded-lg p-2.5 font-semibold text-gray-800"
+   884→                  />
+   885→                </div>
+   886→
+   887→                <div className="grid grid-cols-2 gap-2">
+   888→                  <div>
+   889→                    <label className="text-[10px] text-gray-400 font-semibold block mb-1">لون الطمس:</label>
+   890→                    <input
+   891→                      type="color"
+   892→                      value={redactBoxColor}
+   893→                      onChange={e => setRedactBoxColor(e.target.value)}
+   894→                      className="w-full h-8 rounded-lg border border-gray-200 p-0.5 bg-white cursor-pointer"
+   895→                    />
+   896→                  </div>
+   897→
+   898→                  <div>
+   899→                    <label className="text-[10px] text-gray-400 font-semibold block mb-1">الشفافية:</label>
+   900→                    <select
+   901→                      value={redactOpacity}
+   902→                      onChange={e => setRedactOpacity(parseInt(e.target.value))}
+   903→                      className="w-full text-xs bg-white border border-gray-200 rounded-lg p-2 font-semibold"
+   904→                    >
+   905→                      <option value="100">معتم بالكامل (100%)</option>
+   906→                      <option value="85">طمس خفيف (85%)</option>
+   907→                      <option value="50">طمس شفاف (50%)</option>
+   908→                    </select>
+   909→                  </div>
+   910→                </div>
+   911→
+   912→                {/* Replacement options */}
+   913→                <div className="border-t border-gray-200 pt-2.5 space-y-2">
+   914→                  <label className="flex items-center gap-2 cursor-pointer text-xs font-bold">
+   915→                    <input
+   916→                      type="checkbox"
+   917→                      checked={redactUseReplace}
+   918→                      onChange={e => setRedactUseReplace(e.target.checked)}
+   919→                      className="h-4 w-4 rounded-xs accent-google-blue cursor-pointer"
+   920→                    />
+   921→                    <span>إدراج نص بديل فوق مكان الطمس</span>
+   922→                  </label>
+   923→
+   924→                  {redactUseReplace && (
+   925→                    <div className="space-y-2 animate-fade-in">
+   926→                      <input
+   927→                        type="text"
+   928→                        value={redactReplaceText}
+   929→                        onChange={e => setRedactReplaceText(e.target.value)}
+   930→                        placeholder="مثال: [بيانات مطموسة]"
+   931→                        className="w-full text-xs bg-white border border-gray-200 rounded-lg p-2"
+   932→                      />
+   933→                      <div className="flex items-center justify-between gap-2">
+   934→                        <span className="text-[10px] text-gray-400 font-bold">لون النص:</span>
+   935→                        <input
+   936→                          type="color"
+   937→                          value={redactReplaceTextColor}
+   938→                          onChange={e => setRedactReplaceTextColor(e.target.value)}
+   939→                          className="w-6 h-6 rounded-md border border-gray-200 p-0.5 cursor-pointer"
+   940→                        />
+   941→                      </div>
+   942→                    </div>
+   943→                  )}
+   944→                </div>
+   945→
+   946→                <button
+   947→                  onClick={triggerRedact}
+   948→                  disabled={isProcessing}
+   949→                  className="w-full py-2 bg-google-red hover:bg-red-600 text-white text-xs font-bold rounded-lg cursor-pointer"
+   950→                >
+   951→                  تطبيق الطمس الآمن
+   952→                </button>
+   953→              </div>
+   954→
+   955→              {/* Search and Replace Box */}
+   956→              <div className="space-y-3 bg-blue-50/20 p-3 rounded-xl border border-blue-100">
+   957→                <div className="flex items-center gap-1 text-xs font-bold text-google-blue">
+   958→                  <Search className="h-4 w-4" />
+   959→                  <span>البحث والاستبدال (تجريبي)</span>
+   960→                </div>
+   961→
+   962→                <div className="grid grid-cols-2 gap-2">
+   963→                  <input
+   964→                    type="text"
+   965→                    value={searchText}
+   966→                    onChange={e => setSearchText(e.target.value)}
+   967→                    placeholder="ابحث عن..."
+   968→                    className="text-xs bg-white border border-gray-200 rounded-lg p-2"
+   969→                  />
+   970→                  <input
+   971→                    type="text"
+   972→                    value={replaceText}
+   973→                    onChange={e => setReplaceText(e.target.value)}
+   974→                    placeholder="استبدل بـ..."
+   975→                    className="text-xs bg-white border border-gray-200 rounded-lg p-2"
+   976→                  />
+   977→                </div>
+   978→
+   979→                <button
+   980→                  onClick={triggerSearchReplace}
+   981→                  disabled={isProcessing}
+   982→                  className="w-full py-2 bg-google-blue hover:bg-blue-600 text-white text-xs font-bold rounded-lg cursor-pointer"
+   983→                >
+   984→                  استبدال النص
+   985→                </button>
+   986→              </div>
+   987→            </div>
+   988→          )}
+   989→
+   990→          {/* D. WATERMARK & PAGE NUMBERS CONFIG */}
+   991→          {activeEditorMode === "watermark" && (
+   992→            <div className="space-y-4">
+   993→              
+   994→              {/* Watermark panel */}
+   995→              <div className="space-y-3 bg-gray-50/60 p-3 rounded-xl border border-gray-150">
+   996→                <div className="text-xs font-bold text-gray-800 flex items-center gap-1">
+   997→                  <Layers className="h-4 w-4 text-google-blue animate-pulse" />
+   998→                  <span>إضافة علامة مائية مائلة (جميع الصفحات)</span>
+   999→                </div>
+  1000→
+  1001→                <input
+  1002→                  type="text"
+  1003→                  value={wmText}
+  1004→                  onChange={e => setWmText(e.target.value)}
+  1005→                  placeholder="مثال: سري للغاية - COPY"
+  1006→                  className="w-full text-xs bg-white border border-gray-200 rounded-lg p-2 font-bold"
+  1007→                />
+  1008→
+  1009→                <div className="grid grid-cols-3 gap-1.5 text-xs font-semibold">
+  1010→                  <div>
+  1011→                    <label className="text-[9px] text-gray-400 block mb-0.5">الحجم:</label>
+  1012→                    <input
+  1013→                      type="number"
+  1014→                      value={wmSize}
+  1015→                      onChange={e => setWmSize(parseInt(e.target.value) || 24)}
+  1016→                      className="w-full bg-white border border-gray-200 rounded-lg p-1 text-center"
+  1017→                    />
+  1018→                  </div>
+  1019→                  <div>
+  1020→                    <label className="text-[9px] text-gray-400 block mb-0.5">الشفافية:</label>
+  1021→                    <input
+  1022→                      type="number"
+  1023→                      value={wmOpacity}
+  1024→                      min={5}
+  1025→                      max={90}
+  1026→                      onChange={e => setWmOpacity(parseInt(e.target.value) || 20)}
+  1027→                      className="w-full bg-white border border-gray-200 rounded-lg p-1 text-center"
+  1028→                    />
+  1029→                  </div>
+  1030→                  <div>
+  1031→                    <label className="text-[9px] text-gray-400 block mb-0.5">اللون:</label>
+  1032→                    <input
+  1033→                      type="color"
+  1034→                      value={wmColor}
+  1035→                      onChange={e => setWmColor(e.target.value)}
+  1036→                      className="w-full h-7 rounded-lg border border-gray-200 p-0.5 bg-white cursor-pointer"
+  1037→                    />
+  1038→                  </div>
+  1039→                </div>
+  1040→
+  1041→                <button
+  1042→                  onClick={triggerWatermark}
+  1043→                  disabled={isProcessing}
+  1044→                  className="w-full py-2 bg-google-blue hover:bg-blue-600 text-white text-xs font-bold rounded-lg cursor-pointer"
+  1045→                >
+  1046→                  إضافة علامة مائية
+  1047→                </button>
+  1048→              </div>
+  1049→
+  1050→              {/* Page numbers panel */}
+  1051→              <div className="space-y-3 bg-blue-50/20 p-3 rounded-xl border border-blue-100">
+  1052→                <div className="text-xs font-bold text-gray-800 flex items-center gap-1">
+  1053→                  <TextIcon className="h-4 w-4 text-google-green" />
+  1054→                  <span>ترقيم الصفحات التلقائي</span>
+  1055→                </div>
+  1056→
+  1057→                <div className="grid grid-cols-2 gap-2 text-xs">
+  1058→                  <div>
+  1059→                    <label className="text-[9px] text-gray-400 block mb-0.5">الموضع:</label>
+  1060→                    <select
+  1061→                      value={numPosition}
+  1062→                      onChange={e => setNumPosition(e.target.value)}
+  1063→                      className="w-full bg-white border border-gray-200 rounded-lg p-1.5"
+  1064→                    >
+  1065→                      <option value="bottom-center">أسفل الوسط</option>
+  1066→                      <option value="bottom-right">أسفل اليمين</option>
+  1067→                      <option value="bottom-left">أسفل اليسار</option>
+  1068→                      <option value="top-center">أعلى الوسط</option>
+  1069→                    </select>
+  1070→                  </div>
+  1071→
+  1072→                  <div>
+  1073→                    <label className="text-[9px] text-gray-400 block mb-0.5">رقم البداية:</label>
+  1074→                    <input
+  1075→                      type="number"
+  1076→                      value={numStart}
+  1077→                      min={1}
+  1078→                      onChange={e => setNumStart(parseInt(e.target.value) || 1)}
+  1079→                      className="w-full bg-white border border-gray-200 rounded-lg p-1 text-center"
+  1080→                    />
+  1081→                  </div>
+  1082→                </div>
+  1083→
+  1084→                <button
+  1085→                  onClick={triggerPageNumbers}
+  1086→                  disabled={isProcessing}
+  1087→                  className="w-full py-2 bg-google-green hover:bg-green-600 text-white text-xs font-bold rounded-lg cursor-pointer"
+  1088→                >
+  1089→                  ترقيم الصفحات الآن
+  1090→                </button>
+  1091→              </div>
+  1092→
+  1093→            </div>
+  1094→          )}
+  1095→
+  1096→        </div>
+  1097→      </div>
+  1098→
+  1099→    </div>
+  1100→  );
+  1101→};
+  1102→

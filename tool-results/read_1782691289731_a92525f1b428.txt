@@ -1,0 +1,622 @@
+     1→import React, { useState, useRef } from "react";
+     2→import { motion } from "motion/react";
+     3→import { 
+     4→  Image, Sparkles, Sliders, Minimize2, Move, Download, RefreshCw, FileImage, Layers, Trash2, ArrowUp, ArrowDown, FileCheck
+     5→} from "lucide-react";
+     6→import { PDFDocument } from "pdf-lib";
+     7→import { CloudApiService } from "../services/api";
+     8→
+     9→interface ImageFile {
+    10→  id: string;
+    11→  file: File;
+    12→  name: string;
+    13→  size: number;
+    14→  dataUrl: string;
+    15→  width: number;
+    16→  height: number;
+    17→}
+    18→
+    19→export const ImageTools: React.FC = () => {
+    20→  const [images, setImages] = useState<ImageFile[]>([]);
+    21→  const [isProcessing, setIsProcessing] = useState<boolean>(false);
+    22→  const [dragActive, setDragActive] = useState<boolean>(false);
+    23→  const [notification, setNotification] = useState<{ type: "success" | "error" | "info"; message: string } | null>(null);
+    24→
+    25→  // Network HUD Progress
+    26→  const [networkProgress, setNetworkProgress] = useState<{
+    27→    uploadProgress: number;
+    28→    downloadProgress: number;
+    29→    speedKbps?: number;
+    30→    statusText?: string;
+    31→    isActive: boolean;
+    32→  }>({
+    33→    uploadProgress: 0,
+    34→    downloadProgress: 0,
+    35→    isActive: false
+    36→  });
+    37→
+    38→  // Conversion & Compression settings (for single image operation)
+    39→  const [targetFormat, setTargetFormat] = useState<"png" | "jpeg" | "webp">("png");
+    40→  const [compressionQuality, setCompressionQuality] = useState<number>(85); // 1-100
+    41→  const [resizeWidth, setResizeWidth] = useState<number>(0);
+    42→  const [resizeHeight, setResizeHeight] = useState<number>(0);
+    43→  const [maintainAspect, setMaintainAspect] = useState<boolean>(true);
+    44→  const [activeSingleIdx, setActiveSingleIdx] = useState<number>(0);
+    45→
+    46→  const fileInputRef = useRef<HTMLInputElement>(null);
+    47→
+    48→  const showNotification = (type: "success" | "error" | "info", message: string) => {
+    49→    setNotification({ type, message });
+    50→    setTimeout(() => {
+    51→      setNotification(null);
+    52→    }, 4500);
+    53→  };
+    54→
+    55→  const readImageStats = (file: File, dataUrl: string): Promise<{ width: number; height: number }> => {
+    56→    return new Promise((resolve) => {
+    57→      const img = document.createElement("img");
+    58→      img.onload = () => {
+    59→        resolve({ width: img.naturalWidth, height: img.naturalHeight });
+    60→      };
+    61→      img.onerror = () => {
+    62→        resolve({ width: 0, height: 0 });
+    63→      };
+    64→      img.src = dataUrl;
+    65→    });
+    66→  };
+    67→
+    68→  const processImageFiles = async (fileList: FileList) => {
+    69→    const validFiles: ImageFile[] = [];
+    70→    setIsProcessing(true);
+    71→
+    72→    for (let i = 0; i < fileList.length; i++) {
+    73→      const file = fileList[i];
+    74→      if (!file.type.startsWith("image/")) {
+    75→        continue;
+    76→      }
+    77→
+    78→      try {
+    79→        const dataUrl = await new Promise<string>((resolve) => {
+    80→          const reader = new FileReader();
+    81→          reader.onload = (e) => resolve(e.target?.result as string);
+    82→          reader.readAsDataURL(file);
+    83→        });
+    84→
+    85→        const dims = await readImageStats(file, dataUrl);
+    86→
+    87→        validFiles.push({
+    88→          id: Math.random().toString(36).substring(2, 9),
+    89→          file,
+    90→          name: file.name,
+    91→          size: file.size,
+    92→          dataUrl,
+    93→          width: dims.width,
+    94→          height: dims.height
+    95→        });
+    96→      } catch (err) {
+    97→        console.error("Error reading image:", err);
+    98→      }
+    99→    }
+   100→
+   101→    if (validFiles.length > 0) {
+   102→      setImages(prev => {
+   103→        const next = [...prev, ...validFiles];
+   104→        // Initialize resize values for the first newly added active image
+   105→        if (next.length > 0) {
+   106→          const active = next[activeSingleIdx] || next[0];
+   107→          setResizeWidth(active.width);
+   108→          setResizeHeight(active.height);
+   109→        }
+   110→        return next;
+   111→      });
+   112→      showNotification("success", `تمت إضافة ${validFiles.length} صور إلى مساحة العمل.`);
+   113→    } else {
+   114→      showNotification("error", "يرجى اختيار ملفات صور صالحة فقط.");
+   115→    }
+   116→    setIsProcessing(false);
+   117→  };
+   118→
+   119→  const handleDrag = (e: React.DragEvent) => {
+   120→    e.preventDefault();
+   121→    e.stopPropagation();
+   122→    if (e.type === "dragenter" || e.type === "dragover") {
+   123→      setDragActive(true);
+   124→    } else if (e.type === "dragleave") {
+   125→      setDragActive(false);
+   126→    }
+   127→  };
+   128→
+   129→  const handleDrop = async (e: React.DragEvent) => {
+   130→    e.preventDefault();
+   131→    e.stopPropagation();
+   132→    setDragActive(false);
+   133→
+   134→    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+   135→      await processImageFiles(e.dataTransfer.files);
+   136→    }
+   137→  };
+   138→
+   139→  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+   140→    if (e.target.files && e.target.files.length > 0) {
+   141→      await processImageFiles(e.target.files);
+   142→    }
+   143→  };
+   144→
+   145→  const triggerFileInput = () => {
+   146→    fileInputRef.current?.click();
+   147→  };
+   148→
+   149→  const handleRemoveImage = (id: string, idx: number) => {
+   150→    setImages(prev => {
+   151→      const next = prev.filter(img => img.id !== id);
+   152→      if (activeSingleIdx >= next.length) {
+   153→        setActiveSingleIdx(Math.max(0, next.length - 1));
+   154→      }
+   155→      return next;
+   156→    });
+   157→    showNotification("info", "تمت إزالة الصورة.");
+   158→  };
+   159→
+   160→  const handleMoveImage = (index: number, direction: "up" | "down") => {
+   161→    if (direction === "up" && index === 0) return;
+   162→    if (direction === "down" && index === images.length - 1) return;
+   163→
+   164→    const swapIdx = direction === "up" ? index - 1 : index + 1;
+   165→    const next = [...images];
+   166→    const temp = next[index];
+   167→    next[index] = next[swapIdx];
+   168→    next[swapIdx] = temp;
+   169→
+   170→    setImages(next);
+   171→  };
+   172→
+   173→  const handleWidthChange = (val: number) => {
+   174→    setResizeWidth(val);
+   175→    const activeImg = images[activeSingleIdx];
+   176→    if (maintainAspect && activeImg && activeImg.width > 0) {
+   177→      const aspect = activeImg.height / activeImg.width;
+   178→      setResizeHeight(Math.round(val * aspect));
+   179→    }
+   180→  };
+   181→
+   182→  const handleHeightChange = (val: number) => {
+   183→    setResizeHeight(val);
+   184→    const activeImg = images[activeSingleIdx];
+   185→    if (maintainAspect && activeImg && activeImg.height > 0) {
+   186→      const aspect = activeImg.width / activeImg.height;
+   187→      setResizeWidth(Math.round(val * aspect));
+   188→    }
+   189→  };
+   190→
+   191→  // Convert & Compress Single Image
+   192→  const handleProcessSingleImage = async () => {
+   193→    const activeImg = images[activeSingleIdx];
+   194→    if (!activeImg) return;
+   195→
+   196→    setIsProcessing(true);
+   197→    setNetworkProgress({
+   198→      uploadProgress: 0,
+   199→      downloadProgress: 0,
+   200→      speedKbps: 0,
+   201→      statusText: "جاري تهيئة رفع الصورة للمعالجة السحابية...",
+   202→      isActive: true
+   203→    });
+   204→
+   205→    try {
+   206→      const result = await CloudApiService.convertImage(
+   207→        activeImg.file,
+   208→        targetFormat,
+   209→        compressionQuality,
+   210→        resizeWidth || activeImg.width,
+   211→        resizeHeight || activeImg.height,
+   212→        (p) => {
+   213→          setNetworkProgress({
+   214→            uploadProgress: p.uploadProgress,
+   215→            downloadProgress: p.downloadProgress,
+   216→            speedKbps: p.speedKbps,
+   217→            statusText: p.statusText,
+   218→            isActive: true
+   219→          });
+   220→        }
+   221→      );
+   222→
+   223→      // Create download from returned arrayBuffer bytes
+   224→      const blob = new Blob([result.bytes], { type: `image/${targetFormat}` });
+   225→      const downloadUrl = URL.createObjectURL(blob);
+   226→
+   227→      const a = document.createElement("a");
+   228→      a.href = downloadUrl;
+   229→      const origBaseName = activeImg.name.substring(0, activeImg.name.lastIndexOf("."));
+   230→      a.download = `${origBaseName}_عزام.${targetFormat}`;
+   231→      a.click();
+   232→      setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+   233→
+   234→      showNotification("success", "تمت معالجة الصورة سحابياً بنجاح وتنزيلها بالصيغة والجودة المطلوبة!");
+   235→    } catch (err: any) {
+   236→      console.error(err);
+   237→      showNotification("error", "فشلت معالجة الصورة سحابياً: " + err.message);
+   238→    } finally {
+   239→      setIsProcessing(false);
+   240→      setNetworkProgress(prev => ({ ...prev, isActive: false }));
+   241→    }
+   242→  };
+   243→
+   244→  // Convert all listed images into a single combined PDF!
+   245→  const handleExportAllToPdf = async () => {
+   246→    if (images.length === 0) return;
+   247→    setIsProcessing(true);
+   248→    showNotification("info", "جاري رص وتضمين كافة الصور داخل ملف PDF موحد...");
+   249→
+   250→    try {
+   251→      const pdfDoc = await PDFDocument.create();
+   252→
+   253→      for (const imgItem of images) {
+   254→        const imgEl = document.createElement("img");
+   255→        await new Promise<void>((resolve, reject) => {
+   256→          imgEl.onload = () => resolve();
+   257→          imgEl.onerror = () => reject();
+   258→          imgEl.src = imgItem.dataUrl;
+   259→        });
+   260→
+   261→        // Add page matching the image aspect ratio
+   262→        const page = pdfDoc.addPage([imgItem.width, imgItem.height]);
+   263→        
+   264→        // Fetch raw image bytes
+   265→        const imageBytes = await fetch(imgItem.dataUrl).then(res => res.arrayBuffer());
+   266→        
+   267→        // Determine PNG vs JPG embedding
+   268→        let pdfImg;
+   269→        if (imgItem.file.type === "image/png" || imgItem.dataUrl.startsWith("data:image/png")) {
+   270→          pdfImg = await pdfDoc.embedPng(imageBytes);
+   271→        } else {
+   272→          pdfImg = await pdfDoc.embedJpg(imageBytes);
+   273→        }
+   274→
+   275→        page.drawImage(pdfImg, {
+   276→          x: 0,
+   277→          y: 0,
+   278→          width: imgItem.width,
+   279→          height: imgItem.height,
+   280→        });
+   281→      }
+   282→
+   283→      const pdfBytes = await pdfDoc.save();
+   284→      const blob = new Blob([pdfBytes], { type: "application/pdf" });
+   285→      const url = URL.createObjectURL(blob);
+   286→      const a = document.createElement("a");
+   287→      a.href = url;
+   288→      a.download = `ألبوم_صور_عزام_${new Date().toLocaleDateString("ar-EG").replace(/\//g, "-")}.pdf`;
+   289→      a.click();
+   290→      URL.revokeObjectURL(url);
+   291→
+   292→      showNotification("success", "تم دمج كافة الصور وتصديرها كملف PDF موحد ومكتمل بنجاح!");
+   293→    } catch (err: any) {
+   294→      console.error(err);
+   295→      showNotification("error", "فشل تصدير الصور إلى PDF: " + err.message);
+   296→    } finally {
+   297→      setIsProcessing(false);
+   298→    }
+   299→  };
+   300→
+   301→  const activeImg = images[activeSingleIdx] || null;
+   302→
+   303→  return (
+   304→    <div className="space-y-6 text-right" dir="rtl">
+   305→      
+   306→      {/* Toast Notification */}
+   307→      {notification && (
+   308→        <div className="fixed bottom-5 right-5 z-50 flex items-center gap-2.5 bg-slate-900/95 text-white text-xs font-bold px-4 py-3 rounded-xl shadow-lg border border-slate-800 animate-slide-up">
+   309→          <span className={`h-2.5 w-2.5 rounded-full ${
+   310→            notification.type === "success" ? "bg-emerald-500 animate-ping" : 
+   311→            notification.type === "error" ? "bg-rose-500 animate-pulse" : "bg-blue-500 animate-pulse"
+   312→          }`} />
+   313→          <span>{notification.message}</span>
+   314→        </div>
+   315→      )}
+   316→
+   317→      {/* Upload Zone vs Active Studio */}
+   318→      {images.length === 0 ? (
+   319→        <div className="w-full max-w-4xl mx-auto">
+   320→          {/* Section Description Card */}
+   321→          <div className="bg-gradient-to-r from-purple-50 to-purple-100/30 border border-purple-100 p-6 rounded-2xl mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
+   322→            <div className="space-y-1">
+   323→              <h3 className="text-sm font-black text-purple-900 flex items-center gap-1.5 justify-end">
+   324→                <span>استوديو عـزَّام المتكامل لمعالجة وتحويل الصور</span>
+   325→                <Sparkles className="h-4.5 w-4.5 text-purple-500 animate-pulse" />
+   326→              </h3>
+   327→              <p className="text-xs font-bold text-purple-700/80 leading-relaxed">
+   328→                استوديو متقدم للتعامل مع الصور؛ قم بضغط حجمها، تغيير أبعادها بدقة مع الحفاظ على الأبعاد، تحويلها إلى صيغ PNG أو WebP أو JPG، أو دمج مجموعة صور كاملة في ملف PDF واحد منسق.
+   329→              </p>
+   330→            </div>
+   331→            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-purple-100/80 shadow-3xs shrink-0">
+   332→              <span className="text-[10px] font-black text-purple-600">CANVAS GPU ENGINE</span>
+   333→              <div className="h-2 w-2 rounded-full bg-purple-500" />
+   334→            </div>
+   335→          </div>
+   336→
+   337→          {/* Drag & Drop Area */}
+   338→          <div
+   339→            onDragEnter={handleDrag}
+   340→            onDragOver={handleDrag}
+   341→            onDragLeave={handleDrag}
+   342→            onDrop={handleDrop}
+   343→            onClick={triggerFileInput}
+   344→            className={`border-2 border-dashed rounded-2xl p-12 flex flex-col items-center justify-center transition-all cursor-pointer ${
+   345→              dragActive 
+   346→                ? "border-purple-500 bg-purple-50/50 scale-[1.01]" 
+   347→                : "border-gray-200 bg-white hover:border-purple-400 hover:bg-gray-50/30"
+   348→            }`}
+   349→          >
+   350→            <input
+   351→              type="file"
+   352→              ref={fileInputRef}
+   353→              onChange={handleFileChange}
+   354→              accept="image/*"
+   355→              multiple
+   356→              className="hidden"
+   357→            />
+   358→            
+   359→            <div className="p-4.5 bg-purple-50 rounded-2xl text-purple-600 mb-4 shadow-3xs">
+   360→              <Image className="h-10 w-10 animate-pulse" />
+   361→            </div>
+   362→
+   363→            <h3 className="text-sm font-black text-gray-800 mb-1">اسحب الصور هنا أو اضغط للتصفح والرفع</h3>
+   364→            <p className="text-[11px] font-bold text-gray-400">يدعم رفع مجموعة صور متعددة معاً للتحويل والدمج المباشر</p>
+   365→          </div>
+   366→        </div>
+   367→      ) : (
+   368→        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+   369→          
+   370→          {/* Left panel: Image files manager / List (4 cols) */}
+   371→          <div className="lg:col-span-4 space-y-6">
+   372→            
+   373→            {/* Global Actions Card */}
+   374→            <div className="bg-white border border-gray-150 rounded-2xl p-5 shadow-3xs space-y-4">
+   375→              <div className="flex justify-between items-center pb-3 border-b border-gray-100">
+   376→                <button
+   377→                  onClick={() => setImages([])}
+   378→                  className="text-[11px] font-black text-red-500 hover:text-red-600 bg-red-50 hover:bg-red-100/50 px-3 py-1.5 rounded-lg transition-all cursor-pointer"
+   379→                >
+   380→                  إفراغ الاستوديو
+   381→                </button>
+   382→                <h3 className="text-xs font-black text-gray-800">قائمة الصور المرفوعة ({images.length})</h3>
+   383→              </div>
+   384→
+   385→              {/* PDF Compiler button for multiple images */}
+   386→              <button
+   387→                onClick={handleExportAllToPdf}
+   388→                disabled={isProcessing}
+   389→                className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 px-4 py-3.5 text-xs font-black text-white shadow-md shadow-indigo-500/10 active:scale-98 cursor-pointer"
+   390→              >
+   391→                <Layers className="h-4.5 w-4.5" />
+   392→                <span>دمج كافة الصور وتصديرها كـ PDF</span>
+   393→              </button>
+   394→
+   395→              <button
+   396→                onClick={triggerFileInput}
+   397→                className="w-full text-center py-2 border border-dashed border-gray-200 hover:border-purple-300 text-xs font-bold text-gray-500 hover:text-purple-600 rounded-xl cursor-pointer"
+   398→              >
+   399→                + إضافة المزيد من الصور
+   400→              </button>
+   401→            </div>
+   402→
+   403→            {/* List items with visually interactive thumbnail reordering */}
+   404→            <div className="bg-white border border-gray-150 rounded-2xl p-4 shadow-3xs space-y-3.5 max-h-[380px] overflow-y-auto safe-scrollbar">
+   405→              {images.map((img, idx) => (
+   406→                <div
+   407→                  key={img.id}
+   408→                  onClick={() => {
+   409→                    setActiveSingleIdx(idx);
+   410→                    setResizeWidth(img.width);
+   411→                    setResizeHeight(img.height);
+   412→                  }}
+   413→                  className={`flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer ${
+   414→                    activeSingleIdx === idx 
+   415→                      ? "bg-purple-50/50 border-purple-200" 
+   416→                      : "bg-transparent border-gray-100/60 hover:bg-gray-50/50"
+   417→                  }`}
+   418→                >
+   419→                  {/* Sorting & Deletion controllers */}
+   420→                  <div className="flex items-center gap-2">
+   421→                    <div className="flex flex-col gap-0.5">
+   422→                      <button 
+   423→                        disabled={idx === 0}
+   424→                        onClick={(e) => { e.stopPropagation(); handleMoveImage(idx, "up"); }}
+   425→                        className="p-1 hover:bg-gray-100 text-gray-400 hover:text-gray-800 rounded-md cursor-pointer disabled:opacity-30"
+   426→                      >
+   427→                        <ArrowUp className="h-3.5 w-3.5" />
+   428→                      </button>
+   429→                      <button 
+   430→                        disabled={idx === images.length - 1}
+   431→                        onClick={(e) => { e.stopPropagation(); handleMoveImage(idx, "down"); }}
+   432→                        className="p-1 hover:bg-gray-100 text-gray-400 hover:text-gray-800 rounded-md cursor-pointer disabled:opacity-30"
+   433→                      >
+   434→                        <ArrowDown className="h-3.5 w-3.5" />
+   435→                      </button>
+   436→                    </div>
+   437→
+   438→                    <button
+   439→                      onClick={(e) => { e.stopPropagation(); handleRemoveImage(img.id, idx); }}
+   440→                      className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all cursor-pointer"
+   441→                    >
+   442→                      <Trash2 className="h-4 w-4" />
+   443→                    </button>
+   444→                  </div>
+   445→
+   446→                  {/* Thumbnail & Dimensions */}
+   447→                  <div className="flex items-center gap-2 text-right">
+   448→                    <div>
+   449→                      <h4 className="text-[11px] font-bold text-gray-700 line-clamp-1 max-w-[120px]">{img.name}</h4>
+   450→                      <span className="text-[9px] text-gray-400 font-bold block">{img.width}x{img.height} px • {(img.size / 1024).toFixed(0)} KB</span>
+   451→                    </div>
+   452→                    <img
+   453→                      src={img.dataUrl}
+   454→                      alt="Thumbnail"
+   455→                      className="h-10 w-10 rounded-lg object-cover border border-gray-150"
+   456→                    />
+   457→                  </div>
+   458→                </div>
+   459→              ))}
+   460→            </div>
+   461→
+   462→          </div>
+   463→
+   464→          {/* Right panel: Active selected image editor studio (8 cols) */}
+   465→          {activeImg && (
+   466→            <div className="lg:col-span-8 bg-white border border-gray-150 rounded-2xl p-6 shadow-3xs space-y-6">
+   467→              <div className="flex justify-between items-center pb-3 border-b border-gray-100">
+   468→                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">ACTIVE IMAGE RUNTIME</span>
+   469→                <h3 className="text-sm font-black text-gray-800 flex items-center gap-1.5">
+   470→                  <FileCheck className="h-4.5 w-4.5 text-purple-600 animate-pulse" />
+   471→                  <span>لوحة معالجة الصورة النشطة: {activeImg.name}</span>
+   472→                </h3>
+   473→              </div>
+   474→
+   475→              {/* Dynamic canvas wrapper & original info */}
+   476→              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center bg-gray-50/50 border border-gray-100 p-5 rounded-2xl">
+   477→                <div className="flex justify-center">
+   478→                  <img
+   479→                    src={activeImg.dataUrl}
+   480→                    alt="Active Preview"
+   481→                    className="max-h-[220px] rounded-xl object-contain shadow-sm border border-gray-200"
+   482→                  />
+   483→                </div>
+   484→
+   485→                <div className="space-y-3.5">
+   486→                  <h4 className="text-xs font-black text-gray-700">بيانات الصورة الأصلية:</h4>
+   487→                  <div className="grid grid-cols-2 gap-3">
+   488→                    <div className="bg-white border border-gray-150 p-2.5 rounded-xl text-center shadow-3xs">
+   489→                      <span className="text-[9px] font-bold text-gray-400 block mb-0.5">الحجم الحالي</span>
+   490→                      <span className="text-xs font-black text-gray-800">{(activeImg.size / 1024).toFixed(1)} KB</span>
+   491→                    </div>
+   492→                    <div className="bg-white border border-gray-150 p-2.5 rounded-xl text-center shadow-3xs">
+   493→                      <span className="text-[9px] font-bold text-gray-400 block mb-0.5">الأبعاد الأصلية</span>
+   494→                      <span className="text-xs font-black text-gray-800">{activeImg.width} x {activeImg.height}</span>
+   495→                    </div>
+   496→                  </div>
+   497→                </div>
+   498→              </div>
+   499→
+   500→              {/* Conversion, quality & resize controls */}
+   501→              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+   502→                
+   503→                {/* 1. Format and Compression */}
+   504→                <div className="space-y-4">
+   505→                  <div>
+   506→                    <h3 className="text-xs font-black text-gray-800 mb-2 flex items-center gap-1.5 justify-end">
+   507→                      <span>صيغة الصورة المطلوبة</span>
+   508→                      <Sliders className="h-4 w-4 text-purple-600" />
+   509→                    </h3>
+   510→                    <div className="grid grid-cols-3 gap-2">
+   511→                      {(["png", "jpeg", "webp"] as const).map(fmt => (
+   512→                        <button
+   513→                          key={fmt}
+   514→                          onClick={() => setTargetFormat(fmt)}
+   515→                          className={`py-2 text-xs font-black rounded-xl border transition-all cursor-pointer ${
+   516→                            targetFormat === fmt 
+   517→                              ? "bg-purple-600 text-white border-purple-600 shadow-md shadow-purple-500/10" 
+   518→                              : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+   519→                          }`}
+   520→                        >
+   521→                          {fmt.toUpperCase()}
+   522→                        </button>
+   523→                      ))}
+   524→                    </div>
+   525→                  </div>
+   526→
+   527→                  {targetFormat !== "png" && (
+   528→                    <div className="space-y-2">
+   529→                      <div className="flex justify-between items-center">
+   530→                        <span className="text-xs font-black text-purple-600">{compressionQuality}%</span>
+   531→                        <span className="text-xs font-black text-gray-700">جودة وضغط الصورة (توفير مساحة)</span>
+   532→                      </div>
+   533→                      <input
+   534→                        type="range"
+   535→                        min="5"
+   536→                        max="100"
+   537→                        value={compressionQuality}
+   538→                        onChange={(e) => setCompressionQuality(Number(e.target.value))}
+   539→                        className="w-full accent-purple-600 cursor-pointer"
+   540→                      />
+   541→                      <div className="flex justify-between text-[9px] font-bold text-gray-400">
+   542→                        <span>أعلى ضغط (حجم أصغر)</span>
+   543→                        <span>أعلى جودة (حجم أكبر)</span>
+   544→                      </div>
+   545→                    </div>
+   546→                  )}
+   547→                </div>
+   548→
+   549→                {/* 2. Resize control */}
+   550→                <div className="space-y-4">
+   551→                  <div className="flex justify-between items-center mb-1">
+   552→                    <button
+   553→                      onClick={() => setMaintainAspect(!maintainAspect)}
+   554→                      className={`text-[10px] font-black px-2.5 py-1 rounded-lg border transition-all cursor-pointer ${
+   555→                        maintainAspect 
+   556→                          ? "bg-purple-50 border-purple-200 text-purple-700" 
+   557→                          : "bg-gray-50 border-gray-200 text-gray-400"
+   558→                      }`}
+   559→                    >
+   560→                      {maintainAspect ? "🔒 تناسب الأبعاد مفعّل" : "🔓 أبعاد حرة"}
+   561→                    </button>
+   562→                    <h3 className="text-xs font-black text-gray-800 flex items-center gap-1.5">
+   563→                      <span>تغيير الأبعاد (Resize)</span>
+   564→                      <Minimize2 className="h-4 w-4 text-purple-600" />
+   565→                    </h3>
+   566→                  </div>
+   567→
+   568→                  <div className="grid grid-cols-2 gap-4">
+   569→                    <div className="space-y-1">
+   570→                      <label className="text-[10px] font-black text-gray-400">العرض (Width - px)</label>
+   571→                      <input
+   572→                        type="number"
+   573→                        value={resizeWidth}
+   574→                        onChange={(e) => handleWidthChange(Number(e.target.value))}
+   575→                        className="w-full p-2.5 text-xs font-black rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white text-center outline-none"
+   576→                      />
+   577→                    </div>
+   578→                    <div className="space-y-1">
+   579→                      <label className="text-[10px] font-black text-gray-400">الارتفاع (Height - px)</label>
+   580→                      <input
+   581→                        type="number"
+   582→                        value={resizeHeight}
+   583→                        onChange={(e) => handleHeightChange(Number(e.target.value))}
+   584→                        className="w-full p-2.5 text-xs font-black rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white text-center outline-none"
+   585→                      />
+   586→                    </div>
+   587→                  </div>
+   588→                </div>
+   589→
+   590→              </div>
+   591→
+   592→              {/* Action process button */}
+   593→              <div className="pt-4 border-t border-gray-100 flex justify-end">
+   594→                <button
+   595→                  onClick={handleProcessSingleImage}
+   596→                  disabled={isProcessing}
+   597→                  className="inline-flex items-center gap-2 rounded-xl bg-purple-600 hover:bg-purple-700 px-6 py-3.5 text-xs font-black text-white shadow-md shadow-purple-500/10 active:scale-98 cursor-pointer"
+   598→                >
+   599→                  {isProcessing ? (
+   600→                    <>
+   601→                      <RefreshCw className="h-4 w-4 animate-spin" />
+   602→                      <span>جاري معالجة الصورة...</span>
+   603→                    </>
+   604→                  ) : (
+   605→                    <>
+   606→                      <Download className="h-4 w-4" />
+   607→                      <span>معالجة وتنزيل الصورة المحددة</span>
+   608→                    </>
+   609→                  )}
+   610→                </button>
+   611→              </div>
+   612→
+   613→            </div>
+   614→          )}
+   615→
+   616→        </div>
+   617→      )}
+   618→
+   619→    </div>
+   620→  );
+   621→};
+   622→

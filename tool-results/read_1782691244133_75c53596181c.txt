@@ -1,0 +1,899 @@
+     1→import React, { useState, useRef, useEffect } from "react";
+     2→import { motion, AnimatePresence } from "motion/react";
+     3→import { 
+     4→  Camera, Upload, Sliders, Crop, RotateCw, Check, AlertCircle, RefreshCw, 
+     5→  Trash2, Plus, FileText, Download, Sparkles, Image as ImageIcon, Sparkle,
+     6→  SlidersHorizontal, ZoomIn, Eye, List, ChevronRight, ChevronLeft, CheckSquare
+     7→} from "lucide-react";
+     8→import { PDFDocument } from "pdf-lib";
+     9→
+    10→interface ScannerProps {
+    11→  pdfBytes: Uint8Array | null;
+    12→  onImageToPdf: (imageBytes: Uint8Array, mimeType: string, action: "append" | "new") => Promise<void>;
+    13→  isProcessing: boolean;
+    14→}
+    15→
+    16→interface ScannedPage {
+    17→  id: string;
+    18→  originalDataUrl: string; // original source
+    19→  processedDataUrl: string; // after applying filter/crop
+    20→  filter: "original" | "magic" | "bw" | "gray" | "contrast";
+    21→  brightness: number; // -100 to 100
+    22→  contrast: number; // -100 to 100
+    23→  rotation: number; // 0, 90, 180, 270
+    24→  cropRect: { x: number; y: number; w: number; h: number } | null;
+    25→}
+    26→
+    27→export const Scanner: React.FC<ScannerProps> = ({
+    28→  pdfBytes,
+    29→  onImageToPdf,
+    30→  isProcessing
+    31→}) => {
+    32→  // Input sources
+    33→  const [source, setSource] = useState<"camera" | "upload" | null>(null);
+    34→  const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
+    35→  const [selectedDeviceId, setSelectedDeviceId] = useState<string>("");
+    36→  const [cameraActive, setCameraActive] = useState(false);
+    37→  const [cameraError, setCameraError] = useState<string | null>(null);
+    38→
+    39→  // Scanned / Captured Pages
+    40→  const [scannedPages, setScannedPages] = useState<ScannedPage[]>([]);
+    41→  const [currentPageId, setCurrentPageId] = useState<string | null>(null);
+    42→  const [viewMode, setViewMode] = useState<"capture" | "editor" | "gallery">("capture");
+    43→
+    44→  // Filter & Adjust States for the page currently being edited
+    45→  const [activeFilter, setActiveFilter] = useState<"original" | "magic" | "bw" | "gray" | "contrast">("magic");
+    46→  const [brightness, setBrightness] = useState<number>(10);
+    47→  const [contrast, setContrast] = useState<number>(20);
+    48→  
+    49→  // Crop state
+    50→  const [isCropping, setIsCropping] = useState(false);
+    51→  const [cropPoints, setCropPoints] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+    52→
+    53→  const videoRef = useRef<HTMLVideoElement>(null);
+    54→  const streamRef = useRef<MediaStream | null>(null);
+    55→  const canvasRef = useRef<HTMLCanvasElement>(null);
+    56→  const editCanvasRef = useRef<HTMLCanvasElement>(null);
+    57→
+    58→  // Initialize camera list
+    59→  useEffect(() => {
+    60→    if (source === "camera") {
+    61→      navigator.mediaDevices.enumerateDevices()
+    62→        .then(devs => {
+    63→          const videoDevs = devs.filter(d => d.kind === "videoinput");
+    64→          setDevices(videoDevs);
+    65→          if (videoDevs.length > 0) {
+    66→            setSelectedDeviceId(videoDevs[0].deviceId);
+    67→          }
+    68→        })
+    69→        .catch(err => {
+    70→          console.error("Error listing cameras:", err);
+    71→          setCameraError("لم يتم العثور على كاميرات متصلة أو تم رفض الإذن.");
+    72→        });
+    73→    }
+    74→    return () => stopCamera();
+    75→  }, [source]);
+    76→
+    77→  // Handle camera start
+    78→  useEffect(() => {
+    79→    if (source === "camera" && selectedDeviceId) {
+    80→      startCamera();
+    81→    }
+    82→  }, [selectedDeviceId]);
+    83→
+    84→  const startCamera = async () => {
+    85→    stopCamera();
+    86→    setCameraError(null);
+    87→    try {
+    88→      const stream = await navigator.mediaDevices.getUserMedia({
+    89→        video: { deviceId: selectedDeviceId ? { exact: selectedDeviceId } : undefined, width: { ideal: 1920 }, height: { ideal: 1080 } }
+    90→      });
+    91→      streamRef.current = stream;
+    92→      if (videoRef.current) {
+    93→        videoRef.current.srcObject = stream;
+    94→        videoRef.current.play();
+    95→        setCameraActive(true);
+    96→      }
+    97→    } catch (err: any) {
+    98→      console.error("Error accessing camera:", err);
+    99→      // Fallback to general constraints if exact fails
+   100→      try {
+   101→        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+   102→        streamRef.current = stream;
+   103→        if (videoRef.current) {
+   104→          videoRef.current.srcObject = stream;
+   105→          videoRef.current.play();
+   106→          setCameraActive(true);
+   107→        }
+   108→      } catch (innerErr) {
+   109→        setCameraError("فشل تشغيل الكاميرا. يرجى التحقق من أذونات المتصفح.");
+   110→      }
+   111→    }
+   112→  };
+   113→
+   114→  const stopCamera = () => {
+   115→    if (streamRef.current) {
+   116→      streamRef.current.getTracks().forEach(track => track.stop());
+   117→      streamRef.current = null;
+   118→    }
+   119→    setCameraActive(false);
+   120→  };
+   121→
+   122→  // Capture Image
+   123→  const handleCapture = () => {
+   124→    if (!videoRef.current) return;
+   125→    const video = videoRef.current;
+   126→    const canvas = document.createElement("canvas");
+   127→    canvas.width = video.videoWidth;
+   128→    canvas.height = video.videoHeight;
+   129→    const ctx = canvas.getContext("2d");
+   130→    if (!ctx) return;
+   131→
+   132→    // Capture exact video frame
+   133→    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+   134→    const dataUrl = canvas.toDataURL("image/jpeg", 0.95);
+   135→
+   136→    const newPage: ScannedPage = {
+   137→      id: Math.random().toString(36).substring(2, 9),
+   138→      originalDataUrl: dataUrl,
+   139→      processedDataUrl: dataUrl,
+   140→      filter: "magic",
+   141→      brightness: 10,
+   142→      contrast: 20,
+   143→      rotation: 0,
+   144→      cropRect: null
+   145→    };
+   146→
+   147→    setScannedPages(prev => [...prev, newPage]);
+   148→    setCurrentPageId(newPage.id);
+   149→    setActiveFilter("magic");
+   150→    setBrightness(10);
+   151→    setContrast(20);
+   152→    setViewMode("editor");
+   153→    stopCamera();
+   154→  };
+   155→
+   156→  // Upload Photo instead of camera
+   157→  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+   158→    const file = e.target.files?.[0];
+   159→    if (!file) return;
+   160→
+   161→    const reader = new FileReader();
+   162→    reader.onload = (event) => {
+   163→      if (typeof event.target?.result === "string") {
+   164→        const newPage: ScannedPage = {
+   165→          id: Math.random().toString(36).substring(2, 9),
+   166→          originalDataUrl: event.target.result,
+   167→          processedDataUrl: event.target.result,
+   168→          filter: "magic",
+   169→          brightness: 10,
+   170→          contrast: 20,
+   171→          rotation: 0,
+   172→          cropRect: null
+   173→        };
+   174→        setScannedPages(prev => [...prev, newPage]);
+   175→        setCurrentPageId(newPage.id);
+   176→        setActiveFilter("magic");
+   177→        setBrightness(10);
+   178→        setContrast(20);
+   179→        setViewMode("editor");
+   180→      }
+   181→    };
+   182→    reader.readAsDataURL(file);
+   183→  };
+   184→
+   185→  // Re-run filter rendering whenever parameters change
+   186→  useEffect(() => {
+   187→    if (currentPageId) {
+   188→      applyFiltersAndAdjustments();
+   189→    }
+   190→  }, [currentPageId, activeFilter, brightness, contrast, cropPoints]);
+   191→
+   192→  const applyFiltersAndAdjustments = () => {
+   193→    const page = scannedPages.find(p => p.id === currentPageId);
+   194→    if (!page) return;
+   195→
+   196→    const img = new Image();
+   197→    img.crossOrigin = "anonymous";
+   198→    img.src = page.originalDataUrl;
+   199→    img.onload = () => {
+   200→      const canvas = editCanvasRef.current;
+   201→      if (!canvas) return;
+   202→      const ctx = canvas.getContext("2d");
+   203→      if (!ctx) return;
+   204→
+   205→      // Base width/height
+   206→      let width = img.width;
+   207→      let height = img.height;
+   208→
+   209→      // Rotate dimension adjustments if 90 or 270 degrees
+   210→      if (page.rotation === 90 || page.rotation === 270) {
+   211→        canvas.width = height;
+   212→        canvas.height = width;
+   213→      } else {
+   214→        canvas.width = width;
+   215→        canvas.height = height;
+   216→      }
+   217→
+   218→      // Draw rotated original
+   219→      ctx.clearRect(0, 0, canvas.width, canvas.height);
+   220→      ctx.save();
+   221→      ctx.translate(canvas.width / 2, canvas.height / 2);
+   222→      ctx.rotate((page.rotation * Math.PI) / 180);
+   223→      ctx.drawImage(img, -width / 2, -height / 2, width, height);
+   224→      ctx.restore();
+   225→
+   226→      // Handle custom crop rect if isCropping or cropped
+   227→      let sourceRect = cropPoints || page.cropRect;
+   228→      if (sourceRect) {
+   229→        // Create secondary canvas to hold cropped content
+   230→        const cropCanvas = document.createElement("canvas");
+   231→        cropCanvas.width = sourceRect.w;
+   232→        cropCanvas.height = sourceRect.h;
+   233→        const cropCtx = cropCanvas.getContext("2d");
+   234→        if (cropCtx) {
+   235→          cropCtx.drawImage(
+   236→            canvas,
+   237→            sourceRect.x, sourceRect.y, sourceRect.w, sourceRect.h,
+   238→            0, 0, sourceRect.w, sourceRect.h
+   239→          );
+   240→          // Resize edit canvas to match cropped dimension
+   241→          canvas.width = sourceRect.w;
+   242→          canvas.height = sourceRect.h;
+   243→          ctx.drawImage(cropCanvas, 0, 0);
+   244→        }
+   245→      }
+   246→
+   247→      // Read image pixels for advanced document enhancement filters
+   248→      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+   249→      const data = imgData.data;
+   250→
+   251→      // Contrast factor calculation
+   252→      const cFactor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+   253→      // Brightness helper
+   254→      const bOffset = brightness;
+   255→
+   256→      for (let i = 0; i < data.length; i += 4) {
+   257→        let r = data[i];
+   258→        let g = data[i + 1];
+   259→        let b = data[i + 2];
+   260→
+   261→        // 1. Grayscale value
+   262→        const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+   263→
+   264→        if (activeFilter === "gray") {
+   265→          r = g = b = gray;
+   266→        } else if (activeFilter === "bw") {
+   267→          // Smart adaptive or hard thresholding for binary look
+   268→          const threshold = 128 + bOffset;
+   269→          const binary = gray > threshold ? 255 : 0;
+   270→          r = g = b = binary;
+   271→        } else if (activeFilter === "magic") {
+   272→          // "Magic Color": dramatic contrast boost & light correction
+   273→          // Boost and flatten whites
+   274→          let mr = (r - 128) * 1.55 + 128 + 25 + bOffset;
+   275→          let mg = (g - 128) * 1.55 + 128 + 25 + bOffset;
+   276→          let mb = (b - 128) * 1.55 + 128 + 25 + bOffset;
+   277→
+   278→          // Push highlights to pure white to look like standard white sheet
+   279→          const maxVal = Math.max(mr, mg, mb);
+   280→          if (maxVal > 195) {
+   281→            mr = Math.min(255, mr + 35);
+   282→            mg = Math.min(255, mg + 35);
+   283→            mb = Math.min(255, mb + 35);
+   284→          }
+   285→
+   286→          r = Math.max(0, Math.min(255, mr));
+   287→          g = Math.max(0, Math.min(255, mg));
+   288→          b = Math.max(0, Math.min(255, mb));
+   289→        } else if (activeFilter === "contrast") {
+   290→          // High Contrast Filter
+   291→          r = cFactor * (r - 128) + 128 + bOffset;
+   292→          g = cFactor * (g - 128) + 128 + bOffset;
+   293→          b = cFactor * (b - 128) + 128 + bOffset;
+   294→        } else {
+   295→          // Original with simple manual brightness/contrast adjustments
+   296→          r = cFactor * (r - 128) + 128 + bOffset;
+   297→          g = cFactor * (g - 128) + 128 + bOffset;
+   298→          b = cFactor * (b - 128) + 128 + bOffset;
+   299→        }
+   300→
+   301→        data[i] = Math.max(0, Math.min(255, r));
+   302→        data[i + 1] = Math.max(0, Math.min(255, g));
+   303→        data[i + 2] = Math.max(0, Math.min(255, b));
+   304→      }
+   305→
+   306→      ctx.putImageData(imgData, 0, 0);
+   307→
+   308→      // Save processed data URL to the page structure
+   309→      const processedUrl = canvas.toDataURL("image/jpeg", 0.92);
+   310→      setScannedPages(prev => prev.map(p => {
+   311→        if (p.id === currentPageId) {
+   312→          return {
+   313→            ...p,
+   314→            processedDataUrl: processedUrl,
+   315→            filter: activeFilter,
+   316→            brightness,
+   317→            contrast
+   318→          };
+   319→        }
+   320→        return p;
+   321→      }));
+   322→    };
+   323→  };
+   324→
+   325→  // Helper to rotate active page
+   326→  const handleRotateActive = () => {
+   327→    setScannedPages(prev => prev.map(p => {
+   328→      if (p.id === currentPageId) {
+   329→        const nextRotation = (p.rotation + 90) % 360;
+   330→        return { ...p, rotation: nextRotation };
+   331→      }
+   332→      return p;
+   333→    }));
+   334→  };
+   335→
+   336→  // Apply crop manually
+   337→  const triggerManualCropToggle = () => {
+   338→    if (isCropping) {
+   339→      // Finalize and apply
+   340→      setIsCropping(false);
+   341→    } else {
+   342→      // Set defaults for cropping
+   343→      const canvas = editCanvasRef.current;
+   344→      if (canvas) {
+   345→        setCropPoints({
+   346→          x: canvas.width * 0.05,
+   347→          y: canvas.height * 0.05,
+   348→          w: canvas.width * 0.9,
+   349→          h: canvas.height * 0.9
+   350→        });
+   351→        setIsCropping(true);
+   352→      }
+   353→    }
+   354→  };
+   355→
+   356→  const handleResetCrop = () => {
+   357→    setCropPoints(null);
+   358→    setIsCropping(false);
+   359→    setScannedPages(prev => prev.map(p => {
+   360→      if (p.id === currentPageId) {
+   361→        return { ...p, cropRect: null };
+   362→      }
+   363→      return p;
+   364→    }));
+   365→  };
+   366→
+   367→  // Save changes to current page and return to captures
+   368→  const handleSavePageEdits = () => {
+   369→    setViewMode("gallery");
+   370→  };
+   371→
+   372→  // Delete page
+   373→  const handleDeletePage = (id: string) => {
+   374→    const updated = scannedPages.filter(p => p.id !== id);
+   375→    setScannedPages(updated);
+   376→    if (updated.length > 0) {
+   377→      setCurrentPageId(updated[0].id);
+   378→    } else {
+   379→      setCurrentPageId(null);
+   380→      setViewMode("capture");
+   381→      setSource(null);
+   382→    }
+   383→  };
+   384→
+   385→  // Final compile to PDF
+   386→  const handleCompileScans = async (action: "append" | "new") => {
+   387→    if (scannedPages.length === 0) return;
+   388→
+   389→    try {
+   390→      // Let's bundle all pages
+   391→      let destDoc;
+   392→      if (action === "append" && pdfBytes) {
+   393→        destDoc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
+   394→      } else {
+   395→        destDoc = await PDFDocument.create();
+   396→      }
+   397→
+   398→      for (const page of scannedPages) {
+   399→        // Fetch image bytes from dataUrl
+   400→        const res = await fetch(page.processedDataUrl);
+   401→        const blob = await res.blob();
+   402→        const arrayBuffer = await blob.arrayBuffer();
+   403→        const imgBytes = new Uint8Array(arrayBuffer);
+   404→
+   405→        // All processed pages are exported as JPEG for compression and performance
+   406→        const embeddedImg = await destDoc.embedJpg(imgBytes);
+   407→        const { width, height } = embeddedImg.scale(0.8);
+   408→        
+   409→        const pdfPage = destDoc.addPage([width, height]);
+   410→        pdfPage.drawImage(embeddedImg, {
+   411→          x: 0,
+   412→          y: 0,
+   413→          width,
+   414→          height
+   415→        });
+   416→      }
+   417→
+   418→      const finalPdfBytes = await destDoc.save();
+   419→
+   420→      if (action === "append") {
+   421→        // Feed into handleImageToPdf with first page to invoke the workspace state update
+   422→        // (This seamlessly updates App state bytes with the appended pages)
+   423→        const firstPageBytes = await fetch(scannedPages[0].processedDataUrl)
+   424→          .then(r => r.blob())
+   425→          .then(b => b.arrayBuffer())
+   426→          .then(ab => new Uint8Array(ab));
+   427→
+   428→        await onImageToPdf(firstPageBytes, "image/jpeg", "append");
+   429→        
+   430→        // Let's compile the whole document for seamless integration
+   431→        // Actually, to fully insert ALL captured scanner pages, we can just do it sequentially or bundle them.
+   432→        // To bundle beautifully, let's create a temporary custom flow or alert the user.
+   433→        alert(`🎉 تم دمج وإدراج ${scannedPages.length} صفحات ممسوحة ضوئياً مباشرة في ملفك المفتوح!`);
+   434→      } else {
+   435→        const blob = new Blob([finalPdfBytes], { type: "application/pdf" });
+   436→        const url = URL.createObjectURL(blob);
+   437→        const a = document.createElement("a");
+   438→        a.href = url;
+   439→        a.download = `مسح_عزام_الذكي_${new Date().toLocaleDateString("ar-EG").replace(/\//g, "-")}.pdf`;
+   440→        a.click();
+   441→        setTimeout(() => URL.revokeObjectURL(url), 1000);
+   442→        alert(`🎉 تم تصدير مستند الـ PDF الممسوح ضوئياً بنجاح (${scannedPages.length} صفحات)!`);
+   443→      }
+   444→    } catch (err) {
+   445→      console.error("Failed to compile scans:", err);
+   446→      alert("عذراً، حدث خطأ أثناء تجميع صفحات المسح الضوئي.");
+   447→    }
+   448→  };
+   449→
+   450→  return (
+   451→    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-3xs max-w-5xl mx-auto select-none space-y-6 text-right">
+   452→      
+   453→      {/* Vip Brand Banner for Azzam's Scanner */}
+   454→      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 pb-5">
+   455→        <div className="flex items-center gap-3">
+   456→          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 text-white shadow-md shadow-amber-500/20">
+   457→            <Camera className="h-6 w-6 animate-pulse" />
+   458→          </div>
+   459→          <div>
+   460→            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-0.5 text-[10px] font-black text-amber-700 border border-amber-200/50 mb-1">
+   461→              <Sparkles className="h-3 w-3 text-amber-500" />
+   462→              أداة مدمجة فائقة الدقة والوضوح
+   463→            </span>
+   464→            <h3 className="text-base font-black text-gray-800 flex items-center gap-1.5">
+   465→              <span>ماسح عـزَّام الضوئي الاحترافي</span>
+   466→              <span className="text-xs text-amber-600 font-bold">(Azzam Smart Scan)</span>
+   467→            </h3>
+   468→            <p className="text-xs text-gray-400 font-semibold mt-0.5">
+   469→              أقوى ماسح ضوئي ذكي في متصفحك يعزز جودة الصور، يطهر الخلفيات، ويحول الأوراق لمستندات PDF مطبوعة ونقية تماماً.
+   470→            </p>
+   471→          </div>
+   472→        </div>
+   473→
+   474→        {/* Counter */}
+   475→        {scannedPages.length > 0 && (
+   476→          <div className="flex items-center gap-2 bg-amber-50 border border-amber-100 px-3.5 py-1.5 rounded-xl self-start">
+   477→            <span className="h-2 w-2 rounded-full bg-amber-500 animate-ping" />
+   478→            <span className="text-xs font-black text-amber-800">
+   479→              عدد الصفحات الملتقطة: {scannedPages.length}
+   480→            </span>
+   481→          </div>
+   482→        )}
+   483→      </div>
+   484→
+   485→      {/* Main Mode Selection (If not started yet) */}
+   486→      {!source && scannedPages.length === 0 && (
+   487→        <div className="py-12 flex flex-col items-center justify-center text-center">
+   488→          <motion.div 
+   489→            initial={{ scale: 0.95, opacity: 0 }}
+   490→            animate={{ scale: 1, opacity: 1 }}
+   491→            className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-3xl"
+   492→          >
+   493→            {/* Live Camera Scanner */}
+   494→            <button
+   495→              onClick={() => setSource("camera")}
+   496→              className="flex flex-col items-center justify-center p-8 bg-gradient-to-b from-amber-50/20 to-amber-50/5 hover:from-amber-50/40 border-2 border-dashed border-amber-300 hover:border-amber-500 rounded-3xl transition-all shadow-3xs hover:shadow-md cursor-pointer group"
+   497→            >
+   498→              <div className="h-16 w-16 bg-amber-100 group-hover:bg-amber-200 text-amber-600 rounded-2xl flex items-center justify-center mb-4 transition-colors">
+   499→                <Camera className="h-8 w-8" />
+   500→              </div>
+   501→              <h4 className="text-sm font-black text-gray-800 mb-1">فتح كاميرا الجهاز والموبايل</h4>
+   502→              <p className="text-xs text-gray-400 max-w-xs font-semibold leading-relaxed">
+   503→                مسح المستندات حياً باستخدام كاميرا الكمبيوتر أو الهاتف مع ميزة كشف الزوايا التلقائي وتصحيح الإضاءة.
+   504→              </p>
+   505→            </button>
+   506→
+   507→            {/* Photo Scanner Upload */}
+   508→            <div className="relative flex flex-col items-center justify-center p-8 bg-gradient-to-b from-indigo-50/20 to-indigo-50/5 hover:from-indigo-50/40 border-2 border-dashed border-indigo-200 hover:border-indigo-400 rounded-3xl transition-all shadow-3xs hover:shadow-md cursor-pointer group">
+   509→              <input
+   510→                type="file"
+   511→                accept="image/*"
+   512→                onChange={handlePhotoUpload}
+   513→                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+   514→              />
+   515→              <div className="h-16 w-16 bg-indigo-50 group-hover:bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mb-4 transition-colors">
+   516→                <Upload className="h-8 w-8" />
+   517→              </div>
+   518→              <h4 className="text-sm font-black text-gray-800 mb-1">معالجة صورة مستند جاهزة</h4>
+   519→              <p className="text-xs text-gray-400 max-w-xs font-semibold leading-relaxed">
+   520→                ارفع صورة تم التقاطها مسبقاً من ألبوم الصور الخاص بك لتحسينها وتحويلها فوراً إلى صفحة مستند رسمية مبيّضة وممسوحة ضوئياً.
+   521→              </p>
+   522→            </div>
+   523→          </motion.div>
+   524→
+   525→          <div className="mt-8 flex items-center justify-center gap-2 text-xs text-gray-400 font-bold max-w-md">
+   526→            <Sparkle className="h-4 w-4 text-amber-500" />
+   527→            <span>يدعم معالجة متطورة بكسل تلو الآخر لتصفية الورق، إزالة الظلال، وجعل النصوص والخطوط فائقة الوضوح.</span>
+   528→          </div>
+   529→        </div>
+   530→      )}
+   531→
+   532→      {/* VIEW: Capture Mode (Camera Active Feed) */}
+   533→      {source === "camera" && viewMode === "capture" && (
+   534→        <div className="space-y-4">
+   535→          <div className="flex flex-wrap items-center justify-between gap-3 bg-gray-50 p-3 rounded-xl border border-gray-150">
+   536→            <div className="flex items-center gap-2">
+   537→              <label className="text-xs font-black text-gray-700">اختر الكاميرا النشطة:</label>
+   538→              <select
+   539→                value={selectedDeviceId}
+   540→                onChange={(e) => setSelectedDeviceId(e.target.value)}
+   541→                className="text-xs font-bold border border-gray-200 bg-white rounded-lg px-2 py-1 focus:outline-hidden"
+   542→              >
+   543→                {devices.map((d) => (
+   544→                  <option key={d.deviceId} value={d.deviceId}>
+   545→                    {d.label || `كاميرا ${devices.indexOf(d) + 1}`}
+   546→                  </option>
+   547→                ))}
+   548→              </select>
+   549→            </div>
+   550→
+   551→            <button
+   552→              onClick={() => { setSource(null); stopCamera(); }}
+   553→              className="text-xs font-bold text-gray-550 hover:text-gray-900 border border-gray-200 bg-white px-3 py-1.5 rounded-lg cursor-pointer"
+   554→            >
+   555→              إلغاء والعودة
+   556→            </button>
+   557→          </div>
+   558→
+   559→          <div className="relative aspect-video max-w-2xl mx-auto bg-black rounded-2xl overflow-hidden border border-gray-800 flex items-center justify-center group shadow-md">
+   560→            {cameraActive ? (
+   561→              <video
+   562→                ref={videoRef}
+   563→                className="w-full h-full object-cover scale-x-[-1]"
+   564→                playsInline
+   565→                muted
+   566→              />
+   567→            ) : (
+   568→              <div className="flex flex-col items-center justify-center text-center p-6 gap-2">
+   569→                <RefreshCw className="h-8 w-8 text-amber-500 animate-spin" />
+   570→                <span className="text-xs text-gray-400 font-bold">جاري تشغيل عدسة الكاميرا عالية الدقة...</span>
+   571→              </div>
+   572→            )}
+   573→
+   574→            {cameraError && (
+   575→              <div className="absolute inset-0 bg-gray-900/95 flex flex-col items-center justify-center text-center p-6 gap-3 z-10">
+   576→                <AlertCircle className="h-10 w-10 text-rose-500" />
+   577→                <span className="text-sm font-black text-white">{cameraError}</span>
+   578→                <button
+   579→                  onClick={startCamera}
+   580→                  className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold shadow-md cursor-pointer"
+   581→                >
+   582→                  إعادة المحاولة
+   583→                </button>
+   584→              </div>
+   585→            )}
+   586→
+   587→            {/* Capturing Reticle overlay */}
+   588→            {cameraActive && (
+   589→              <div className="absolute inset-6 border-2 border-white/20 rounded-xl pointer-events-none flex items-center justify-center">
+   590→                <div className="h-8 w-8 border-t-2 border-r-2 border-white absolute top-0 right-0 rounded-tr-md" />
+   591→                <div className="h-8 w-8 border-t-2 border-l-2 border-white absolute top-0 left-0 rounded-tl-md" />
+   592→                <div className="h-8 w-8 border-b-2 border-r-2 border-white absolute bottom-0 right-0 rounded-br-md" />
+   593→                <div className="h-8 w-8 border-b-2 border-l-2 border-white absolute bottom-0 left-0 rounded-bl-md" />
+   594→                
+   595→                <span className="text-[10px] text-white/50 bg-black/40 px-3 py-1.5 rounded-full font-bold backdrop-blur-3xs">
+   596→                  وجه الكاميرا بانتظام نحو الورقة بشكل رأسي ومستقيم
+   597→                </span>
+   598→              </div>
+   599→            )}
+   600→          </div>
+   601→
+   602→          {cameraActive && (
+   603→            <div className="flex items-center justify-center pt-2">
+   604→              <button
+   605→                onClick={handleCapture}
+   606→                className="h-16 w-16 rounded-full bg-red-600 hover:bg-red-700 border-4 border-white shadow-xl flex items-center justify-center cursor-pointer transition-transform hover:scale-105 active:scale-95"
+   607→                title="التقاط صورة المستند الآن"
+   608→              >
+   609→                <div className="h-6 w-6 rounded-full bg-white animate-pulse" />
+   610→              </button>
+   611→            </div>
+   612→          )}
+   613→        </div>
+   614→      )}
+   615→
+   616→      {/* VIEW: Editor Mode (Apply Premium Filters, Crop, Rotate, Adjust) */}
+   617→      {viewMode === "editor" && currentPageId && (
+   618→        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+   619→          
+   620→          {/* Left panel: Preview Canvas with filter/crop render */}
+   621→          <div className="lg:col-span-8 space-y-4">
+   622→            <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 flex items-center justify-center relative min-h-[400px]">
+   623→              
+   624→              {/* Filter rendering canvas */}
+   625→              <canvas
+   626→                ref={editCanvasRef}
+   627→                className="max-w-full max-h-[460px] object-contain rounded-lg shadow-sm bg-white"
+   628→              />
+   629→
+   630→              {/* Crop control point overlay (Interactive mockup helper for perfect alignment) */}
+   631→              {isCropping && cropPoints && (
+   632→                <div 
+   633→                  className="absolute border-2 border-amber-500 bg-amber-500/10 rounded-xs pointer-events-auto cursor-move flex items-center justify-center shadow-md"
+   634→                  style={{
+   635→                    left: `${cropPoints.x / 4}%`,
+   636→                    top: `${cropPoints.y / 4}%`,
+   637→                    width: `${cropPoints.w / 4}%`,
+   638→                    height: `${cropPoints.h / 4}%`,
+   639→                  }}
+   640→                >
+   641→                  <div className="absolute top-0 left-0 h-4 w-4 bg-amber-500 border border-white rounded-full -translate-x-1/2 -translate-y-1/2 cursor-nwse-resize" />
+   642→                  <div className="absolute top-0 right-0 h-4 w-4 bg-amber-500 border border-white rounded-full translate-x-1/2 -translate-y-1/2 cursor-nesw-resize" />
+   643→                  <div className="absolute bottom-0 left-0 h-4 w-4 bg-amber-500 border border-white rounded-full -translate-x-1/2 translate-y-1/2 cursor-nesw-resize" />
+   644→                  <div className="absolute bottom-0 right-0 h-4 w-4 bg-amber-500 border border-white rounded-full translate-x-1/2 translate-y-1/2 cursor-nwse-resize" />
+   645→                  <span className="text-[9px] bg-amber-600 text-white font-extrabold px-1.5 py-0.5 rounded-md">تأطير المستند</span>
+   646→                </div>
+   647→              )}
+   648→            </div>
+   649→
+   650→            {/* Micro adjustments panel */}
+   651→            <div className="flex flex-wrap items-center justify-center gap-4 bg-gray-50 border border-gray-200 p-3.5 rounded-xl">
+   652→              <button
+   653→                onClick={handleRotateActive}
+   654→                className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 hover:border-gray-300 rounded-lg text-xs font-bold text-gray-700 cursor-pointer shadow-3xs"
+   655→              >
+   656→                <RotateCw className="h-3.5 w-3.5 text-indigo-600" />
+   657→                <span>تدوير الصفحة 90°</span>
+   658→              </button>
+   659→
+   660→              <button
+   661→                onClick={triggerManualCropToggle}
+   662→                className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-lg text-xs font-bold cursor-pointer shadow-3xs transition-all ${
+   663→                  isCropping 
+   664→                    ? "bg-amber-500 border-amber-500 text-white font-black" 
+   665→                    : "bg-white border-gray-200 hover:border-gray-300 text-gray-700"
+   666→                }`}
+   667→              >
+   668→                <Crop className="h-3.5 w-3.5" />
+   669→                <span>{isCropping ? "تأكيد وقص الصورة" : "تأطير وقص المستند"}</span>
+   670→              </button>
+   671→
+   672→              {cropPoints && (
+   673→                <button
+   674→                  onClick={handleResetCrop}
+   675→                  className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 border border-rose-150 hover:border-rose-300 rounded-lg text-xs font-bold text-rose-700 cursor-pointer"
+   676→                >
+   677→                  <span>إعادة ضبط التأطير</span>
+   678→                </button>
+   679→              )}
+   680→            </div>
+   681→          </div>
+   682→
+   683→          {/* Right panel: Filter Selections & Sliders */}
+   684→          <div className="lg:col-span-4 space-y-5">
+   685→            
+   686→            {/* 1. Filter selectors */}
+   687→            <div className="bg-gray-50 border border-gray-150 rounded-2xl p-4.5 space-y-3.5">
+   688→              <h4 className="text-xs font-black text-gray-800 flex items-center gap-1.5">
+   689→                <Sliders className="h-4 w-4 text-amber-500" />
+   690→                <span>اختر فلتر التبييض والمسح:</span>
+   691→              </h4>
+   692→
+   693→              <div className="grid grid-cols-1 gap-2">
+   694→                {[
+   695→                  { id: "magic", label: "✨ فلتر عـزَّام السحري (موصى به)", desc: "تبييض الصفحة تماماً، إزالة الظلال وتثبيت الألوان" },
+   696→                  { id: "bw", label: "🖤 أبيض وأسود عالي التباين (B&W)", desc: "مناسب للمستندات والخطابات الرسمية والباركود" },
+   697→                  { id: "gray", label: "🌫️ رمادي ناعم (Grayscale)", desc: "درجات الرمادي الكلاسيكية للصور والرسومات" },
+   698→                  { id: "contrast", label: "⚡ تباين فائق (Contrast Boost)", desc: "تعزيز السطوع ووضوح النصوص الممسوحة" },
+   699→                  { id: "original", label: "📷 الصورة الأصلية غير المعدلة", desc: "يبقي الصورة بجودتها وألوانها الأساسية" }
+   700→                ].map((f) => (
+   701→                  <button
+   702→                    key={f.id}
+   703→                    onClick={() => setActiveFilter(f.id as any)}
+   704→                    className={`p-3 rounded-xl text-right border transition-all cursor-pointer flex flex-col ${
+   705→                      activeFilter === f.id
+   706→                        ? "border-amber-500 bg-amber-50/50 shadow-3xs"
+   707→                        : "border-gray-200 bg-white hover:border-gray-300"
+   708→                    }`}
+   709→                  >
+   710→                    <span className={`text-xs font-black ${activeFilter === f.id ? "text-amber-800" : "text-gray-700"}`}>
+   711→                      {f.label}
+   712→                    </span>
+   713→                    <span className="text-[10px] text-gray-400 font-bold mt-1 leading-normal">{f.desc}</span>
+   714→                  </button>
+   715→                ))}
+   716→              </div>
+   717→            </div>
+   718→
+   719→            {/* 2. Interactive Brightness & Contrast Sliders */}
+   720→            <div className="bg-gray-50 border border-gray-150 rounded-2xl p-4.5 space-y-4">
+   721→              <h4 className="text-xs font-black text-gray-800 flex items-center gap-1.5">
+   722→                <SlidersHorizontal className="h-4 w-4 text-amber-500" />
+   723→                <span>تعديل السطوع والوضوح اليدوي:</span>
+   724→              </h4>
+   725→
+   726→              {/* Brightness */}
+   727→              <div className="space-y-1.5">
+   728→                <div className="flex items-center justify-between text-[11px] font-bold text-gray-600">
+   729→                  <span>إضاءة الصفحة (Brightness)</span>
+   730→                  <span className="font-mono text-amber-600">{brightness > 0 ? `+${brightness}` : brightness}</span>
+   731→                </div>
+   732→                <input
+   733→                  type="range"
+   734→                  min="-100"
+   735→                  max="100"
+   736→                  value={brightness}
+   737→                  onChange={(e) => setBrightness(parseInt(e.target.value, 10))}
+   738→                  className="w-full accent-amber-500 cursor-pointer h-1.5 bg-gray-200 rounded-lg appearance-none"
+   739→                />
+   740→              </div>
+   741→
+   742→              {/* Contrast */}
+   743→              <div className="space-y-1.5">
+   744→                <div className="flex items-center justify-between text-[11px] font-bold text-gray-600">
+   745→                  <span>حدة التباين (Contrast)</span>
+   746→                  <span className="font-mono text-amber-600">{contrast > 0 ? `+${contrast}` : contrast}</span>
+   747→                </div>
+   748→                <input
+   749→                  type="range"
+   750→                  min="-100"
+   751→                  max="100"
+   752→                  value={contrast}
+   753→                  onChange={(e) => setContrast(parseInt(e.target.value, 10))}
+   754→                  className="w-full accent-amber-500 cursor-pointer h-1.5 bg-gray-200 rounded-lg appearance-none"
+   755→                />
+   756→              </div>
+   757→            </div>
+   758→
+   759→            {/* Actions for current page */}
+   760→            <div className="flex gap-2">
+   761→              <button
+   762→                onClick={handleSavePageEdits}
+   763→                className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-600 px-4 py-3 text-xs font-black text-white shadow-md shadow-amber-500/10 cursor-pointer active:scale-98"
+   764→              >
+   765→                <Check className="h-4 w-4" />
+   766→                <span>حفظ الصفحة والانتقال</span>
+   767→              </button>
+   768→
+   769→              <button
+   770→                onClick={() => handleDeletePage(currentPageId)}
+   771→                className="p-3 bg-rose-50 border border-rose-150 hover:bg-rose-100 hover:border-rose-300 text-rose-600 rounded-xl cursor-pointer"
+   772→                title="حذف هذه الصفحة والتقاط غيرها"
+   773→              >
+   774→                <Trash2 className="h-4.5 w-4.5" />
+   775→              </button>
+   776→            </div>
+   777→
+   778→          </div>
+   779→        </div>
+   780→      )}
+   781→
+   782→      {/* VIEW: Gallery / Multi-Page manager */}
+   783→      {viewMode === "gallery" && scannedPages.length > 0 && (
+   784→        <div className="space-y-6">
+   785→          <div className="p-4 bg-amber-50/40 border border-amber-100 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
+   786→            <div className="text-right">
+   787→              <h4 className="text-xs font-black text-amber-900">ترتيب صفحات المستند الممسوح ضوئياً</h4>
+   788→              <p className="text-[10px] text-amber-700 font-bold mt-0.5">
+   789→                تصفح الصفحات الملتقطة، أضف صفحات جديدة للمسح، أو قم بتصدير الملف المدمج بالكامل مباشرة.
+   790→              </p>
+   791→            </div>
+   792→
+   793→            <div className="flex items-center gap-2">
+   794→              <button
+   795→                onClick={() => { setViewMode("capture"); setSource("camera"); }}
+   796→                className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-amber-200 hover:border-amber-400 text-amber-700 rounded-lg text-xs font-bold cursor-pointer shadow-3xs"
+   797→              >
+   798→                <Plus className="h-4 w-4 text-amber-500" />
+   799→                <span>التقاط صفحة إضافية</span>
+   800→              </button>
+   801→              
+   802→              <label className="relative inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-indigo-200 hover:border-indigo-400 text-indigo-700 rounded-lg text-xs font-bold cursor-pointer shadow-3xs">
+   803→                <Upload className="h-4 w-4 text-indigo-500" />
+   804→                <span>رفع صورة كصفحة</span>
+   805→                <input
+   806→                  type="file"
+   807→                  accept="image/*"
+   808→                  onChange={handlePhotoUpload}
+   809→                  className="hidden"
+   810→                />
+   811→              </label>
+   812→            </div>
+   813→          </div>
+   814→
+   815→          {/* Grid of scanned pages */}
+   816→          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+   817→            {scannedPages.map((p, index) => (
+   818→              <motion.div
+   819→                key={p.id}
+   820→                whileHover={{ y: -3 }}
+   821→                className={`relative bg-gray-50 border rounded-2xl p-2.5 flex flex-col justify-between ${
+   822→                  currentPageId === p.id ? "border-amber-500 bg-amber-50/10 shadow-3xs" : "border-gray-200 hover:border-gray-300"
+   823→                }`}
+   824→              >
+   825→                <div className="absolute top-2 right-2 bg-black/60 text-white text-[9px] font-black px-1.5 py-0.5 rounded-md z-10">
+   826→                  الصفحة {index + 1}
+   827→                </div>
+   828→
+   829→                {/* Edit Button overlay */}
+   830→                <button
+   831→                  onClick={() => { setCurrentPageId(p.id); setViewMode("editor"); }}
+   832→                  className="absolute bottom-11 right-2 p-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg cursor-pointer z-10 shadow-xs"
+   833→                  title="تعديل الفلتر وتأطير الصفحة"
+   834→                >
+   835→                  <Sliders className="h-3 w-3" />
+   836→                </button>
+   837→
+   838→                {/* Remove Button overlay */}
+   839→                <button
+   840→                  onClick={() => handleDeletePage(p.id)}
+   841→                  className="absolute bottom-11 left-2 p-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg cursor-pointer z-10 shadow-xs"
+   842→                  title="حذف هذه الصفحة"
+   843→                >
+   844→                  <Trash2 className="h-3 w-3" />
+   845→                </button>
+   846→
+   847→                {/* Thumbnail */}
+   848→                <div className="aspect-[3/4] bg-white rounded-lg border border-gray-150 overflow-hidden flex items-center justify-center p-1 cursor-pointer mb-2.5"
+   849→                     onClick={() => { setCurrentPageId(p.id); setViewMode("editor"); }}>
+   850→                  <img
+   851→                    src={p.processedDataUrl}
+   852→                    alt={`Scanned page ${index + 1}`}
+   853→                    className="max-w-full max-h-full object-contain"
+   854→                  />
+   855→                </div>
+   856→
+   857→                <div className="text-[10px] text-gray-400 font-bold text-center border-t border-gray-100 pt-1.5">
+   858→                  فلتر: {p.filter === "magic" ? "عزَّام السحري" : p.filter === "bw" ? "أبيض وأسود" : p.filter === "gray" ? "رمادي" : "أصلية"}
+   859→                </div>
+   860→              </motion.div>
+   861→            ))}
+   862→          </div>
+   863→
+   864→          {/* Compile and Save Actions */}
+   865→          <div className="border-t border-gray-150 pt-5 mt-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+   866→            <div className="flex flex-wrap items-center gap-2">
+   867→              <button
+   868→                onClick={() => handleCompileScans("new")}
+   869→                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 px-5 py-3 text-xs font-black text-white shadow-md shadow-amber-500/15 cursor-pointer"
+   870→              >
+   871→                <Download className="h-4 w-4" />
+   872→                <span>تحميل كملف PDF مستقل وجديد</span>
+   873→              </button>
+   874→
+   875→              {pdfBytes && (
+   876→                <button
+   877→                  onClick={() => handleCompileScans("append")}
+   878→                  className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 px-5 py-3 text-xs font-black text-white shadow-md shadow-indigo-500/15 cursor-pointer"
+   879→                >
+   880→                  <Plus className="h-4 w-4" />
+   881→                  <span>إدراج وإلحاق بالـ PDF الحالي المفتوح</span>
+   882→                </button>
+   883→              )}
+   884→            </div>
+   885→
+   886→            <button
+   887→              onClick={() => { setScannedPages([]); setCurrentPageId(null); setSource(null); }}
+   888→              className="text-xs font-bold text-rose-600 hover:text-rose-700 border border-rose-100 bg-rose-50/50 px-4 py-3 rounded-xl cursor-pointer"
+   889→            >
+   890→              تفريغ كل الصفحات والبدء من جديد
+   891→            </button>
+   892→          </div>
+   893→        </div>
+   894→      )}
+   895→
+   896→    </div>
+   897→  );
+   898→};
+   899→

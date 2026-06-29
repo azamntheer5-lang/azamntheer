@@ -1,0 +1,142 @@
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Tajawal:wght@400;500;700;800;900&family=Amiri:wght@400;700&family=Almarai:wght@300;400;700;800&family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Cairo", "Tajawal", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --color-google-blue: #3b82f6;
+  --color-google-red: #ef4444;
+  --color-google-yellow: #f59e0b;
+  --color-google-green: #10b981;
+  --color-google-dark: #090d16;
+}
+
+/* Base style enhancements */
+body {
+  font-family: var(--font-sans);
+  background-color: #040711;
+  color: #f3f4f6;
+  overflow-x: hidden;
+}
+
+/* Custom scrollbars for dark mode */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Safe Area Utility */
+.safe-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
+}
+
+/* Glassmorphism Styles */
+.glass-panel {
+  background: rgba(13, 17, 30, 0.45);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.glass-panel-hover:hover {
+  background: rgba(13, 17, 30, 0.6);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}
+
+/* Glowing card borders */
+.glow-blue {
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.25);
+}
+.glow-purple {
+  box-shadow: 0 0 20px rgba(168, 85, 247, 0.15);
+  border-color: rgba(168, 85, 247, 0.25);
+}
+.glow-green {
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.25);
+}
+.glow-orange {
+  box-shadow: 0 0 20px rgba(249, 115, 22, 0.15);
+  border-color: rgba(249, 115, 22, 0.25);
+}
+
+/* Cosmic Ambient Glows */
+@keyframes pulseGlow {
+  0%, 100% {
+    transform: scale(1) translate(0px, 0px);
+    opacity: 0.4;
+  }
+  33% {
+    transform: scale(1.15) translate(30px, -20px);
+    opacity: 0.6;
+  }
+  66% {
+    transform: scale(0.9) translate(-15px, 40px);
+    opacity: 0.5;
+  }
+}
+
+.ambient-glow-1 {
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.25) 0%, rgba(13, 148, 136, 0) 70%);
+  animation: pulseGlow 12s infinite alternate ease-in-out;
+}
+
+.ambient-glow-2 {
+  background: radial-gradient(circle, rgba(147, 51, 234, 0.25) 0%, rgba(219, 39, 119, 0) 70%);
+  animation: pulseGlow 15s infinite alternate-reverse ease-in-out;
+}
+
+.ambient-glow-3 {
+  background: radial-gradient(circle, rgba(236, 72, 153, 0.15) 0%, rgba(99, 102, 241, 0) 70%);
+  animation: pulseGlow 9s infinite alternate ease-in-out;
+}
+
+/* Custom font styles matching Arabic titles */
+.glow-text-blue {
+  text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+}
+.glow-text-purple {
+  text-shadow: 0 0 10px rgba(168, 85, 247, 0.5);
+}
+
+/* Shimmer animation */
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+.shimmer-bg {
+  position: relative;
+  overflow: hidden;
+}
+.shimmer-bg::after {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.04) 20%,
+    rgba(255, 255, 255, 0.08) 60%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: shimmer 2.5s infinite;
+  content: '';
+}

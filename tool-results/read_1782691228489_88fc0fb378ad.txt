@@ -1,0 +1,602 @@
+   600→    try {
+   601→      const result = await CloudApiService.processPDFAction(
+   602→        pdfBytes,
+   603→        "page-numbers",
+   604→        { format: "arabic", fontColor: color, size, start, pos },
+   605→        (p) => {
+   606→          setNetworkProgress({ ...p, isActive: true });
+   607→        }
+   608→      );
+   609→      setPdfBytes(result.bytes);
+   610→      setFileSize(result.bytes.byteLength);
+   611→      showToast("🚀 تم ترقيم جميع صفحات المستند سحابياً بنجاح!", "success");
+   612→    } catch (err: any) {
+   613→      showToast("❌ خطأ بالشبكة السحابية: " + err.message, "error");
+   614→    } finally {
+   615→      setIsProcessing(false);
+   616→      setNetworkProgress(prev => ({ ...prev, isActive: false }));
+   617→    }
+   618→  };
+   619→
+   620→  // 10. MERGE WITH SECOND PDF
+   621→  const handleMergePdf = async (secondFileBytes: Uint8Array, order: "before" | "after") => {
+   622→    if (!pdfBytes) return;
+   623→    setIsProcessing(true);
+   624→    setNetworkProgress({ uploadProgress: 0, downloadProgress: 0, speedKbps: 0, statusText: "جاري دمج الملفات سحابياً...", isActive: true });
+   625→    try {
+   626→      let binary = "";
+   627→      const len = secondFileBytes.byteLength;
+   628→      for (let i = 0; i < len; i++) {
+   629→        binary += String.fromCharCode(secondFileBytes[i]);
+   630→      }
+   631→      const otherPdfBase64 = btoa(binary);
+   632→
+   633→      const result = await CloudApiService.processPDFAction(
+   634→        pdfBytes,
+   635→        "merge",
+   636→        { otherPdfBase64, order },
+   637→        (p) => {
+   638→          setNetworkProgress({ ...p, isActive: true });
+   639→        }
+   640→      );
+   641→      setPdfBytes(result.bytes);
+   642→      setFileSize(result.bytes.byteLength);
+   643→      setTotalPages(result.totalPages);
+   644→      setExtractedText(result.extractedText);
+   645→      showToast("🚀 تم دمج الملف المرفق وحفظه سحابياً بنجاح!", "success");
+   646→    } catch (err: any) {
+   647→      showToast("❌ خطأ بالشبكة السحابية: " + err.message, "error");
+   648→    } finally {
+   649→      setIsProcessing(false);
+   650→      setNetworkProgress(prev => ({ ...prev, isActive: false }));
+   651→    }
+   652→  };
+   653→
+   654→  // 11. IMAGE TO PDF
+   655→  const handleImageToPdf = async (imageBytes: Uint8Array, mimeType: string, action: "append" | "new") => {
+   656→    setIsProcessing(true);
+   657→    try {
+   658→      let doc;
+   659→      if (action === "append" && pdfBytes) {
+   660→        doc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
+   661→      } else {
+   662→        doc = await PDFDocument.create();
+   663→      }
+   664→
+   665→      let img;
+   666→      if (mimeType === "image/png") {
+   667→        img = await doc.embedPng(imageBytes);
+   668→      } else {
+   669→        img = await doc.embedJpg(imageBytes);
+   670→      }
+   671→
+   672→      const { width: imgW, height: imgH } = img.scale(0.8);
+   673→      const page = doc.addPage([imgW, imgH]);
+   674→      page.drawImage(img, {
+   675→        x: 0,
+   676→        y: 0,
+   677→        width: imgW,
+   678→        height: imgH,
+   679→      });
+   680→
+   681→      const resultBytes = await doc.save();
+   682→
+   683→      if (action === "append" && pdfBytes) {
+   684→        setPdfBytes(resultBytes);
+   685→        setFileSize(resultBytes.byteLength);
+   686→        setTotalPages(doc.getPageCount());
+   687→        const txt = await extractFullText(resultBytes);
+   688→        setExtractedText(txt);
+   689→        alert("✅ تم إدراج الصورة كصفحة مضافة لملفك بنجاح!");
+   690→      } else {
+   691→        // Automatically load the newly generated PDF into active workspace
+   692→        setPdfBytes(resultBytes);
+   693→        setFileName(`مسح_عزام_الذكي_${new Date().toLocaleDateString("ar-EG").replace(/\//g, "-")}.pdf`);
+   694→        setFileSize(resultBytes.byteLength);
+   695→        setOriginalSize(resultBytes.byteLength);
+   696→        setTotalPages(doc.getPageCount());
+   697→        setIsLocked(false);
+   698→        const txt = await extractFullText(resultBytes);
+   699→        setExtractedText(txt);
+   700→        setShowScannerStandalone(false);
+   701→        
+   702→        // Also download a copy for convenience
+   703→        const blob = new Blob([resultBytes], { type: "application/pdf" });
+   704→        const url = URL.createObjectURL(blob);
+   705→        const a = document.createElement("a");
+   706→        a.href = url;
+   707→        a.download = `مسح_عزام_الذكي_${new Date().toLocaleDateString("ar-EG").replace(/\//g, "-")}.pdf`;
+   708→        a.click();
+   709→        setTimeout(() => URL.revokeObjectURL(url), 1000);
+   710→        
+   711→        alert("✅ تم تحويل المستند لملف PDF وتنزيله، وتم تحميله تلقائياً في مساحة عمل عَـزَّام لتتمكن من تعديله وتوقيعه والدردشة معه بالذكاء الاصطناعي!");
+   712→      }
+   713→    } catch (err: any) {
+   714→      alert("❌ فشلت معالجة الصورة: " + err.message);
+   715→    } finally {
+   716→      setIsProcessing(false);
+   717→    }
+   718→  };
+   719→
+   720→  // 12. FILE COMPRESSION
+   721→  const handleCompress = async (level: "light" | "medium" | "aggressive") => {
+   722→    if (!pdfBytes) return;
+   723→    setIsProcessing(true);
+   724→    try {
+   725→      const doc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
+   726→      let saveOpts: any = { useObjectStreams: true };
+   727→
+   728→      if (level === "medium" || level === "aggressive") {
+   729→        doc.setTitle("");
+   730→        doc.setKeywords([]);
+   731→      }
+   732→      if (level === "aggressive") {
+   733→        try {
+   734→          const form = doc.getForm();
+   735→          form.flatten();
+   736→        } catch (e) {}
+   737→      }
+   738→
+   739→      const compressed = await doc.save(saveOpts);
+   740→      setCompressedSize(compressed.byteLength);
+   741→      setPdfBytes(compressed);
+   742→      setFileSize(compressed.byteLength);
+   743→    } catch (err: any) {
+   744→      alert("❌ فشل ضغط الملف: " + err.message);
+   745→    } finally {
+   746→      setIsProcessing(false);
+   747→    }
+   748→  };
+   749→
+   750→  // 13. METADATA SAVER
+   751→  const handleApplyMetadata = async (meta: { title: string; author: string; subject: string; keywords: string }) => {
+   752→    if (!pdfBytes) return;
+   753→    setIsProcessing(true);
+   754→    try {
+   755→      const doc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
+   756→      doc.setTitle(meta.title);
+   757→      doc.setAuthor(meta.author);
+   758→      doc.setSubject(meta.subject);
+   759→      doc.setKeywords(meta.keywords.split(",").map(k => k.trim()));
+   760→
+   761→      const newBytes = await doc.save();
+   762→      setPdfBytes(newBytes);
+   763→      setFileSize(newBytes.byteLength);
+   764→      setMetadata(meta);
+   765→    } catch (err: any) {
+   766→      alert("❌ فشل تعديل خصائص الملف: " + err.message);
+   767→    } finally {
+   768→      setIsProcessing(false);
+   769→    }
+   770→  };
+   771→
+   772→  // 14. PASSWORD ENCRYPT
+   773→  const handleApplyPassword = async (pass: string) => {
+   774→    if (!pdfBytes) return;
+   775→    setIsProcessing(true);
+   776→    try {
+   777→      const doc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
+   778→      doc.setTitle("🔐 محمي بكلمة مرور - Google PDF Tools");
+   779→      doc.setProducer(`PROTECTED::${btoa(pass)}::AZZAM`);
+   780→
+   781→      const newBytes = await doc.save();
+   782→      setPdfBytes(newBytes);
+   783→      setIsLocked(true);
+   784→    } catch (err: any) {
+   785→      alert("❌ فشل تشفير الملف: " + err.message);
+   786→    } finally {
+   787→      setIsProcessing(false);
+   788→    }
+   789→  };
+   790→
+   791→  // 15. PASSWORD REMOVE
+   792→  const handleRemovePassword = async () => {
+   793→    if (!pdfBytes) return;
+   794→    setIsProcessing(true);
+   795→    try {
+   796→      const doc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
+   797→      doc.setTitle("");
+   798→      doc.setProducer("Google PDF Tools - Azzam");
+   799→
+   800→      const newBytes = await doc.save();
+   801→      setPdfBytes(newBytes);
+   802→      setIsLocked(false);
+   803→    } catch (err: any) {
+   804→      alert("❌ فشل إلغاء تشفير الملف: " + err.message);
+   805→    } finally {
+   806→      setIsProcessing(false);
+   807→    }
+   808→  };
+   809→
+   810→  // 16. SEARCH & REPLACE IN TEXT
+   811→  const handleApplySearchReplace = async (search: string, replace: string) => {
+   812→    if (!pdfBytes || !totalPages) return;
+   813→    setIsProcessing(true);
+   814→    try {
+   815→      const doc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
+   816→      const pages = doc.getPages();
+   817→
+   818→      const loadingTask = pdfjsLib.getDocument({ data: pdfBytes });
+   819→      const pdf = await loadingTask.promise;
+   820→      let totalHits = 0;
+   821→
+   822→      for (let pi = 0; pi < totalPages; pi++) {
+   823→        const page = pages[pi];
+   824→        const pjsPage = await pdf.getPage(pi + 1);
+   825→        const textContent = await pjsPage.getTextContent();
+   826→
+   827→        for (const item of textContent.items as any[]) {
+   828→          const itemText = item.str;
+   829→          const regex = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi");
+   830→          
+   831→          if (regex.test(itemText)) {
+   832→            const x = item.transform[4];
+   833→            const y = item.transform[5];
+   834→            const detectedSize = Math.abs(item.transform[3]) || 12;
+   835→
+   836→            const boxW = Math.max(item.width || (search.length * (detectedSize * 0.55)), 25);
+   837→            const boxH = detectedSize + 4;
+   838→
+   839→            // Draw clean background to mask the text
+   840→            page.drawRectangle({
+   841→              x: x,
+   842→              y: y - 2,
+   843→              width: boxW,
+   844→              height: boxH,
+   845→              color: rgb(1, 1, 1), // White solid box
+   846→            });
+   847→
+   848→            // Draw replacement text safely using Canvas-PNG engine
+   849→            if (replace) {
+   850→              const textPngUrl = drawTextAsPng(replace, detectedSize * 0.9, "#1a73e8", false, "");
+   851→              if (textPngUrl) {
+   852→                const binStr = atob(textPngUrl.split(",")[1]);
+   853→                const textBytes = new Uint8Array(binStr.length);
+   854→                for (let i = 0; i < binStr.length; i++) textBytes[i] = binStr.charCodeAt(i);
+   855→
+   856→                const textImg = await doc.embedPng(textBytes);
+   857→                const scale = 0.4;
+   858→                const textW = textImg.width * scale;
+   859→                const textH = textImg.height * scale;
+   860→
+   861→                page.drawImage(textImg, {
+   862→                  x: x + (boxW - textW) / 2,
+   863→                  y: y + (boxH - textH) / 2 - 1,
+   864→                  width: textW,
+   865→                  height: textH,
+   866→                });
+   867→              }
+   868→            }
+   869→            totalHits++;
+   870→          }
+   871→        }
+   872→      }
+   873→
+   874→      if (totalHits === 0) {
+   875→        alert("⚠️ لم يتم العثور على أي مطابقة للكلمة للبحث عنها واستبدالها.");
+   876→      } else {
+   877→        const newBytes = await doc.save();
+   878→        setPdfBytes(newBytes);
+   879→        setFileSize(newBytes.byteLength);
+   880→        alert(`✅ تم استبدال الكلمة بنجاح في ${totalHits} مواضع بالمستند!`);
+   881→      }
+   882→    } catch (err: any) {
+   883→      alert("❌ فشل استبدال النص: " + err.message);
+   884→    } finally {
+   885→      setIsProcessing(false);
+   886→    }
+   887→  };
+   888→
+   889→  // DOWNLOAD FINAL PROCESSED FILE
+   890→  const handleDownload = () => {
+   891→    if (!pdfBytes || !fileName) return;
+   892→    const blob = new Blob([pdfBytes], { type: "application/pdf" });
+   893→    const url = URL.createObjectURL(blob);
+   894→    const a = document.createElement("a");
+   895→    a.href = url;
+   896→    a.download = fileName.replace(/\.pdf$/i, "") + "_azzam.pdf";
+   897→    a.click();
+   898→    setTimeout(() => URL.revokeObjectURL(url), 1000);
+   899→  };
+   900→
+   901→  // App Reset
+   902→  const handleReset = () => {
+   903→    setPdfBytes(null);
+   904→    setFileName(null);
+   905→    setFileSize(null);
+   906→    setTotalPages(null);
+   907→    setExtractedText("");
+   908→    setOriginalSize(null);
+   909→    setCompressedSize(null);
+   910→    setIsLocked(false);
+   911→    setActiveTab("organize");
+   912→  };
+   913→
+   914→  return (
+   915→    <div className="flex h-screen w-screen bg-[#040711] text-gray-100 overflow-hidden relative font-sans" dir="rtl">
+   916→      
+   917→      {/* Toast Notifications Overlay */}
+   918→      <AnimatePresence>
+   919→        {toast.visible && (
+   920→          <motion.div
+   921→            initial={{ opacity: 0, y: -50, scale: 0.95 }}
+   922→            animate={{ opacity: 1, y: 0, scale: 1 }}
+   923→            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+   924→            className={`fixed top-6 left-1/2 -translate-x-1/2 z-[9999] px-5 py-3 rounded-xl border font-black text-xs flex items-center gap-2.5 shadow-xl backdrop-blur-md transition-all duration-300 ${
+   925→              toast.type === "success" 
+   926→                ? "bg-emerald-950/85 border-emerald-500/40 text-emerald-300 shadow-emerald-900/10" 
+   927→                : toast.type === "error" 
+   928→                ? "bg-rose-950/85 border-rose-500/40 text-rose-300 shadow-rose-900/10"
+   929→                : "bg-indigo-950/85 border-indigo-500/40 text-indigo-300 shadow-indigo-900/10"
+   930→            }`}
+   931→          >
+   932→            <div className={`h-2.5 w-2.5 rounded-full ${
+   933→              toast.type === "success" ? "bg-emerald-400" : toast.type === "error" ? "bg-rose-400" : "bg-indigo-400"
+   934→            }`} />
+   935→            <span>{toast.message}</span>
+   936→          </motion.div>
+   937→        )}
+   938→      </AnimatePresence>
+   939→      
+   940→      {/* Cosmic background circles & ambient glows */}
+   941→      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full blur-[140px] ambient-glow-1 pointer-events-none z-0" />
+   942→      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full blur-[140px] ambient-glow-2 pointer-events-none z-0" />
+   943→      <div className="absolute top-[40%] left-[30%] w-[35%] h-[35%] rounded-full blur-[140px] ambient-glow-3 pointer-events-none z-0" />
+   944→
+   945→      {/* Sidebar: LEFT side of screen */}
+   946→      <aside 
+   947→        className={`glass-panel border-l border-white/10 flex flex-col justify-between shrink-0 transition-all duration-300 z-20 relative select-none ${
+   948→          sidebarCollapsed ? "w-20" : "w-64"
+   949→        }`}
+   950→      >
+   951→        <div className="flex flex-col flex-1 overflow-y-auto safe-scrollbar p-4">
+   952→          {/* Sidebar Brand Logo */}
+   953→          <div className="flex items-center gap-3 mb-8 px-2 justify-start">
+   954→            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 shadow-[0_0_15px_rgba(99,102,241,0.4)] border border-white/20">
+   955→              <span className="font-black text-white text-lg font-serif">ع</span>
+   956→            </div>
+   957→            {!sidebarCollapsed && (
+   958→              <div className="flex flex-col text-right">
+   959→                <h2 className="text-lg font-black tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">عـزَّام</h2>
+   960→                <span className="text-[10px] font-bold text-gray-400 tracking-wider">Azzam Suite</span>
+   961→              </div>
+   962→            )}
+   963→          </div>
+   964→
+   965→          {/* Navigation Links */}
+   966→          <nav className="space-y-1.5">
+   967→            {[
+   968→              { id: "home", label: "الرئيسية", icon: Home },
+   969→              { id: "pdf", label: "أدوات PDF والماسح", icon: FileText },
+   970→              { id: "word", label: "أدوات Word ومحرر النصوص", icon: FileCode },
+   971→              { id: "excel", label: "مستعرض وجداول Excel", icon: FileSpreadsheet },
+   972→              { id: "image", label: "استوديو ومحرر الصور", icon: Image },
+   973→              { id: "history", label: "سجل العمليات", icon: Clock },
+   974→              { id: "settings", label: "الإعدادات العامة", icon: Settings },
+   975→              { id: "help", label: "مركز المساعدة", icon: HelpCircle }
+   976→            ].map(item => {
+   977→              const Icon = item.icon;
+   978→              const isActive = mainTab === item.id;
+   979→              return (
+   980→                <button
+   981→                  key={item.id}
+   982→                  onClick={() => {
+   983→                    setMainTab(item.id as any);
+   984→                  }}
+   985→                  className={`w-full flex items-center gap-3.5 px-3 py-3 rounded-xl transition-all duration-200 cursor-pointer ${
+   986→                    isActive 
+   987→                      ? "bg-gradient-to-r from-blue-600/30 to-indigo-600/10 border-r-2 border-blue-500 text-white shadow-md shadow-blue-500/5 backdrop-blur-md" 
+   988→                      : "text-gray-400 hover:text-white hover:bg-white/5"
+   989→                  }`}
+   990→                  title={item.label}
+   991→                >
+   992→                  <Icon className={`h-5 w-5 shrink-0 ${isActive ? "text-blue-400" : "text-gray-400"}`} />
+   993→                  {!sidebarCollapsed && (
+   994→                    <span className="text-xs font-bold leading-none">{item.label}</span>
+   995→                  )}
+   996→                </button>
+   997→              );
+   998→            })}
+   999→          </nav>
+  1000→        </div>
+  1001→
+  1002→        {/* Sidebar Footer */}
+  1003→        <div className="p-4 border-t border-white/5 space-y-4">
+  1004→          {!sidebarCollapsed && (
+  1005→            <div className="glass-panel p-3 rounded-xl border border-white/5 text-center relative overflow-hidden">
+  1006→              <div className="flex items-center gap-2 justify-center mb-1">
+  1007→                <ShieldCheck className="h-4 w-4 text-emerald-400" />
+  1008→                <span className="text-[10px] font-extrabold text-emerald-400">100% Private</span>
+  1009→              </div>
+  1010→              <p className="text-[9px] text-gray-400 leading-relaxed font-semibold">جميع عمليات المعالجة تتم محلياً 100% داخل متصفحك بشكل آمن.</p>
+  1011→            </div>
+  1012→          )}
+  1013→
+  1014→          <button
+  1015→            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+  1016→            className="w-full py-2 bg-white/5 hover:bg-white/10 rounded-lg flex items-center justify-center text-gray-400 hover:text-white cursor-pointer transition-all"
+  1017→            title={sidebarCollapsed ? "توسيع الشريط" : "طي الشريط"}
+  1018→          >
+  1019→            {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+  1020→          </button>
+  1021→        </div>
+  1022→      </aside>
+  1023→
+  1024→      {/* Main Container */}
+  1025→      <div className="flex-1 flex flex-col overflow-hidden relative z-10">
+  1026→        
+  1027→        {/* Top Header Utilities */}
+  1028→        <header className="flex h-16 shrink-0 items-center justify-between px-6 border-b border-white/5 relative z-20">
+  1029→          <div>
+  1030→            {mainTab !== "home" && (
+  1031→              <button
+  1032→                onClick={() => setMainTab("home")}
+  1033→                className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-400 hover:text-white transition-all cursor-pointer bg-white/5 px-3 py-1.5 rounded-xl border border-white/5"
+  1034→              >
+  1035→                <span>◀ العودة للرئيسية</span>
+  1036→              </button>
+  1037→            )}
+  1038→          </div>
+  1039→
+  1040→          <div className="flex items-center gap-3">
+  1041→            <button className="h-9 w-9 flex items-center justify-center rounded-xl bg-white/5 border border-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-all cursor-pointer">
+  1042→              <Search className="h-4.5 w-4.5" />
+  1043→            </button>
+  1044→            <button className="h-9 w-9 flex items-center justify-center rounded-xl bg-white/5 border border-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-all cursor-pointer">
+  1045→              <Moon className="h-4.5 w-4.5" />
+  1046→            </button>
+  1047→            <button className="h-9 w-9 flex items-center justify-center rounded-xl bg-white/5 border border-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-all cursor-pointer">
+  1048→              <User className="h-4.5 w-4.5" />
+  1049→            </button>
+  1050→          </div>
+  1051→        </header>
+  1052→
+  1053→        {/* Dynamic Screen Area */}
+  1054→        {mainTab === "home" && (
+  1055→          <div className="flex-1 overflow-y-auto safe-scrollbar p-6 space-y-10">
+  1056→            {/* Main Welcome Hero */}
+  1057→            <div className="text-center space-y-4 pt-4 relative">
+  1058→              <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 shadow-[0_0_40px_rgba(99,102,241,0.5)] border border-white/20 select-none animate-pulse">
+  1059→                <span className="font-black text-white text-5xl font-serif">ع</span>
+  1060→              </div>
+  1061→              
+  1062→              <div className="space-y-1">
+  1063→                <h1 className="text-5xl md:text-6xl font-black text-white tracking-normal font-sans mb-1">
+  1064→                  عـزَّام
+  1065→                </h1>
+  1066→                <h2 className="text-2xl md:text-3xl font-black text-gray-100 tracking-wide">
+  1067→                  Azzam File Processing Suite
+  1068→                </h2>
+  1069→                <p className="text-xs md:text-sm font-bold text-gray-400 tracking-wider">
+  1070→                  Everything you need to process PDF, Word, Excel and Images — 100% locally in your browser.
+  1071→                </p>
+  1072→              </div>
+  1073→
+  1074→              <div className="flex items-center justify-center gap-3.5 pt-2">
+  1075→                <button 
+  1076→                  onClick={() => setMainTab("pdf")}
+  1077→                  className="px-6 py-3 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-600 text-white font-extrabold text-xs rounded-xl shadow-[0_0_20px_rgba(99,102,241,0.4)] hover:shadow-[0_0_30px_rgba(99,102,241,0.6)] hover:scale-[1.02] active:scale-98 cursor-pointer transition-all"
+  1078→                >
+  1079→                  Start Processing 🚀
+  1080→                </button>
+  1081→                <button 
+  1082→                  onClick={() => setMainTab("help")}
+  1083→                  className="px-6 py-3 bg-white/5 hover:bg-white/10 text-gray-300 font-extrabold text-xs rounded-xl border border-white/10 hover:text-white cursor-pointer transition-all"
+  1084→                >
+  1085→                  Learn More ↗
+  1086→                </button>
+  1087→              </div>
+  1088→            </div>
+  1089→
+  1090→            {/* 4 Large Bento Cards Grid */}
+  1091→            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
+  1092→              {/* Card 1: PDF Tools */}
+  1093→              <div 
+  1094→                onClick={() => setMainTab("pdf")}
+  1095→                className="glass-panel rounded-2xl p-5 shadow-sm border border-white/10 glow-blue hover:scale-[1.01] transition-all cursor-pointer flex flex-col justify-between h-56"
+  1096→              >
+  1097→                <div>
+  1098→                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 mb-4">
+  1099→                    <FileText className="h-5.5 w-5.5" />
+  1100→                  </div>
+  1101→                  <h3 className="text-sm font-black text-white mb-2">أدوات PDF المتطورة</h3>
+  1102→                  <ul className="text-[11px] text-gray-400 space-y-1 font-semibold">
+  1103→                    <li>• دمج ملفات PDF المتعددة</li>
+  1104→                    <li>• تقسيم واستخراج الصفحات</li>
+  1105→                    <li>• حذف صفحات مخصصة</li>
+  1106→                    <li>• علامات مائية وتوقيع حي</li>
+  1107→                    <li>• استخراج النصوص والبيانات</li>
+  1108→                  </ul>
+  1109→                </div>
+  1110→                <div className="flex justify-end pt-2">
+  1111→                  <div className="h-7 w-7 rounded-full border border-blue-500/30 flex items-center justify-center text-blue-400 hover:bg-blue-500/10">
+  1112→                    <ArrowLeft className="h-3.5 w-3.5 rotate-180" />
+  1113→                  </div>
+  1114→                </div>
+  1115→              </div>
+  1116→
+  1117→              {/* Card 2: Word Tools */}
+  1118→              <div 
+  1119→                onClick={() => setMainTab("word")}
+  1120→                className="glass-panel rounded-2xl p-5 shadow-sm border border-white/10 glow-purple hover:scale-[1.01] transition-all cursor-pointer flex flex-col justify-between h-56"
+  1121→              >
+  1122→                <div>
+  1123→                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20 mb-4">
+  1124→                    <FileCode className="h-5.5 w-5.5" />
+  1125→                  </div>
+  1126→                  <h3 className="text-sm font-black text-white mb-2">أدوات Word ومحرر النصوص</h3>
+  1127→                  <ul className="text-[11px] text-gray-400 space-y-1 font-semibold">
+  1128→                    <li>• قراءة واستعراض ملفات DOCX</li>
+  1129→                    <li>• حساب عدد الكلمات والحروف</li>
+  1130→                    <li>• تصدير مستندات Word لـ PDF</li>
+  1131→                    <li>• محرر متكامل لصياغة النصوص</li>
+  1132→                  </ul>
+  1133→                </div>
+  1134→                <div className="flex justify-end pt-2">
+  1135→                  <div className="h-7 w-7 rounded-full border border-purple-500/30 flex items-center justify-center text-purple-400 hover:bg-purple-500/10">
+  1136→                    <ArrowLeft className="h-3.5 w-3.5 rotate-180" />
+  1137→                  </div>
+  1138→                </div>
+  1139→              </div>
+  1140→
+  1141→              {/* Card 3: Excel Tools */}
+  1142→              <div 
+  1143→                onClick={() => setMainTab("excel")}
+  1144→                className="glass-panel rounded-2xl p-5 shadow-sm border border-white/10 glow-green hover:scale-[1.01] transition-all cursor-pointer flex flex-col justify-between h-56"
+  1145→              >
+  1146→                <div>
+  1147→                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 mb-4">
+  1148→                    <FileSpreadsheet className="h-5.5 w-5.5" />
+  1149→                  </div>
+  1150→                  <h3 className="text-sm font-black text-white mb-2">مستعرض وجداول Excel</h3>
+  1151→                  <ul className="text-[11px] text-gray-400 space-y-1 font-semibold">
+  1152→                    <li>• قراءة وتحليل ملفات XLSX</li>
+  1153→                    <li>• دعم ملفات CSV وتنسيقها</li>
+  1154→                    <li>• عرض وبناء جداول تفاعلية HTML</li>
+  1155→                    <li>• تصدير الجداول كملفات PDF مجهزة</li>
+  1156→                  </ul>
+  1157→                </div>
+  1158→                <div className="flex justify-end pt-2">
+  1159→                  <div className="h-7 w-7 rounded-full border border-emerald-500/30 flex items-center justify-center text-emerald-400 hover:bg-emerald-500/10">
+  1160→                    <ArrowLeft className="h-3.5 w-3.5 rotate-180" />
+  1161→                  </div>
+  1162→                </div>
+  1163→              </div>
+  1164→
+  1165→              {/* Card 4: Image Tools */}
+  1166→              <div 
+  1167→                onClick={() => setMainTab("image")}
+  1168→                className="glass-panel rounded-2xl p-5 shadow-sm border border-white/10 glow-orange hover:scale-[1.01] transition-all cursor-pointer flex flex-col justify-between h-56"
+  1169→              >
+  1170→                <div>
+  1171→                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500/10 text-orange-400 border border-orange-500/20 mb-4">
+  1172→                    <Image className="h-5.5 w-5.5" />
+  1173→                  </div>
+  1174→                  <h3 className="text-sm font-black text-white mb-2">استوديو ومحرر الصور</h3>
+  1175→                  <ul className="text-[11px] text-gray-400 space-y-1 font-semibold">
+  1176→                    <li>• تحويل صيغ JPG, PNG, WEBP</li>
+  1177→                    <li>• ضغط الصور وتخفيض حجمها</li>
+  1178→                    <li>• تغيير الأبعاد مع حفظ التناسب</li>
+  1179→                    <li>• دمج باقة صور في ملف PDF واحد</li>
+  1180→                  </ul>
+  1181→                </div>
+  1182→                <div className="flex justify-end pt-2">
+  1183→                  <div className="h-7 w-7 rounded-full border border-orange-500/30 flex items-center justify-center text-orange-400 hover:bg-orange-500/10">
+  1184→                    <ArrowLeft className="h-3.5 w-3.5 rotate-180" />
+  1185→                  </div>
+  1186→                </div>
+  1187→              </div>
+  1188→            </div>
+  1189→
+  1190→            {/* 4 Sparkline Stats Grid */}
+  1191→            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
+  1192→              {/* Stat 1 */}
+  1193→              <div className="glass-panel rounded-2xl p-4 flex items-center justify-between border border-white/5 shadow-2xs">
+  1194→                <div className="space-y-1 text-right">
+  1195→                  <span className="text-[10px] text-gray-400 font-bold block">ملفات PDF تمت معالجتها</span>
+  1196→                  <span className="text-xl font-black text-white">12,458</span>
+  1197→                </div>
+  1198→                {/* SVG sparkline */}
+  1199→                <div className="w-20 h-10">
+
+[showing lines 600-1199 of 1730; use offset=1200 with limit to continue reading]

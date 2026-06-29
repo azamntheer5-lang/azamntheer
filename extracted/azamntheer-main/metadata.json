@@ -1,0 +1,6 @@
+{
+  "name": "Azzam Document SuperApp",
+  "description": "منصة عزَّام الذكية الشاملة لمعالجة وتحرير ملفات PDF، ومستندات Word، وجداول Excel، ومعالجة الصور بالكامل محلياً وفي المتصفح.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
