@@ -1,0 +1,10 @@
+import { PDFDocument, rgb } from "pdf-lib";
+const doc = await PDFDocument.create();
+const page = doc.addPage([595, 842]);
+page.drawText("Hello from Azzam PDF Editor Test", { x: 100, y: 700, size: 24, color: rgb(0,0,0) });
+page.drawText("Second line of test content", { x: 100, y: 670, size: 16, color: rgb(0.1, 0.45, 0.93) });
+page.drawRectangle({ x: 100, y: 500, width: 200, height: 80, borderColor: rgb(0,0,0), borderWidth: 2 });
+const bytes = await doc.save();
+const fs = await import("fs");
+fs.writeFileSync("/tmp/test-azzam.pdf", bytes);
+console.log("Test PDF created: /tmp/test-azzam.pdf", bytes.byteLength, "bytes");

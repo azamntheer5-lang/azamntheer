@@ -10,6 +10,13 @@ import { PDFDocument } from "pdf-lib";
 interface ScannerProps {
   pdfBytes: Uint8Array | null;
   onImageToPdf: (imageBytes: Uint8Array, mimeType: string, action: "append" | "new") => Promise<void>;
+  /**
+   * Called when the user chooses to append all scanned pages to the open PDF.
+   * Receives the freshly compiled PDF bytes (existing PDF + all scanned pages
+   * already merged in order). The parent should just set this as the active
+   * document — no further merging required.
+   */
+  onAppendCompiledPdf?: (pdfBytes: Uint8Array) => Promise<void>;
   isProcessing: boolean;
 }
 
@@ -27,6 +34,7 @@ interface ScannedPage {
 export const Scanner: React.FC<ScannerProps> = ({
   pdfBytes,
   onImageToPdf,
+  onAppendCompiledPdf,
   isProcessing
 }) => {
   // Input sources
@@ -418,19 +426,23 @@ export const Scanner: React.FC<ScannerProps> = ({
       const finalPdfBytes = await destDoc.save();
 
       if (action === "append") {
-        // Feed into handleImageToPdf with first page to invoke the workspace state update
-        // (This seamlessly updates App state bytes with the appended pages)
-        const firstPageBytes = await fetch(scannedPages[0].processedDataUrl)
-          .then(r => r.blob())
-          .then(b => b.arrayBuffer())
-          .then(ab => new Uint8Array(ab));
-
-        await onImageToPdf(firstPageBytes, "image/jpeg", "append");
-        
-        // Let's compile the whole document for seamless integration
-        // Actually, to fully insert ALL captured scanner pages, we can just do it sequentially or bundle them.
-        // To bundle beautifully, let's create a temporary custom flow or alert the user.
-        alert(`🎉 تم دمج وإدراج ${scannedPages.length} صفحات ممسوحة ضوئياً مباشرة في ملفك المفتوح!`);
+        // We've already merged the existing PDF + all scanned pages into
+        // finalPdfBytes above. Pass those bytes directly to the parent so
+        // it can replace the active document — bypassing the buggy old
+        // flow that only inserted the first scanned page.
+        if (onAppendCompiledPdf) {
+          await onAppendCompiledPdf(finalPdfBytes);
+        } else {
+          // Fallback: download as a new file if parent didn't wire the new callback
+          const blob = new Blob([finalPdfBytes], { type: "application/pdf" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `مسح_عزام_مدمج_${new Date().toLocaleDateString("ar-EG").replace(/\//g, "-")}.pdf`;
+          a.click();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }
+        alert(`🎉 تم دمج وإدراج ${scannedPages.length} صفحة ممسوحة ضوئياً مباشرة في ملفك المفتوح!`);
       } else {
         const blob = new Blob([finalPdfBytes], { type: "application/pdf" });
         const url = URL.createObjectURL(blob);

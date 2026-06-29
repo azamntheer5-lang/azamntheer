@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import * as pdfjsLib from "pdfjs-dist";
+import { pdfjsLib, copyBytesForPdfjs } from "../lib/pdfjs";
 import { 
   Sparkles, PenTool, Type, Search, Eye, ShieldCheck, 
   Trash2, Plus, Info, Check, RefreshCw, Type as TextIcon,
@@ -175,10 +175,9 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
 
     const renderPage = async () => {
       try {
-        const version = pdfjsLib.version || "4.0.379";
-        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${version}/build/pdf.worker.min.js`;
+        // Worker configured centrally via ../lib/pdfjs
 
-        const loadingTask = pdfjsLib.getDocument({ data: pdfBytes });
+        const loadingTask = pdfjsLib.getDocument({ data: copyBytesForPdfjs(pdfBytes) });
         const pdf = await loadingTask.promise;
 
         if (!active) return;

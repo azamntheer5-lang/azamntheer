@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import * as pdfjsLib from "pdfjs-dist";
+import { pdfjsLib, copyBytesForPdfjs } from "../lib/pdfjs";
 import JSZip from "jszip";
 import { Download, Image, Layers, RefreshCw, CheckCircle } from "lucide-react";
 
@@ -44,10 +44,9 @@ export const PngConverter: React.FC<PngConverterProps> = ({
     setStatusMessage("جاري تحميل محرك صور PDF...");
 
     try {
-      const version = pdfjsLib.version || "4.0.379";
-      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${version}/build/pdf.worker.min.js`;
+      // Worker configured centrally via ../lib/pdfjs
 
-      const loadingTask = pdfjsLib.getDocument({ data: pdfBytes });
+      const loadingTask = pdfjsLib.getDocument({ data: copyBytesForPdfjs(pdfBytes) });
       const pdf = await loadingTask.promise;
       const totalToRender = end - start + 1;
       const renderedCanvases: { canvas: HTMLCanvasElement; index: number }[] = [];

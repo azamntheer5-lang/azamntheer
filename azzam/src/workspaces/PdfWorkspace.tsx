@@ -1,10 +1,10 @@
 import React, { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { PDFDocument, degrees, rgb } from "pdf-lib";
-import * as pdfjsLib from "pdfjs-dist";
+import { pdfjsLib, copyBytesForPdfjs } from "../lib/pdfjs";
 import {
   Layers, FileText, Camera, FileCode, Image as ImageIcon, Gauge, Lock, Settings,
-  ScanLine, RefreshCw, ChevronLeft, Type as TypeIcon, Compass,
+  ScanLine, RefreshCw, ChevronLeft, Type as TypeIcon, Compass, PenTool, Wand2,
 } from "lucide-react";
 import { usePdfStore } from "../store/pdfStore";
 import { useUIStore } from "../store/uiStore";
@@ -20,6 +20,7 @@ import { PngConverter } from "../components/PngConverter";
 import { AiAssistant } from "../components/AiAssistant";
 import { TextExtractor } from "../components/TextExtractor";
 import { Scanner } from "../components/Scanner";
+import { PdfEditor } from "../components/editor/PdfEditor";
 import { ProcessingOverlay } from "../components/ui/ProcessingOverlay";
 import { drawTextAsPng } from "../lib/dom";
 import { downloadBytes, sanitizeFilename } from "../lib/utils";
@@ -28,6 +29,7 @@ import { useToast } from "../context/ToastContext";
 const TABS = [
   { id: "organize", label: "تنظيم وترتيب", icon: Layers },
   { id: "edit", label: "محرر محتويات", icon: FileText },
+  { id: "editor_pro", label: "✨ محرر متقدم", icon: PenTool },
   { id: "scan", label: "ماسح ضوئي ذكي", icon: Camera },
   { id: "text_extract", label: "استخراج النص", icon: FileCode },
   { id: "merge", label: "الدمج والصور", icon: ImageIcon },
@@ -38,10 +40,7 @@ const TABS = [
 
 const extractFullText = async (bytes: Uint8Array): Promise<string> => {
   try {
-    const version = pdfjsLib.version || "4.0.379";
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${version}/build/pdf.worker.min.js`;
-
-    const loadingTask = pdfjsLib.getDocument({ data: bytes.slice().buffer as ArrayBuffer });
+    const loadingTask = pdfjsLib.getDocument({ data: copyBytesForPdfjs(bytes) });
     const pdf = await loadingTask.promise;
     let text = "";
     const pagesToScan = Math.min(pdf.numPages, 20);
@@ -348,7 +347,7 @@ export const PdfWorkspace: React.FC = () => {
     if (!doc || !doc.totalPages) return;
     startProgress("جاري طمس الكلمات...");
     try {
-      const loadingTask = pdfjsLib.getDocument({ data: doc.bytes.slice().buffer as ArrayBuffer });
+      const loadingTask = pdfjsLib.getDocument({ data: copyBytesForPdfjs(doc.bytes) });
       const pdf = await loadingTask.promise;
       let totalHits = 0;
       const redactActions: any[] = [];
@@ -572,6 +571,33 @@ export const PdfWorkspace: React.FC = () => {
     }
   };
 
+  // 12b. APPEND COMPILED SCANNER PDF — replaces the active doc with already-merged bytes
+  // (used by Scanner when user clicks "append all scanned pages to current PDF")
+  const handleAppendCompiledPdf = async (compiledBytes: Uint8Array) => {
+    startProgress("جاري دمج الصفحات الممسوحة...");
+    try {
+      const pdfDoc = await PDFDocument.load(compiledBytes, { ignoreEncryption: true });
+      const totalPages = pdfDoc.getPageCount();
+      const txt = await extractFullText(compiledBytes);
+      updateDoc({
+        bytes: compiledBytes,
+        size: compiledBytes.byteLength,
+        totalPages,
+        extractedText: txt,
+      });
+      addHistory({
+        type: "scan",
+        operation: `دمج ${totalPages - (doc?.totalPages || 0)} صفحة ممسوحة إلى ${doc?.name || "المستند"}`,
+        status: "success",
+      });
+      toast.success(`تم دمج ${totalPages - (doc?.totalPages || 0)} صفحة ممسوحة بنجاح!`);
+    } catch (err: any) {
+      toast.error("فشل الدمج: " + err.message);
+    } finally {
+      stopProgress();
+    }
+  };
+
   // 13. COMPRESS
   const handleCompress = async (level: "light" | "medium" | "aggressive") => {
     if (!doc) return;
@@ -687,7 +713,7 @@ export const PdfWorkspace: React.FC = () => {
       const pdfDoc = await PDFDocument.load(doc.bytes, { ignoreEncryption: true });
       const pages = pdfDoc.getPages();
 
-      const loadingTask = pdfjsLib.getDocument({ data: doc.bytes.slice().buffer as ArrayBuffer });
+      const loadingTask = pdfjsLib.getDocument({ data: copyBytesForPdfjs(doc.bytes) });
       const pdf = await loadingTask.promise;
       let totalHits = 0;
 
@@ -795,6 +821,7 @@ export const PdfWorkspace: React.FC = () => {
               onImageToPdf={async (imageBytes, mimeType, action) => {
                 await handleImageToPdf(imageBytes, mimeType, action);
               }}
+              onAppendCompiledPdf={handleAppendCompiledPdf}
               isProcessing={isProcessing}
             />
           </div>
@@ -894,6 +921,14 @@ export const PdfWorkspace: React.FC = () => {
               />
             )}
 
+            {activeTab === "editor_pro" && (
+              <PdfEditor
+                pdfBytes={doc.bytes}
+                totalPages={doc.totalPages}
+                isProcessing={isProcessing}
+              />
+            )}
+
             {activeTab === "merge" && (
               <MergeImages
                 onMergePdf={handleMergePdf}
@@ -928,6 +963,7 @@ export const PdfWorkspace: React.FC = () => {
                 onImageToPdf={async (imageBytes, mimeType, action) => {
                   await handleImageToPdf(imageBytes, mimeType, action);
                 }}
+                onAppendCompiledPdf={handleAppendCompiledPdf}
                 isProcessing={isProcessing}
               />
             )}

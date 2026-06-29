@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import * as pdfjsLib from "pdfjs-dist";
+import { pdfjsLib, copyBytesForPdfjs } from "../lib/pdfjs";
 import { motion, AnimatePresence } from "motion/react";
 import { Trash2, RotateCw, RotateCcw, ArrowRight, ArrowLeft, RefreshCw, Layers, Scissors } from "lucide-react";
 
@@ -32,10 +32,9 @@ const ThumbnailRenderer: React.FC<{ pdfBytes: Uint8Array; pageNum: number; refre
     const render = async () => {
       try {
         // Set worker globally if not already set
-        const version = pdfjsLib.version || "4.0.379";
-        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${version}/build/pdf.worker.min.js`;
+        // Worker is configured centrally via ../lib/pdfjs
 
-        const loadingTask = pdfjsLib.getDocument({ data: pdfBytes });
+        const loadingTask = pdfjsLib.getDocument({ data: copyBytesForPdfjs(pdfBytes) });
         const pdf = await loadingTask.promise;
         
         if (!active) return;

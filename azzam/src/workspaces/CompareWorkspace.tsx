@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import {
   GitCompare, UploadCloud, RefreshCw, Check, X, FileText, Image as ImageIcon,
 } from "lucide-react";
-import * as pdfjsLib from "pdfjs-dist";
+import { pdfjsLib, copyBytesForPdfjs } from "../lib/pdfjs";
 import { useToast } from "../context/ToastContext";
 import { useHistoryStore } from "../store/historyStore";
 
@@ -36,9 +36,8 @@ export const CompareWorkspace: React.FC = () => {
 
     if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
       // Extract text from PDF
-      const version = pdfjsLib.version || "4.0.379";
-      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${version}/build/pdf.worker.min.js`;
-      const loadingTask = pdfjsLib.getDocument({ data: bytes.slice().buffer as ArrayBuffer });
+      // Worker configured centrally via ../lib/pdfjs
+      const loadingTask = pdfjsLib.getDocument({ data: copyBytesForPdfjs(bytes) });
       const pdf = await loadingTask.promise;
       let text = "";
       for (let i = 1; i <= Math.min(pdf.numPages, 20); i++) {
