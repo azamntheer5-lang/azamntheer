@@ -702,8 +702,37 @@ ${text}
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
+
+    // Serve static assets with cache-busting headers.
+    // Vite adds content hashes to filenames (e.g. index-AbC123.js), so we can
+    // safely cache them for a long time. BUT we must NOT cache index.html or
+    // the browser will never discover new JS chunk hashes.
+    app.use(express.static(distPath, {
+      maxAge: "1h",  // short cache for safety; hashed filenames ensure correctness
+      etag: true,
+      lastModified: true,
+      setHeaders: (res, filePath) => {
+        // HTML files: NO cache (must always fetch fresh to get new JS hashes)
+        if (filePath.endsWith(".html")) {
+          res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+          res.setHeader("Pragma", "no-cache");
+          res.setHeader("Expires", "0");
+        }
+        // JS/CSS chunks: short cache (hashed filenames make this safe)
+        if (filePath.endsWith(".js") || filePath.endsWith(".css")) {
+          res.setHeader("Cache-Control", "public, max-age=3600");
+        }
+        // Service worker files: NO cache (must always be fresh)
+        if (filePath.includes("sw.js") || filePath.includes("workbox")) {
+          res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        }
+      },
+    }));
+
+    // SPA fallback: serve index.html for all non-API routes
     app.get("*", (req, res) => {
+      // Don't cache the HTML — it contains <script> tags with hashed JS URLs
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
       res.sendFile(path.join(distPath, "index.html"));
     });
   }
