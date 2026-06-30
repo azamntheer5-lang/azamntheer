@@ -1,52 +1,18 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { pdfjsLib, copyBytesForPdfjs } from "../lib/pdfjs";
+import { useSharedPdfDocument } from "../hooks/useSharedPdfDocument";
+import { ErrorBoundary } from "./ErrorBoundary";
 import { 
   Sparkles, PenTool, Type, Search, Eye, ShieldCheck, 
   Trash2, Plus, Info, Check, RefreshCw, Type as TextIcon,
   Layers, Lock, Compass, HelpCircle
 } from "lucide-react";
 
-/**
- * Shared PDF document cache for InteractiveCanvas — same pattern as VisualOrganize.
- * Loads the PDF once and reuses for all page previews/signatures/redactions.
- */
-const useSharedPdfDocument = (pdfBytes: Uint8Array) => {
-  const [pdf, setPdf] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const bytesKey = useMemo(() => pdfBytes.byteLength + "_" + pdfBytes[0] + "_" + pdfBytes[pdfBytes.length - 1], [pdfBytes]);
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    setPdf(null);
-
-    const load = async () => {
-      try {
-        const loadingTask = pdfjsLib.getDocument({ data: copyBytesForPdfjs(pdfBytes) });
-        const doc = await loadingTask.promise;
-        if (!cancelled) {
-          setPdf(doc);
-          setLoading(false);
-        } else {
-          try { (doc as any).destroy?.(); } catch {}
-        }
-      } catch (err: any) {
-        if (!cancelled) {
-          setError(err?.message || "Failed to load PDF");
-          setLoading(false);
-        }
-      }
-    };
-
-    load();
-
-    return () => { cancelled = true; };
-  }, [bytesKey]);  // eslint-disable-line react-hooks/exhaustive-deps
-
-  return { pdf, loading, error };
-};
+// useSharedPdfDocument used to be copy-pasted here AND in VisualOrganize.tsx.
+// Both copies leaked a full pdf.js document on every PDF edit because their
+// cleanup function never called doc.destroy() on the previously-loaded
+// document — see src/hooks/useSharedPdfDocument.ts for the full explanation
+// and the fix. Now both components share the same, fixed implementation.
 
 interface InteractiveCanvasProps {
   pdfBytes: Uint8Array;
@@ -99,7 +65,7 @@ interface InteractiveCanvasProps {
   isProcessing: boolean;
 }
 
-export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
+const InteractiveCanvasInner: React.FC<InteractiveCanvasProps> = ({
   pdfBytes,
   totalPages,
   onApplyTextAnnotation,
@@ -1139,3 +1105,14 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
     </div>
   );
 };
+
+/**
+ * Public export — same error-boundary treatment as VisualOrganize, so a
+ * crash while signing/annotating/redacting doesn't take down the whole
+ * PDF workspace.
+ */
+export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = (props) => (
+  <ErrorBoundary label="محرر المحتويات">
+    <InteractiveCanvasInner {...props} />
+  </ErrorBoundary>
+);

@@ -1,7 +1,8 @@
-import React, { useEffect, useRef, useState, useMemo } from "react";
-import { pdfjsLib, copyBytesForPdfjs } from "../lib/pdfjs";
+import React, { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Trash2, RotateCw, RotateCcw, ArrowRight, ArrowLeft, RefreshCw, Layers, Scissors } from "lucide-react";
+import { ErrorBoundary } from "./ErrorBoundary";
+import { useSharedPdfDocument } from "../hooks/useSharedPdfDocument";
 
 interface VisualOrganizeProps {
   pdfBytes: Uint8Array;
@@ -14,57 +15,12 @@ interface VisualOrganizeProps {
   isProcessing: boolean;
 }
 
-/**
- * Shared PDF document cache — loads the PDF ONCE and reuses it for all
- * thumbnail renders. This is critical for performance:
- *
- * Before: each ThumbnailRenderer called pdfjsLib.getDocument() separately,
- * which meant for a 50-page PDF we spawned 50 worker tasks, each loading
- * and parsing the entire file. This froze the browser tab on any PDF > 5MB.
- *
- * After: one document is loaded, getPage() is called per thumbnail (fast),
- * and the document is cached until pdfBytes changes.
- */
-const useSharedPdfDocument = (pdfBytes: Uint8Array) => {
-  const [pdf, setPdf] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const bytesKey = useMemo(() => pdfBytes.byteLength + "_" + pdfBytes[0] + "_" + pdfBytes[pdfBytes.length - 1], [pdfBytes]);
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    setPdf(null);
-
-    const load = async () => {
-      try {
-        const loadingTask = pdfjsLib.getDocument({ data: copyBytesForPdfjs(pdfBytes) });
-        const doc = await loadingTask.promise;
-        if (!cancelled) {
-          setPdf(doc);
-          setLoading(false);
-        } else {
-          // Cleanup if cancelled mid-load
-          try { (doc as any).destroy?.(); } catch {}
-        }
-      } catch (err: any) {
-        if (!cancelled) {
-          setError(err?.message || "Failed to load PDF");
-          setLoading(false);
-        }
-      }
-    };
-
-    load();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [bytesKey]);  // eslint-disable-line react-hooks/exhaustive-deps
-
-  return { pdf, loading, error };
-};
+// useSharedPdfDocument now lives in src/hooks/useSharedPdfDocument.ts — it used
+// to be copy-pasted separately in this file AND in InteractiveCanvas.tsx, and
+// BOTH copies leaked a full pdf.js document on every edit because the cleanup
+// function never called doc.destroy() on the previously-loaded document. See
+// that file for the full explanation. Importing the shared, fixed version here
+// closes the leak for the "تنظيم وترتيب" (organize) tab specifically.
 
 // Sub-component to render the thumbnail canvas using the SHARED pdf document
 const ThumbnailRenderer: React.FC<{ pdf: any; pageNum: number; refreshTrigger: number }> = ({
@@ -145,7 +101,7 @@ const ThumbnailRenderer: React.FC<{ pdf: any; pageNum: number; refreshTrigger: n
   );
 };
 
-export const VisualOrganize: React.FC<VisualOrganizeProps> = ({
+const VisualOrganizeInner: React.FC<VisualOrganizeProps> = ({
   pdfBytes,
   totalPages,
   onDeletePage,
@@ -158,6 +114,7 @@ export const VisualOrganize: React.FC<VisualOrganizeProps> = ({
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [splitRange, setSplitRange] = useState("1-" + Math.min(3, totalPages));
   const [visibleCount, setVisibleCount] = useState(12);  // virtualize: only render first 12 thumbnails initially
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   // Load the PDF document ONCE for all thumbnails (huge performance win)
   const { pdf, loading: pdfLoading, error: pdfError } = useSharedPdfDocument(pdfBytes);
@@ -170,6 +127,28 @@ export const VisualOrganize: React.FC<VisualOrganizeProps> = ({
 
   const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
   const visiblePages = pageNumbers.slice(0, visibleCount);
+
+  // Lazy-load more thumbnails automatically as the user scrolls near the
+  // bottom of the grid, instead of requiring a manual "load more" tap.
+  // A single observer watches a 1px sentinel placed after the grid; once it
+  // enters the viewport (with a 600px lookahead margin so the next batch is
+  // ready slightly before it's actually visible) we grow visibleCount by 12.
+  useEffect(() => {
+    if (!pdf || visibleCount >= totalPages) return; // nothing more to load
+    const node = sentinelRef.current;
+    if (!node || typeof IntersectionObserver === "undefined") return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setVisibleCount((c) => Math.min(c + 12, totalPages));
+        }
+      },
+      { root: null, rootMargin: "600px 0px", threshold: 0 }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [pdf, visibleCount, totalPages]);
 
   const applyPreset = (type: "first_half" | "second_half" | "odds" | "evens") => {
     if (totalPages === 0) return;
@@ -371,18 +350,36 @@ export const VisualOrganize: React.FC<VisualOrganizeProps> = ({
       </div>
       )}
 
-      {/* Load more button (virtualization) */}
+      {/* Auto-loading sentinel (virtualization via IntersectionObserver) —
+          replaces the old manual "load more" button. As soon as this comes
+          within 600px of the viewport, the effect above grows visibleCount,
+          so scrolling down the grid loads more thumbnails by itself. A manual
+          button is kept as a fallback for the rare case IntersectionObserver
+          isn't available. */}
       {pdf && visibleCount < totalPages && (
-        <div className="flex justify-center pt-4">
+        <div ref={sentinelRef} className="flex justify-center pt-4">
           <button
             onClick={() => setVisibleCount(c => Math.min(c + 12, totalPages))}
             className="btn-secondary px-6 py-3 rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer"
           >
+            <RefreshCw className="h-3.5 w-3.5 animate-spin" />
             <Layers className="h-4 w-4" />
-            عرض المزيد ({totalPages - visibleCount} صفحة متبقية)
+            جاري تحميل المزيد تلقائياً... ({totalPages - visibleCount} صفحة متبقية)
           </button>
         </div>
       )}
     </div>
   );
 };
+
+/**
+ * Public export — wraps the organize panel in an error boundary so that an
+ * unexpected exception while rendering thumbnails (a malformed page, a
+ * pdf.js internal error, etc.) shows a small recoverable card instead of
+ * freezing or blanking the entire PDF workspace.
+ */
+export const VisualOrganize: React.FC<VisualOrganizeProps> = (props) => (
+  <ErrorBoundary label="معاينة الصفحات">
+    <VisualOrganizeInner {...props} />
+  </ErrorBoundary>
+);

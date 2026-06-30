@@ -13,6 +13,43 @@ export interface NetworkProgress {
 export type ProgressCallback = (progress: NetworkProgress) => void;
 
 /**
+ * Error codes uploadPDF() can throw, attached as `.code` on the Error.
+ * Callers can switch on `.code` for reliable categorization instead of
+ * fragile string-matching on `.message` (which breaks easily — e.g. browser
+ * out-of-memory errors don't reliably contain the word "memory" in every
+ * browser/locale). `.message` is still a sensible Arabic fallback for any
+ * caller that hasn't been updated to check `.code` yet.
+ */
+export type UploadPdfErrorCode =
+  | "EMPTY_FILE"
+  | "READ_FAILED"
+  | "MODULE_LOAD_FAILED"
+  | "UNREADABLE_PDF"
+  | "TIMEOUT";
+
+export class UploadPdfError extends Error {
+  code: UploadPdfErrorCode;
+  constructor(code: UploadPdfErrorCode, message: string) {
+    super(message);
+    this.name = "UploadPdfError";
+    this.code = code;
+  }
+}
+
+/** Rejects with a UploadPdfError("TIMEOUT", ...) if `promise` doesn't settle within `ms`. */
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new UploadPdfError("TIMEOUT", `استغرقت عملية "${label}" وقتاً طويلاً جداً (أكثر من ${Math.round(ms / 1000)} ثانية). قد يكون الملف كبيراً جداً أو تالفاً.`));
+    }, ms);
+    promise.then(
+      (val) => { clearTimeout(timer); resolve(val); },
+      (err) => { clearTimeout(timer); reject(err); }
+    );
+  });
+}
+
+/**
  * Helper to convert a File or Blob to a base64 string
  */
 function fileToBase64(file: File | Blob): Promise<string> {
@@ -129,40 +166,79 @@ export const CloudApiService = {
     metadata: { title: string; author: string; subject: string; keywords: string };
     extractedText: string;
   }> {
+    if (!file || file.size === 0) {
+      throw new UploadPdfError("EMPTY_FILE", "الملف فارغ أو غير صالح — اختر ملف PDF حقيقي.");
+    }
+
     onProgress({ uploadProgress: 10, downloadProgress: 0, statusText: "جاري قراءة الملف محلياً..." });
 
-    // Read file as ArrayBuffer — fully local, no upload
-    const arrayBuffer = await file.arrayBuffer();
-    const bytes = new Uint8Array(arrayBuffer);
+    // Read file as ArrayBuffer — fully local, no upload. Wrapped in a
+    // timeout: on some Android devices a corrupt file picker result or a
+    // file picked from a flaky cloud-storage provider can hang here forever
+    // instead of erroring, which used to just spin the progress bar forever.
+    let bytes: Uint8Array;
+    try {
+      const arrayBuffer = await withTimeout(file.arrayBuffer(), 30_000, "قراءة الملف");
+      bytes = new Uint8Array(arrayBuffer);
+    } catch (e: any) {
+      if (e instanceof UploadPdfError) throw e;
+      throw new UploadPdfError("READ_FAILED", "تعذّرت قراءة الملف من الجهاز. جرّب اختيار الملف مرة أخرى.");
+    }
 
     onProgress({ uploadProgress: 40, downloadProgress: 0, statusText: "جاري تحليل بنية PDF..." });
 
-    // Use pdf-lib for metadata + page count (already bundled, runs in-browser)
-    const { PDFDocument } = await import("pdf-lib");
+    // Use pdf-lib for metadata + page count (already bundled, runs in-browser).
+    // The dynamic import itself is the step most likely to fail if a stale
+    // Service Worker is serving an old/missing chunk for this module — give
+    // that scenario its own specific message instead of a generic crash.
     let totalPages = 0;
     let metadata = { title: "", author: "", subject: "", keywords: "" };
+    let pdfLibFailure: unknown = null;
     try {
-      const doc = await PDFDocument.load(bytes, { ignoreEncryption: true });
-      totalPages = doc.getPageCount();
-      metadata = {
-        title: doc.getTitle() || "",
-        author: doc.getAuthor() || "",
-        subject: doc.getSubject() || "",
-        keywords: doc.getKeywords() || "",
-      };
+      const { PDFDocument } = await withTimeout(import("pdf-lib"), 20_000, "تحميل أدوات معالجة PDF");
+      try {
+        const doc = await withTimeout(
+          PDFDocument.load(bytes, { ignoreEncryption: true }),
+          25_000,
+          "تحليل بنية PDF"
+        );
+        totalPages = doc.getPageCount();
+        metadata = {
+          title: doc.getTitle() || "",
+          author: doc.getAuthor() || "",
+          subject: doc.getSubject() || "",
+          keywords: doc.getKeywords() || "",
+        };
+      } catch (e) {
+        // pdf-lib couldn't parse it (encrypted with a real password, unusual
+        // structure, etc.) — non-fatal, pdfjs gets a turn below.
+        pdfLibFailure = e;
+        console.warn("[uploadPDF] pdf-lib load failed, falling back to pdfjs:", e);
+      }
     } catch (e) {
-      // If pdf-lib fails (e.g. encrypted), fall back to pdfjs for page count
-      console.warn("pdf-lib load failed, trying pdfjs:", e);
+      // The import() itself failed — almost always a network/cache problem.
+      pdfLibFailure = e;
+      console.warn("[uploadPDF] pdf-lib module failed to load, falling back to pdfjs only:", e);
     }
 
     onProgress({ uploadProgress: 70, downloadProgress: 0, statusText: "جاري استخراج النص..." });
 
-    // Use pdfjs-dist (already vendored locally via src/lib/pdfjs.ts) for text extraction
+    // Use pdfjs-dist (already vendored locally via src/lib/pdfjs.ts) for text
+    // extraction, AND as the fallback source of truth for totalPages if
+    // pdf-lib couldn't determine it above.
     let extractedText = "";
+    let pdfjsFailure: unknown = null;
     try {
-      const { copyBytesForPdfjs, pdfjsLib } = await import("../lib/pdfjs");
+      const { copyBytesForPdfjs, pdfjsLib } = await withTimeout(
+        import("../lib/pdfjs"),
+        20_000,
+        "تحميل أدوات قراءة PDF"
+      );
       const loadingTask = pdfjsLib.getDocument({ data: copyBytesForPdfjs(bytes) });
-      const pdfDoc = await loadingTask.promise;
+      const pdfDoc = await withTimeout(loadingTask.promise, 25_000, "تحليل بنية PDF (المسار البديل)");
+
+      if (totalPages === 0) totalPages = pdfDoc.numPages;
+
       // Cap extraction at first 50 pages to keep UI responsive on huge files
       const pagesToExtract = Math.min(totalPages || pdfDoc.numPages, 50);
       const parts: string[] = [];
@@ -175,11 +251,29 @@ export const CloudApiService = {
         parts.push(pageText);
       }
       extractedText = parts.join("\n\n");
-      if (totalPages === 0) totalPages = pdfDoc.numPages;
     } catch (e) {
-      console.warn("pdfjs text extraction failed:", e);
-      // Non-fatal — text extraction is optional, file still usable for editing
+      pdfjsFailure = e;
+      console.warn("[uploadPDF] pdfjs text extraction failed:", e);
+      // Non-fatal BY ITSELF — text extraction is optional. Whether the
+      // overall upload fails depends on whether we got a page count at all
+      // (checked right below), not on this step alone.
       extractedText = "";
+    }
+
+    // If NEITHER engine could even determine a page count, this isn't a
+    // usable PDF. The old behavior silently returned { totalPages: 0,
+    // extractedText: "" } as if the upload had succeeded, which is worse
+    // than an error — the user would see an empty, broken document with no
+    // explanation. Fail loudly and specifically instead.
+    if (totalPages === 0) {
+      console.error("[uploadPDF] both pdf-lib and pdfjs failed to read this file", {
+        pdfLibFailure,
+        pdfjsFailure,
+      });
+      throw new UploadPdfError(
+        "UNREADABLE_PDF",
+        "تعذّرت قراءة هذا الملف كـ PDF صالح. قد يكون تالفاً، أو محمياً بتشفير غير مدعوم، أو ليس ملف PDF فعلياً — جرّب ملفاً آخر."
+      );
     }
 
     onProgress({ uploadProgress: 100, downloadProgress: 100, statusText: "اكتملت المعالجة بنجاح!" });
@@ -336,13 +430,19 @@ export const CloudApiService = {
   },
 
   /**
-   * 3. OCR (Image / Scan) Cloud processing using Gemini AI Vision
+   * 3. OCR (Image / Scan) Cloud processing using Gemini AI Vision, with an
+   * automatic client-side fallback to Tesseract.js (see src/lib/localOcr.ts)
+   * if the server call fails completely — no API key configured, Gemini
+   * down, rate-limited, or every model in server.ts's fallback chain failed.
+   * This means OCR keeps working (at reduced accuracy) even if the Gemini
+   * side of things is having a bad day, instead of leaving the user with
+   * nothing.
    */
   async ocrImageCloud(
     file: File,
     languageOrOnProgress?: string | ProgressCallback,
     maybeOnProgress?: ProgressCallback
-  ): Promise<{ text: string }> {
+  ): Promise<{ text: string; source?: "gemini" | "tesseract-local" }> {
     let language = "ar";
     let onProgress: ProgressCallback = () => {};
 
@@ -358,15 +458,40 @@ export const CloudApiService = {
     }
 
     onProgress({ uploadProgress: 0, downloadProgress: 0, statusText: "جاري رفع الصورة سحابياً للـ OCR..." });
-    const fileBase64 = await fileToBase64(file);
 
-    const payload = {
-      fileBase64,
-      fileName: file.name,
-      language
-    };
+    try {
+      const fileBase64 = await fileToBase64(file);
+      const payload = { fileBase64, fileName: file.name, language };
+      const result = await makeProgressRequest("/api/files/ocr", "POST", payload, onProgress);
+      return { ...result, source: "gemini" };
+    } catch (serverError) {
+      console.warn("[ocrImageCloud] server OCR failed, falling back to local Tesseract.js:", serverError);
+      onProgress({
+        uploadProgress: 50,
+        downloadProgress: 0,
+        statusText: "تعذّر الوصول لخادم OCR — جاري المحاولة محلياً في المتصفح (دقة أقل)...",
+      });
 
-    return await makeProgressRequest("/api/files/ocr", "POST", payload, onProgress);
+      try {
+        const { runLocalOcr } = await import("../lib/localOcr");
+        const text = await runLocalOcr(file, language, (p) => {
+          onProgress({
+            uploadProgress: 50 + Math.round(p.progress * 50),
+            downloadProgress: 0,
+            statusText: p.status,
+          });
+        });
+        return {
+          text: text || "[لم يُعثر على نص — جرّب صورة أوضح]",
+          source: "tesseract-local",
+        };
+      } catch (localError) {
+        console.error("[ocrImageCloud] local OCR fallback also failed:", localError);
+        // Surface the ORIGINAL server error — it's usually more actionable
+        // (e.g. "API key missing") than a generic Tesseract failure.
+        throw serverError;
+      }
+    }
   },
 
   /**

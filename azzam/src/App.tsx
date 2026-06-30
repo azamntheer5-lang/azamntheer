@@ -4,10 +4,11 @@ import { usePdfStore } from "./store/pdfStore";
 import { useThemeStore } from "./store/themeStore";
 import { useI18nStore } from "./store/i18nStore";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
-import { ToastProvider } from "./context/ToastContext";
+import { ToastProvider, useToast } from "./context/ToastContext";
 import { Sidebar } from "./components/Sidebar";
 import { Topbar } from "./components/Topbar";
 import { CommandPalette } from "./components/command/CommandPalette";
+import { ServerWakeStatus } from "./components/ServerWakeStatus";
 
 // Eagerly loaded (always visible)
 import { HomeWorkspace } from "./workspaces/HomeWorkspace";
@@ -86,6 +87,17 @@ function AppShell() {
   const themeMode      = useThemeStore((s) => s.mode);
   const locale         = useI18nStore((s) => s.locale);
   const toggleLocale   = useI18nStore((s) => s.toggle);
+  const toast = useToast();
+
+  // If main.tsx just performed a one-time reload after cleaning up a stale
+  // service worker from a previous app on this domain, let the person know
+  // why the page refreshed instead of leaving it silent.
+  useEffect(() => {
+    if (sessionStorage.getItem("azzam-show-update-toast")) {
+      sessionStorage.removeItem("azzam-show-update-toast");
+      toast.success("تم تحديث التطبيق إلى أحدث إصدار ✅");
+    }
+  }, [toast]);
 
   // Apply theme CSS variables
   useEffect(() => {
@@ -131,6 +143,7 @@ function AppShell() {
       </div>
 
       <CommandPalette />
+      <ServerWakeStatus />
     </div>
   );
 }

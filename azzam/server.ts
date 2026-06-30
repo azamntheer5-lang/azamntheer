@@ -1,5 +1,6 @@
 import express from "express";
 import path from "path";
+import fs from "fs";
 import dotenv from "dotenv";
 import { GoogleGenAI, Type } from "@google/genai";
 import { createServer as createViteServer } from "vite";
@@ -9,13 +10,92 @@ import * as XLSX from "xlsx";
 
 dotenv.config();
 
-// Safe text extraction from Gemini response (handles both SDK v1 and v2)
-function extractGeminiText(response: any): string {
-  if (!response) return "";
-  if (typeof response.text === "function") return response.text();
-  if (typeof response.text === "string") return response.text;
-  return response?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+/**
+ * Safe text extraction from a Gemini `generateContent` response.
+ *
+ * Why this needs to be more careful than "just read response.text":
+ * the official @google/genai JS SDK exposes `.text` as a GETTER property
+ * (not a method) that derives its value from `candidates[0].content.parts`.
+ * When there is no usable candidate — the prompt was blocked by safety
+ * filters (`promptFeedback.blockReason`), the model stopped for a reason
+ * other than a normal finish (`finishReason` = SAFETY / RECITATION / OTHER),
+ * or the API simply returned an empty candidates array, which Google's own
+ * issue tracker confirms happens intermittently even with finishReason
+ * STOP — `.text` can come back undefined/empty rather than throwing. If we
+ * don't check WHY it's empty, the caller has no way to tell "no text in this
+ * image" apart from "Gemini had a hiccup, try again", which is exactly the
+ * "OCR weirdly returns nothing" symptom.
+ *
+ * Returns a structured result instead of a bare string so the caller (the
+ * /api/files/ocr route) can decide whether to retry, fall back to another
+ * model, or show a specific message.
+ */
+interface GeminiExtractResult {
+  text: string;
+  /** Why there's no text, when there's no text. */
+  reason?: "blocked" | "no-candidates" | "empty" | "ok";
+  blockReason?: string;
+  finishReason?: string;
 }
+
+function extractGeminiTextDetailed(response: any): GeminiExtractResult {
+  if (!response) return { text: "", reason: "no-candidates" };
+
+  // A blocked prompt (e.g. safety filters on the input image) shows up here
+  // even when `candidates` is completely empty.
+  const blockReason = response?.promptFeedback?.blockReason;
+  if (blockReason) {
+    return { text: "", reason: "blocked", blockReason: String(blockReason) };
+  }
+
+  const candidate = response?.candidates?.[0];
+  const finishReason = candidate?.finishReason ? String(candidate.finishReason) : undefined;
+
+  // Try the SDK's quick accessor first, but never let it throw past us —
+  // some SDK versions raise instead of returning empty when there's no
+  // valid Part, which would otherwise crash the whole request handler.
+  let quickText = "";
+  try {
+    quickText = typeof response.text === "function" ? response.text() : (response.text || "");
+  } catch {
+    quickText = "";
+  }
+
+  const partsText: string = (candidate?.content?.parts || [])
+    .map((p: any) => (typeof p?.text === "string" ? p.text : ""))
+    .join("");
+
+  const text = (quickText || partsText || "").trim();
+
+  if (text) return { text, reason: "ok", finishReason };
+  if (!candidate) return { text: "", reason: "no-candidates", finishReason };
+  return { text: "", reason: "empty", finishReason };
+}
+
+// Thin string-returning wrapper kept for the existing endpoints below
+// (summarize / chat / suggest-metadata / refactor-text) that only ever
+// cared about the plain text and already have their own error handling.
+// The OCR endpoint uses extractGeminiTextDetailed() directly since it needs
+// the extra reason/finishReason/blockReason fields to decide whether to
+// retry, switch models, or show a specific message.
+function extractGeminiText(response: any): string {
+  return extractGeminiTextDetailed(response).text;
+}
+
+/** Small helper: sleep for `ms` milliseconds. */
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Default model for the plain-text Gemini endpoints below (summarize, chat,
+ * suggest-metadata, refactor-text). These all used to hardcode
+ * "gemini-2.0-flash-exp", which — like the old OCR model list — no longer
+ * exists: Gemini 2.0 Flash was shut down June 1, 2026 (Gemini 1.5 even
+ * earlier). Centralized into one constant so the next time Google rotates
+ * model names, there's exactly one place to update instead of four.
+ */
+const DEFAULT_TEXT_MODEL = "gemini-2.5-flash";
 
 
 async function startServer() {
@@ -45,12 +125,78 @@ async function startServer() {
     });
   }
 
+  /**
+   * Minimal in-memory sliding-window rate limiter. Good enough for a single
+   * Render free-tier instance protecting a free-tier Gemini API key — this
+   * is NOT meant to scale across multiple server instances. Default of 10
+   * requests/minute is a conservative guess for the Gemini Flash free tier;
+   * actual limits vary by model/account and can be checked at
+   * https://aistudio.google.com/rate-limit — adjust via the
+   * OCR_RATE_LIMIT_PER_MIN environment variable if needed.
+   */
+  function createRateLimiter(opts: { windowMs: number; max: number }) {
+    const hitsByKey = new Map<string, number[]>();
+    return function rateLimiter(req: express.Request, res: express.Response, next: express.NextFunction) {
+      const key = req.ip || "global";
+      const now = Date.now();
+      const windowStart = now - opts.windowMs;
+      const recent = (hitsByKey.get(key) || []).filter((t) => t > windowStart);
+
+      if (recent.length >= opts.max) {
+        const retryAfterSec = Math.ceil((recent[0] + opts.windowMs - now) / 1000);
+        res.setHeader("Retry-After", String(Math.max(retryAfterSec, 1)));
+        return res.status(429).json({
+          error: `تم إرسال طلبات OCR كثيرة خلال دقيقة واحدة. انتظر ${Math.max(retryAfterSec, 1)} ثانية ثم حاول مجدداً.`,
+        });
+      }
+
+      recent.push(now);
+      hitsByKey.set(key, recent);
+      next();
+    };
+  }
+
+  const ocrRateLimiter = createRateLimiter({
+    windowMs: 60_000,
+    max: Number(process.env.OCR_RATE_LIMIT_PER_MIN) || 10,
+  });
+
   // --- API ROUTES ---
 
   // Health Check
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok", geminiConfigured: !!process.env.GEMINI_API_KEY });
   });
+
+  // --- SERVICE WORKER KILLER ---
+  // A previous app on this exact Render URL registered a Service Worker that
+  // is still active in some returning visitors' browsers, intercepting
+  // requests and serving stale JS (see src/main.tsx and public/sw.js for the
+  // full story). We don't know whether that old SW was registered at
+  // "/sw.js" or "/service-worker.js", so the same self-deleting script is
+  // served — with explicit no-cache headers — at BOTH paths, and placed here
+  // (before the dev/prod branching below) so it behaves identically whether
+  // the server is running via `vite` middleware or serving the built `dist`.
+  // Vite's own `public/` copying would also serve this file, but a dedicated
+  // route guarantees the headers regardless of that.
+  const swKillerPaths = ["/sw.js", "/service-worker.js"];
+  let swKillerSource: string | null = null;
+  try {
+    swKillerSource = fs.readFileSync(path.join(process.cwd(), "public", "sw.js"), "utf-8");
+  } catch (err) {
+    console.warn("[Azzam] Could not read public/sw.js — service worker killer routes disabled:", err);
+  }
+  if (swKillerSource) {
+    for (const swPath of swKillerPaths) {
+      app.get(swPath, (req, res) => {
+        res.setHeader("Content-Type", "application/javascript; charset=utf-8");
+        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        res.setHeader("Pragma", "no-cache");
+        res.setHeader("Service-Worker-Allowed", "/");
+        res.send(swKillerSource);
+      });
+    }
+  }
 
   // 1. PDF Upload & Analysis Cloud Engine
   app.post("/api/files/pdf/upload-analyze", async (req, res) => {
@@ -320,7 +466,8 @@ async function startServer() {
   });
 
   // 3. OCR Cloud Engine using Gemini AI Vision
-  app.post("/api/files/ocr", async (req, res) => {
+  app.post("/api/files/ocr", ocrRateLimiter, async (req, res) => {
+    const requestStartedAt = Date.now();
     try {
       const { fileBase64, fileName, language } = req.body;
       if (!fileBase64) {
@@ -345,51 +492,108 @@ async function startServer() {
 يجب عليك إعادة كتابة النص المستخرج بالكامل مع المحافظة على الفقرات وتنسيق السطور الأصلي وعلامات الترقيم.
 لا تقم بتقديم أي تعليقات جانبية أو مقدمات، فقط قم بتوفير النص المستخرج كما هو تماماً ليكون قابلاً للنسخ والاستخدام الفوري.`;
 
-        // Try the newest model first, fall back to older ones if it fails
-        const models = ["gemini-2.0-flash-exp", "gemini-1.5-flash", "gemini-1.5-flash-latest"];
-        let response: any = null;
-        let lastError: any = null;
+        // Current (June 2026) Flash-tier vision models, cheapest/most-available
+        // first. The previous list — gemini-2.0-flash-exp / gemini-1.5-flash /
+        // gemini-1.5-flash-latest — is now ENTIRELY dead: Gemini 1.5 has been
+        // fully shut down, and Gemini 2.0 Flash was shut down June 1, 2026
+        // (confirmed at https://ai.google.dev/gemini-api/docs/models). Every
+        // request was failing model-resolution before it ever reached the
+        // "is there text in the image" question. Pin explicit stable model
+        // IDs (not a "-latest" alias) for predictability — re-check
+        // https://ai.google.dev/gemini-api/docs/models occasionally, since
+        // Google deprecates models on a rolling basis.
+        const models = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-3.5-flash"];
+        const MAX_ATTEMPTS_PER_MODEL = 2; // 1 try + 1 backed-off retry for transient empty/rate-limit responses
 
+        let finalText = "";
+        let blockReason: string | null = null;
+        let lastHardError: any = null;
+
+        modelLoop:
         for (const model of models) {
-          try {
-            response = await client.models.generateContent({
-              model,
-              contents: [
-                {
-                  inlineData: {
-                    mimeType,
-                    data: fileBase64
-                  }
-                },
-                prompt
-              ]
-            });
-            lastError = null;
-            break;
-          } catch (e: any) {
-            lastError = e;
-            // Try next model
-            continue;
+          for (let attempt = 1; attempt <= MAX_ATTEMPTS_PER_MODEL; attempt++) {
+            const attemptStartedAt = Date.now();
+            try {
+              console.log(`[OCR] → model=${model} attempt=${attempt}/${MAX_ATTEMPTS_PER_MODEL} file=${fileName} lang=${language}`);
+              const response = await client.models.generateContent({
+                model,
+                contents: [
+                  { inlineData: { mimeType, data: fileBase64 } },
+                  prompt,
+                ],
+              });
+
+              const result = extractGeminiTextDetailed(response);
+              console.log(
+                `[OCR] ← model=${model} attempt=${attempt} reason=${result.reason} ` +
+                `finishReason=${result.finishReason || "-"} chars=${result.text.length} ` +
+                `tookMs=${Date.now() - attemptStartedAt}`
+              );
+
+              if (result.reason === "ok") {
+                finalText = result.text;
+                break modelLoop;
+              }
+
+              if (result.reason === "blocked") {
+                // Safety filter blocked the input — deterministic, retrying
+                // or switching models won't change the outcome.
+                blockReason = result.blockReason || "SAFETY";
+                break modelLoop;
+              }
+
+              // reason is "empty" or "no-candidates": Google's own API
+              // intermittently returns empty candidates even on a normal
+              // STOP finish — this is the exact class of flakiness behind
+              // "OCR sometimes returns nothing". Worth a short backoff retry
+              // before giving up on this model.
+              if (attempt < MAX_ATTEMPTS_PER_MODEL) {
+                const backoffMs = 700 * attempt;
+                console.log(`[OCR] empty/no-candidates result, retrying in ${backoffMs}ms`);
+                await sleep(backoffMs);
+              }
+            } catch (e: any) {
+              lastHardError = e;
+              const msg = e?.message || String(e);
+              const isRateLimited = /429|quota|resource_exhausted/i.test(msg);
+              const isTransient = isRateLimited || /503|overloaded|unavailable|internal/i.test(msg);
+              console.warn(`[OCR] ✗ model=${model} attempt=${attempt} error: ${msg}`);
+
+              if (isTransient && attempt < MAX_ATTEMPTS_PER_MODEL) {
+                const backoffMs = Math.round(900 * attempt + Math.random() * 400);
+                console.log(`[OCR] transient error, retrying in ${backoffMs}ms`);
+                await sleep(backoffMs);
+                continue;
+              }
+              // Non-transient (e.g. bad API key, invalid request) or out of
+              // attempts for this model — move on to the next model.
+              break;
+            }
           }
         }
 
-        if (lastError && !response) {
-          throw lastError;
+        console.log(`[OCR] done in ${Date.now() - requestStartedAt}ms — outcome=${finalText ? "ok" : blockReason ? "blocked" : lastHardError ? "error" : "empty"}`);
+
+        if (finalText) {
+          return res.json({ text: finalText });
         }
 
-        // Gemini SDK returns text via extractGeminiText(response) (property) or response.text() (method) depending on version
-        const extractedText =
-          (typeof response?.text === "function" ? response.text() : response?.text) ||
-          response?.candidates?.[0]?.content?.parts?.[0]?.text ||
-          "";
-
-        if (!extractedText || !extractedText.trim()) {
+        if (blockReason) {
           return res.json({
-            text: "[لم يتم العثور على نص في هذا الملف]\n\nقد يكون الملف:\n- صورة بدون نص\n- ملف محمي\n- نص غير واضح\n\nجرّب رفع ملف أوضح أو بصيغة مختلفة."
+            text: `[تعذّر استخراج النص بسبب مرشحات الأمان في Gemini]\n\nسبب الحظر: ${blockReason}\n\nقد يحدث هذا مع بعض المستندات الرسمية أو الصور التي يُساء تصنيفها. جرّب صورة أوضح، أو استخدم الاستخراج المحلي (Tesseract) كبديل من الإعدادات.`,
           });
         }
 
-        return res.json({ text: extractedText });
+        if (lastHardError) {
+          // Let the outer catch below categorize this into a specific
+          // Arabic message (API key / quota / etc).
+          throw lastHardError;
+        }
+
+        // All models returned successfully but with genuinely no text.
+        return res.json({
+          text: "[لم يتم العثور على نص في هذا الملف]\n\nقد يكون الملف:\n- صورة بدون نص\n- ملف محمي\n- نص غير واضح\n\nجرّب رفع ملف أوضح أو بصيغة مختلفة.",
+        });
       }
 
       const fallbackText = `[الماسح الضوئي السحابي لعزام - نمط المحاكاة]
@@ -405,14 +609,17 @@ async function startServer() {
 
       res.json({ text: fallbackText });
     } catch (err: any) {
-      console.error("OCR Cloud Error:", err);
+      console.error("[OCR] Cloud Error:", err);
       const errMsg = err?.message || String(err);
       // Send a more specific error
-      if (errMsg.includes("API_KEY") || errMsg.includes("api key")) {
+      if (errMsg.includes("API_KEY") || errMsg.includes("api key") || errMsg.includes("API key not valid")) {
         return res.status(500).json({ error: "مفتاح Gemini API غير صالح أو منتهي الصلاحية." });
       }
-      if (errMsg.includes("quota") || errMsg.includes("rate")) {
-        return res.status(429).json({ error: "تم تجاوز حد الاستخدام لـ Gemini API. حاول لاحقاً." });
+      if (errMsg.includes("quota") || errMsg.includes("RESOURCE_EXHAUSTED") || errMsg.includes("429")) {
+        return res.status(429).json({ error: "تم تجاوز حد الاستخدام لـ Gemini API. حاول بعد دقيقة." });
+      }
+      if (errMsg.includes("503") || /overloaded|unavailable/i.test(errMsg)) {
+        return res.status(503).json({ error: "خوادم Gemini مشغولة حالياً. حاول مرة أخرى خلال لحظات." });
       }
       res.status(500).json({ error: "فشل استخراج النص: " + errMsg });
     }
@@ -540,7 +747,7 @@ ${text.slice(0, 45000)}
 """`;
 
       const response = await client.models.generateContent({
-        model: "gemini-2.0-flash-exp",
+        model: DEFAULT_TEXT_MODEL,
         contents: prompt,
       });
 
@@ -594,7 +801,7 @@ ${docContext ? docContext.slice(0, 40000) : "لا يوجد مستند مرفق �
       });
 
       const response = await client.models.generateContent({
-        model: "gemini-2.0-flash-exp",
+        model: DEFAULT_TEXT_MODEL,
         contents: formattedContents,
         config: {
           systemInstruction,
@@ -634,7 +841,7 @@ ${text.slice(0, 10000)}
 """`;
 
       const response = await client.models.generateContent({
-        model: "gemini-2.0-flash-exp",
+        model: DEFAULT_TEXT_MODEL,
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -681,7 +888,7 @@ ${text}
 """`;
 
       const response = await client.models.generateContent({
-        model: "gemini-2.0-flash-exp",
+        model: DEFAULT_TEXT_MODEL,
         contents: prompt,
       });
 
@@ -722,8 +929,10 @@ ${text}
         if (filePath.endsWith(".js") || filePath.endsWith(".css")) {
           res.setHeader("Cache-Control", "public, max-age=3600");
         }
-        // Service worker files: NO cache (must always be fresh)
-        if (filePath.includes("sw.js") || filePath.includes("workbox")) {
+        // Service worker files: NO cache (must always be fresh) — covers
+        // sw.js, service-worker.js, and any workbox-* chunk a previous
+        // app's SW might have left behind.
+        if (filePath.includes("sw.js") || filePath.includes("service-worker") || filePath.includes("workbox")) {
           res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
         }
       },
@@ -740,6 +949,40 @@ ${text}
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`[Google PDF Tools Backend] Server running on http://localhost:${PORT}`);
   });
+
+  // --- OPTIONAL KEEP-ALIVE (Render free tier spin-down workaround) ---
+  //
+  // Render's free web services stop completely after ~15 minutes with no
+  // inbound traffic, and the first request after that takes 30-60s to cold
+  // start. A timer INSIDE an already-stopped process can't "wake itself up"
+  // — that's not how spin-down works — but a timer that fires every few
+  // minutes WHILE the process is alive counts as inbound traffic each time
+  // it reaches the public URL, which resets the idle countdown and means
+  // the service never crosses the 15-minute threshold in the first place.
+  //
+  // This is OFF by default and only activates if KEEP_ALIVE_URL is set,
+  // because it has a real trade-off worth understanding before enabling it:
+  // Render's free tier includes 750 instance-hours/month. Running 24/7 for
+  // a month is ~720 hours — just under that cap — so a solo personal-use
+  // deployment like this one should fit, but any redeploys, restarts, or a
+  // second service on the same account eat into the same monthly pool. The
+  // alternative client-side "wake on page load" approach (see
+  // ServerWakeStatus in the frontend) only pings when someone is actually
+  // about to use the app, so it doesn't touch this trade-off at all — start
+  // with that, and only add this if cold starts are still a problem for you.
+  //
+  // To enable on Render: Environment → add KEEP_ALIVE_URL =
+  // https://azzam-z19t.onrender.com/api/health (your own public URL).
+  const keepAliveUrl = process.env.KEEP_ALIVE_URL;
+  if (keepAliveUrl) {
+    const intervalMs = (Number(process.env.KEEP_ALIVE_INTERVAL_MIN) || 10) * 60_000;
+    console.log(`[KeepAlive] enabled — pinging ${keepAliveUrl} every ${intervalMs / 60_000} minute(s)`);
+    setInterval(() => {
+      fetch(keepAliveUrl)
+        .then((r) => console.log(`[KeepAlive] ping ok (${r.status})`))
+        .catch((err) => console.warn("[KeepAlive] ping failed:", err?.message || err));
+    }, intervalMs);
+  }
 }
 
 startServer().catch((err) => {
