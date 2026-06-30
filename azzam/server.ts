@@ -9,6 +9,15 @@ import * as XLSX from "xlsx";
 
 dotenv.config();
 
+// Safe text extraction from Gemini response (handles both SDK v1 and v2)
+function extractGeminiText(response: any): string {
+  if (!response) return "";
+  if (typeof response.text === "function") return response.text();
+  if (typeof response.text === "string") return response.text;
+  return response?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+}
+
+
 async function startServer() {
   const app = express();
   const PORT = 3000;
@@ -320,47 +329,92 @@ async function startServer() {
 
       const client = getGeminiClient();
       if (client) {
-        const prompt = `أنت خبير فائق الذكاء ومحترف في استخراج النصوص الضوئية (OCR). 
-قم بتحليل واستخراج كافة النصوص المكتوبة الواردة في الصورة المرفقة بدقة متناهية.
+        // Detect mime type from file name (default to png for unknown)
+        const ext = (fileName || "").split(".").pop()?.toLowerCase() || "";
+        const mimeType =
+          ext === "pdf" ? "application/pdf" :
+          ext === "jpg" || ext === "jpeg" ? "image/jpeg" :
+          ext === "webp" ? "image/webp" :
+          ext === "gif" ? "image/gif" :
+          ext === "bmp" ? "image/bmp" :
+          "image/png";
+
+        const prompt = `أنت خبير فائق الذكاء ومحترف في استخراج النصوص الضوئية (OCR).
+قم بتحليل واستخراج كافة النصوص المكتوبة الواردة في الصورة/المستند المرفق بدقة متناهية.
 استخرج النص باللغة المطلوبة: "${language}".
-يجب عليك إعادة كتابة النص المستخرج بالكامل مع المحافظة على الفقرات وتنسيق السطور الأصلي وعلامات الترقيم. 
+يجب عليك إعادة كتابة النص المستخرج بالكامل مع المحافظة على الفقرات وتنسيق السطور الأصلي وعلامات الترقيم.
 لا تقم بتقديم أي تعليقات جانبية أو مقدمات، فقط قم بتوفير النص المستخرج كما هو تماماً ليكون قابلاً للنسخ والاستخدام الفوري.`;
 
-        const response = await client.models.generateContent({
-          model: "gemini-3.5-flash",
-          contents: [
-            {
-              inlineData: {
-                mimeType: "image/png",
-                data: fileBase64
-              }
-            },
-            prompt
-          ]
-        });
+        // Try the newest model first, fall back to older ones if it fails
+        const models = ["gemini-2.0-flash-exp", "gemini-1.5-flash", "gemini-1.5-flash-latest"];
+        let response: any = null;
+        let lastError: any = null;
 
-        return res.json({ text: response.text });
+        for (const model of models) {
+          try {
+            response = await client.models.generateContent({
+              model,
+              contents: [
+                {
+                  inlineData: {
+                    mimeType,
+                    data: fileBase64
+                  }
+                },
+                prompt
+              ]
+            });
+            lastError = null;
+            break;
+          } catch (e: any) {
+            lastError = e;
+            // Try next model
+            continue;
+          }
+        }
+
+        if (lastError && !response) {
+          throw lastError;
+        }
+
+        // Gemini SDK returns text via extractGeminiText(response) (property) or response.text() (method) depending on version
+        const extractedText =
+          (typeof response?.text === "function" ? response.text() : response?.text) ||
+          response?.candidates?.[0]?.content?.parts?.[0]?.text ||
+          "";
+
+        if (!extractedText || !extractedText.trim()) {
+          return res.json({
+            text: "[لم يتم العثور على نص في هذا الملف]\n\nقد يكون الملف:\n- صورة بدون نص\n- ملف محمي\n- نص غير واضح\n\nجرّب رفع ملف أوضح أو بصيغة مختلفة."
+          });
+        }
+
+        return res.json({ text: extractedText });
       }
 
-      const fallbackText = `[الماسح الضوئي السحابي لعزام - نمط المحاكاة للتطبيقات العادية]
-ملاحظة: مفتاح Gemini API غير مهيأ، تم استخراج هذا النص بشكل توضيحي:
---------------------------------------------------
-اسم المستند المرفوع: ${fileName}
-اللغة المحددة في لوحة القيادة: ${language}
---------------------------------------------------
-عقد خدمات واستشارات تقنية سحابية
-الطرف الأول: مؤسسة عزام لحلول البرمجيات المتقدمة
-الطرف الثاني: عميلنا التقني المتميز
+      const fallbackText = `[الماسح الضوئي السحابي لعزام - نمط المحاكاة]
+ملاحظة: مفتاح Gemini API غير مهيأ على الخادم، لذلك لا يمكن استخراج النص الفعلي.
 
-البند الأول: يلتزم الطرف الأول بتوفير خوادم سحابية فائقة الأداء لمعالجة المستندات ومعالجتها سحابياً بالكامل بدلاً من معالجتها محلياً على الأجهزة لضمان السرعة والتطابق.
-البند الثاني: يتم حماية وتشفير جميع البيانات الحساسة فور إتمام النقل والرفع بشكل فوري وآمن.
+لتفعيل استخراج النص الحقيقي:
+1. أضف مفتاح Gemini API في إعدادات Render (Environment Variables)
+2. المفتاح المتغير: GEMINI_API_KEY
+3. احصل عليه من: https://aistudio.google.com/app/apikey
 
-تمت مراجعة هذا الملف والموافقة عليه سحابياً بنجاح.`;
+ملف: ${fileName}
+اللغة: ${language}`;
 
       res.json({ text: fallbackText });
     } catch (err: any) {
       console.error("OCR Cloud Error:", err);
-      res.status(500).json({ error: "فشل استخراج النص الضوئي (OCR) سحابياً: " + err.message });
+      const errMsg = err?.message || String(err);
+      // Send a more specific error
+      if (errMsg.includes("API_KEY") || errMsg.includes("api key")) {
+        return res.status(500).json({ error: "مفتاح Gemini API غير صالح أو منتهي الصلاحية." });
+      }
+      if (errMsg.includes("quota") || errMsg.includes("rate")) {
+        return res.status(429).json({ error: "تم تجاوز حد الاستخدام لـ Gemini API. حاول لاحقاً." });
+      }
+      res.status(500).json({ error: "فشل استخراج النص: " + errMsg });
     }
   });
 
@@ -486,11 +540,11 @@ ${text.slice(0, 45000)}
 """`;
 
       const response = await client.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-2.0-flash-exp",
         contents: prompt,
       });
 
-      res.json({ summary: response.text });
+      res.json({ summary: extractGeminiText(response) });
     } catch (err: any) {
       console.error("Summarize Error:", err);
       res.status(500).json({ error: "فشل في إنشاء التلخيص الذكي: " + err.message });
@@ -540,14 +594,14 @@ ${docContext ? docContext.slice(0, 40000) : "لا يوجد مستند مرفق �
       });
 
       const response = await client.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-2.0-flash-exp",
         contents: formattedContents,
         config: {
           systemInstruction,
         }
       });
 
-      res.json({ reply: response.text });
+      res.json({ reply: extractGeminiText(response) });
     } catch (err: any) {
       console.error("Chat Error:", err);
       res.status(500).json({ error: "خطأ أثناء محادثة الذكاء الاصطناعي: " + err.message });
@@ -580,7 +634,7 @@ ${text.slice(0, 10000)}
 """`;
 
       const response = await client.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-2.0-flash-exp",
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -597,7 +651,7 @@ ${text.slice(0, 10000)}
         }
       });
 
-      const data = JSON.parse(response.text || "{}");
+      const data = JSON.parse(extractGeminiText(response) || "{}");
       res.json(data);
     } catch (err: any) {
       console.error("Metadata Generation Error:", err);
@@ -627,11 +681,11 @@ ${text}
 """`;
 
       const response = await client.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-2.0-flash-exp",
         contents: prompt,
       });
 
-      res.json({ result: response.text });
+      res.json({ result: extractGeminiText(response) });
     } catch (err: any) {
       console.error("Refactor Error:", err);
       res.status(500).json({ error: "فشل صياغة النص الذكية: " + err.message });

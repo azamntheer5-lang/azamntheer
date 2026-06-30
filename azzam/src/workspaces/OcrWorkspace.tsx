@@ -85,9 +85,23 @@ export const OcrWorkspace: React.FC = () => {
         });
         toast.success(`اكتمل OCR على ${file.name}`);
       } catch (err: any) {
+        const errMsg = err?.message || String(err);
+        // Friendly Arabic error messages
+        let userMsg = errMsg;
+        if (errMsg.includes("429") || errMsg.includes("quota") || errMsg.includes("rate")) {
+          userMsg = "تم تجاوز حد الاستخدام لـ Gemini API. انتظر دقيقة وحاول مجدداً.";
+        } else if (errMsg.includes("API_KEY") || errMsg.includes("api key") || errMsg.includes("401") || errMsg.includes("403")) {
+          userMsg = "مفتاح Gemini API غير صالح. تواصل مع المسؤول لإصلاحه.";
+        } else if (errMsg.includes("Failed to fetch") || errMsg.includes("NetworkError") || errMsg.includes("network")) {
+          userMsg = "انقطع الاتصال بالخادم. تأكد من اتصال الإنترنت وحاول مجدداً.";
+        } else if (errMsg.includes("504") || errMsg.includes("timeout") || errMsg.includes("Timeout")) {
+          userMsg = "انتهت مهلة الانتظار. حاول مرة أخرى (الخادم قد يكون نائماً).";
+        } else if (errMsg.includes("500")) {
+          userMsg = "خطأ داخلي في الخادم. حاول مرة أخرى لاحقاً.";
+        }
         setResults((prev) =>
           prev.map((r) =>
-            r.id === id ? { ...r, status: "error" as const, errorMsg: err.message } : r
+            r.id === id ? { ...r, status: "error" as const, errorMsg: userMsg } : r
           )
         );
         addHistory({
@@ -96,7 +110,7 @@ export const OcrWorkspace: React.FC = () => {
           status: "error",
           meta: { error: err.message },
         });
-        toast.error("فشل OCR: " + err.message);
+        toast.error("فشل OCR: " + userMsg);
       }
     },
     [language, toast, addHistory]
