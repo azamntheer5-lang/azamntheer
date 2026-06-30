@@ -1,10 +1,52 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { pdfjsLib, copyBytesForPdfjs } from "../lib/pdfjs";
 import { 
   Sparkles, PenTool, Type, Search, Eye, ShieldCheck, 
   Trash2, Plus, Info, Check, RefreshCw, Type as TextIcon,
   Layers, Lock, Compass, HelpCircle
 } from "lucide-react";
+
+/**
+ * Shared PDF document cache for InteractiveCanvas — same pattern as VisualOrganize.
+ * Loads the PDF once and reuses for all page previews/signatures/redactions.
+ */
+const useSharedPdfDocument = (pdfBytes: Uint8Array) => {
+  const [pdf, setPdf] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const bytesKey = useMemo(() => pdfBytes.byteLength + "_" + pdfBytes[0] + "_" + pdfBytes[pdfBytes.length - 1], [pdfBytes]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    setPdf(null);
+
+    const load = async () => {
+      try {
+        const loadingTask = pdfjsLib.getDocument({ data: copyBytesForPdfjs(pdfBytes) });
+        const doc = await loadingTask.promise;
+        if (!cancelled) {
+          setPdf(doc);
+          setLoading(false);
+        } else {
+          try { (doc as any).destroy?.(); } catch {}
+        }
+      } catch (err: any) {
+        if (!cancelled) {
+          setError(err?.message || "Failed to load PDF");
+          setLoading(false);
+        }
+      }
+    };
+
+    load();
+
+    return () => { cancelled = true; };
+  }, [bytesKey]);  // eslint-disable-line react-hooks/exhaustive-deps
+
+  return { pdf, loading, error };
+};
 
 interface InteractiveCanvasProps {
   pdfBytes: Uint8Array;
@@ -68,6 +110,9 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
   onApplySearchReplace,
   isProcessing
 }) => {
+  // Shared PDF document — loaded once, reused across all renders
+  const { pdf: sharedPdf, loading: sharedPdfLoading } = useSharedPdfDocument(pdfBytes);
+
   // Page selector state
   const [selectedPage, setSelectedPage] = useState(1);
   const [pageLoading, setPageLoading] = useState(false);
@@ -171,17 +216,13 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
   // --- RENDER SELECTED PAGE ON PREVIEW CANVAS ---
   useEffect(() => {
     let active = true;
+    if (!sharedPdf) return;  // wait for shared doc to load
     setPageLoading(true);
 
     const renderPage = async () => {
       try {
-        // Worker configured centrally via ../lib/pdfjs
-
-        const loadingTask = pdfjsLib.getDocument({ data: copyBytesForPdfjs(pdfBytes) });
-        const pdf = await loadingTask.promise;
-
         if (!active) return;
-        const page = await pdf.getPage(selectedPage);
+        const page = await sharedPdf.getPage(selectedPage);
 
         if (!active) return;
         const canvas = previewCanvasRef.current;
@@ -230,7 +271,7 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
     return () => {
       active = false;
     };
-  }, [pdfBytes, selectedPage]);
+  }, [sharedPdf, selectedPage]);  // sharedPdf changes when pdfBytes changes
 
   // --- SIGNATURE DRAWING CANVAS LOGIC ---
   useEffect(() => {

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import { pdfjsLib, copyBytesForPdfjs } from "../lib/pdfjs";
 import { motion, AnimatePresence } from "motion/react";
 import { Trash2, RotateCw, RotateCcw, ArrowRight, ArrowLeft, RefreshCw, Layers, Scissors } from "lucide-react";
@@ -14,9 +14,61 @@ interface VisualOrganizeProps {
   isProcessing: boolean;
 }
 
-// Sub-component to render the thumbnail canvas in the background safely
-const ThumbnailRenderer: React.FC<{ pdfBytes: Uint8Array; pageNum: number; refreshTrigger: number }> = ({
-  pdfBytes,
+/**
+ * Shared PDF document cache — loads the PDF ONCE and reuses it for all
+ * thumbnail renders. This is critical for performance:
+ *
+ * Before: each ThumbnailRenderer called pdfjsLib.getDocument() separately,
+ * which meant for a 50-page PDF we spawned 50 worker tasks, each loading
+ * and parsing the entire file. This froze the browser tab on any PDF > 5MB.
+ *
+ * After: one document is loaded, getPage() is called per thumbnail (fast),
+ * and the document is cached until pdfBytes changes.
+ */
+const useSharedPdfDocument = (pdfBytes: Uint8Array) => {
+  const [pdf, setPdf] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const bytesKey = useMemo(() => pdfBytes.byteLength + "_" + pdfBytes[0] + "_" + pdfBytes[pdfBytes.length - 1], [pdfBytes]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    setPdf(null);
+
+    const load = async () => {
+      try {
+        const loadingTask = pdfjsLib.getDocument({ data: copyBytesForPdfjs(pdfBytes) });
+        const doc = await loadingTask.promise;
+        if (!cancelled) {
+          setPdf(doc);
+          setLoading(false);
+        } else {
+          // Cleanup if cancelled mid-load
+          try { (doc as any).destroy?.(); } catch {}
+        }
+      } catch (err: any) {
+        if (!cancelled) {
+          setError(err?.message || "Failed to load PDF");
+          setLoading(false);
+        }
+      }
+    };
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [bytesKey]);  // eslint-disable-line react-hooks/exhaustive-deps
+
+  return { pdf, loading, error };
+};
+
+// Sub-component to render the thumbnail canvas using the SHARED pdf document
+const ThumbnailRenderer: React.FC<{ pdf: any; pageNum: number; refreshTrigger: number }> = ({
+  pdf,
   pageNum,
   refreshTrigger
 }) => {
@@ -26,20 +78,15 @@ const ThumbnailRenderer: React.FC<{ pdfBytes: Uint8Array; pageNum: number; refre
 
   useEffect(() => {
     let active = true;
+    if (!pdf) return;
     setLoading(true);
     setError(false);
 
     const render = async () => {
       try {
-        // Set worker globally if not already set
-        // Worker is configured centrally via ../lib/pdfjs
-
-        const loadingTask = pdfjsLib.getDocument({ data: copyBytesForPdfjs(pdfBytes) });
-        const pdf = await loadingTask.promise;
-        
         if (!active) return;
         const page = await pdf.getPage(pageNum);
-        
+
         if (!active) return;
         const canvas = canvasRef.current;
         if (!canvas) return;
@@ -62,6 +109,8 @@ const ThumbnailRenderer: React.FC<{ pdfBytes: Uint8Array; pageNum: number; refre
         };
 
         await page.render(renderContext).promise;
+        // Cleanup page resources to free memory
+        try { page.cleanup(); } catch {}
         if (active) setLoading(false);
       } catch (err) {
         console.error("Thumbnail rendering error:", err);
@@ -77,7 +126,7 @@ const ThumbnailRenderer: React.FC<{ pdfBytes: Uint8Array; pageNum: number; refre
     return () => {
       active = false;
     };
-  }, [pdfBytes, pageNum, refreshTrigger]);
+  }, [pdf, pageNum, refreshTrigger]);
 
   return (
     <div className="relative w-full h-[140px] bg-white/[0.04] rounded-lg overflow-hidden border border-white/[0.08] flex items-center justify-center">
@@ -108,13 +157,19 @@ export const VisualOrganize: React.FC<VisualOrganizeProps> = ({
 }) => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [splitRange, setSplitRange] = useState("1-" + Math.min(3, totalPages));
+  const [visibleCount, setVisibleCount] = useState(12);  // virtualize: only render first 12 thumbnails initially
 
-  // Force re-render of thumbnails
+  // Load the PDF document ONCE for all thumbnails (huge performance win)
+  const { pdf, loading: pdfLoading, error: pdfError } = useSharedPdfDocument(pdfBytes);
+
+  // Force re-render of thumbnails when bytes change
   useEffect(() => {
     setRefreshTrigger(prev => prev + 1);
+    setVisibleCount(12);  // reset pagination on new file
   }, [pdfBytes]);
 
   const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
+  const visiblePages = pageNumbers.slice(0, visibleCount);
 
   const applyPreset = (type: "first_half" | "second_half" | "odds" | "evens") => {
     if (totalPages === 0) return;
@@ -226,20 +281,32 @@ export const VisualOrganize: React.FC<VisualOrganizeProps> = ({
       </div>
 
       {/* Slide deck grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-        <AnimatePresence mode="popLayout">
-          {pageNumbers.map((pageNum, idx) => (
-            <motion.div
-              key={`page-${pageNum}`}
-              layout
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8, y: 10 }}
-              transition={{ duration: 0.2 }}
-              className="group flex flex-col bg-white/[0.04] border border-white/[0.08] rounded-2xl p-2.5 shadow-3xs hover:border-google-blue transition-colors relative"
-            >
-              {/* Thumbnail Rendering in viewport */}
-              <ThumbnailRenderer pdfBytes={pdfBytes} pageNum={pageNum} refreshTrigger={refreshTrigger} />
+      {pdfLoading && (
+        <div className="flex flex-col items-center justify-center py-12">
+          <RefreshCw className="h-8 w-8 text-blue-400 animate-spin mb-3" />
+          <p className="text-xs text-slate-400 font-semibold">جاري تحميل المستند للمعاينة...</p>
+        </div>
+      )}
+      {pdfError && (
+        <div className="glass-card rounded-xl p-4 border border-amber-500/20 text-amber-300 text-xs">
+          ⚠ تعذّر تحميل المعاينة المرئية. يمكنك استعمال أدوات التعديل أعلاه.
+        </div>
+      )}
+      {pdf && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          <AnimatePresence mode="popLayout">
+            {visiblePages.map((pageNum, idx) => (
+              <motion.div
+                key={`page-${pageNum}`}
+                layout
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8, y: 10 }}
+                transition={{ duration: 0.2 }}
+                className="group flex flex-col bg-white/[0.04] border border-white/[0.08] rounded-2xl p-2.5 shadow-3xs hover:border-google-blue transition-colors relative"
+              >
+                {/* Thumbnail Rendering using shared pdf */}
+                <ThumbnailRenderer pdf={pdf} pageNum={pageNum} refreshTrigger={refreshTrigger} />
 
               {/* Page indicator badge */}
               <div className="absolute top-4 right-4 flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-white text-[10px] font-bold shadow-sm">
@@ -302,6 +369,20 @@ export const VisualOrganize: React.FC<VisualOrganizeProps> = ({
           ))}
         </AnimatePresence>
       </div>
+      )}
+
+      {/* Load more button (virtualization) */}
+      {pdf && visibleCount < totalPages && (
+        <div className="flex justify-center pt-4">
+          <button
+            onClick={() => setVisibleCount(c => Math.min(c + 12, totalPages))}
+            className="btn-secondary px-6 py-3 rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer"
+          >
+            <Layers className="h-4 w-4" />
+            عرض المزيد ({totalPages - visibleCount} صفحة متبقية)
+          </button>
+        </div>
+      )}
     </div>
   );
 };
