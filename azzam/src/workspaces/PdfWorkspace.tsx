@@ -95,7 +95,7 @@ export const PdfWorkspace: React.FC = () => {
 
   const handleFileLoaded = useCallback(
     async (file: File) => {
-      startProgress("جاري رفع وتحليل الملف...");
+      startProgress("جاري قراءة الملف محلياً (بدون رفع للخادم)...");
       try {
         const result = await CloudApiService.uploadPDF(file, (p) => {
           setProcessingStatus(p.statusText || "جاري المعالجة...");
@@ -118,12 +118,26 @@ export const PdfWorkspace: React.FC = () => {
         });
         toast.success(`تم رفع وتحليل ${result.name} بنجاح!`);
       } catch (err: any) {
-        toast.error("خطأ برفع الملف: " + err.message);
+        // User-friendly error messages based on common failure modes
+        const errMsg = err?.message || String(err);
+        let userMsg = "خطأ في تحميل الملف";
+        if (errMsg.includes("password") || errMsg.includes("encrypt")) {
+          userMsg = "هذا PDF محمي بكلمة مرور — أزل الحماية ثم أعد المحاولة";
+        } else if (errMsg.includes("memory") || errMsg.includes("allocation") || errMsg.includes("Maximum call stack")) {
+          userMsg = "الملف كبير جداً لذاكرة المتصفح — جرّب ملف أصغر";
+        } else if (errMsg.toLowerCase().includes("invalid") || errMsg.includes("format")) {
+          userMsg = "الملف ليس PDF صالح أو تالف";
+        } else if (errMsg.includes("network") || errMsg.includes("fetch")) {
+          userMsg = "انقطع الاتصال — تحقق من الإنترنت وحاول مجدداً";
+        } else {
+          userMsg = "فشل تحميل الملف: " + errMsg;
+        }
+        toast.error(userMsg);
         addHistory({
           type: "pdf",
           operation: `فشل رفع: ${file.name}`,
           status: "error",
-          meta: { error: err.message },
+          meta: { error: errMsg },
         });
       } finally {
         stopProgress();

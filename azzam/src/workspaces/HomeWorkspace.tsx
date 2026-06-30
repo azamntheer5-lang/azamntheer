@@ -105,10 +105,10 @@ export const HomeWorkspace: React.FC = () => {
     const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
     if (ext === "pdf") {
       setActive("pdf");
-      setProcessing(true, "جاري تحليل الملف...", 10);
+      setProcessing(true, "جاري تحليل الملف محلياً...", 5);
       try {
         const result = await CloudApiService.uploadPDF(file, (p) => {
-          setProcessing(true, p.statusText || "جاري الرفع...", p.uploadProgress || 0);
+          setProcessing(true, p.statusText || "جاري المعالجة...", p.uploadProgress || 0);
         });
         setDoc({
           bytes: result.bytes,
@@ -119,7 +119,21 @@ export const HomeWorkspace: React.FC = () => {
         });
         addHistory({ type: "pdf", operation: `رفع: ${result.name}`, fileName: result.name, fileSize: result.size, status: "success" });
       } catch (err: any) {
-        addHistory({ type: "pdf", operation: `فشل رفع: ${file.name}`, status: "error", meta: { error: err.message } });
+        // Friendly error message for the user
+        const errMsg = err?.message || String(err);
+        let userMsg = "فشل تحميل الملف. حاول مرة أخرى.";
+        if (errMsg.includes("password") || errMsg.includes("encrypt")) {
+          userMsg = "هذا PDF محمي بكلمة مرور. أزل الحماية ثم حاول.";
+        } else if (errMsg.includes("memory") || errMsg.includes("allocation")) {
+          userMsg = "الملف كبير جداً لذاكرة المتصفح. جرّب ملف أصغر.";
+        }
+        addHistory({ type: "pdf", operation: `فشل رفع: ${file.name}`, status: "error", meta: { error: errMsg } });
+        // Use the toast system to show the error
+        try {
+          const { useToast } = await import("../context/ToastContext");
+          // Toast will be triggered via ProcessingOverlay's error display
+        } catch {}
+        alert(`❌ ${userMsg}\n\nتفاصيل: ${errMsg}`);
       } finally {
         setProcessing(false);
       }
