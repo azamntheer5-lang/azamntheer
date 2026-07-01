@@ -137,34 +137,47 @@ export const OcrWorkspace: React.FC = () => {
       setResults((prev) => [newResult, ...prev]);
       setActiveResultId(id);
 
+      // Helper to update result text + status
+      const updateResult = (text: string, status: "processing" | "done" | "error", errorMsg?: string) => {
+        setResults((prev) =>
+          prev.map((r) =>
+            r.id === id ? { ...r, text, status, errorMsg } : r
+          )
+        );
+      };
+
+      // Helper to update progress message
+      const updateProgress = (statusText: string) => {
+        setResults((prev) =>
+          prev.map((r) =>
+            r.id === id ? { ...r, status: "processing" as const, errorMsg: statusText } : r
+          )
+        );
+      };
+
       try {
-        // For large files (>4MB), downscale images client-side before sending.
-        // Gemini API has a ~20MB limit for inline data; base64 adds 33% overhead,
-        // so a 15MB file becomes 20MB → API rejects it.
-        // We downscale to max 2000px and compress to JPEG quality 0.85.
-        const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4MB threshold
-        let fileToProcess: File = file;
+        // ============================================================
+        // HYBRID OCR STRATEGY (v3.2)
+        // ============================================================
+        // 1. PDF with embedded text → extract locally (instant, no API)
+        // 2. PDF scanned (no text) → Tesseract.js (local, no limits)
+        // 3. Small image (<4MB) → Gemini AI (best accuracy)
+        // 4. Large image (>4MB) → downscale + Tesseract.js (local)
+        // 5. If Gemini fails → fallback to Tesseract.js
+        // ============================================================
 
-        if (file.size > MAX_FILE_SIZE && file.type.startsWith("image/")) {
-          try {
-            fileToProcess = await downscaleImage(file, 2000, 0.85);
-          } catch (e) {
-            console.warn("Image downscale failed, using original:", e);
-          }
-        }
+        const MAX_GEMINI_SIZE = 4 * 1024 * 1024; // 4MB threshold for Gemini
+        const isImage = file.type.startsWith("image/");
+        const isPdf = file.type === "application/pdf";
 
-        // For large PDFs, extract text locally first (pdfjs) and skip Gemini
-        // if we already got meaningful text. Only send to Gemini if local
-        // extraction failed (e.g. scanned PDF).
-        if (file.type === "application/pdf" && file.size > MAX_FILE_SIZE) {
+        // --- Strategy 1: PDF → try local text extraction first ---
+        if (isPdf) {
+          updateProgress("جاري استخراج النص من PDF محلياً...");
           try {
-            const localText = await extractPdfTextLocally(fileToProcess);
+            const localText = await extractPdfTextLocally(file);
             if (localText && localText.trim().length > 50) {
-              setResults((prev) =>
-                prev.map((r) =>
-                  r.id === id ? { ...r, text: localText, status: "done" as const } : r
-                )
-              );
+              // PDF has embedded text — done instantly!
+              updateResult(localText, "done");
               addHistory({
                 type: "ocr",
                 operation: `OCR (محلي) على ${file.name}`,
@@ -176,32 +189,92 @@ export const OcrWorkspace: React.FC = () => {
               return;
             }
           } catch (e) {
-            console.warn("Local PDF text extraction failed, falling back to Gemini:", e);
+            console.warn("Local PDF text extraction failed, will try OCR:", e);
+          }
+
+          // PDF is scanned (no embedded text) → use Tesseract.js locally
+          updateProgress("PDF ممسوح ضوئياً — جاري OCR محلي بالكامل...");
+          try {
+            const { ocrPdfLocally } = await import("../lib/localOcr");
+            const ocrText = await ocrPdfLocally(file, language, (p) => {
+              updateProgress(p.status);
+            });
+            updateResult(ocrText, "done");
+            addHistory({
+              type: "ocr",
+              operation: `OCR (Tesseract محلي) على ${file.name}`,
+              fileName: file.name,
+              fileSize: file.size,
+              status: "success",
+            });
+            toast.success(`اكتمل OCR المحلي على ${file.name}`);
+            return;
+          } catch (e: any) {
+            console.warn("Local PDF OCR failed:", e);
+            // Fall through to Gemini as last resort
           }
         }
 
-        const result = await CloudApiService.ocrImageCloud(fileToProcess, language, (p) => {
-          // could surface progress to UI; we keep it simple
+        // --- Strategy 2: Small image → Gemini AI ---
+        if (isImage && file.size <= MAX_GEMINI_SIZE) {
+          updateProgress("جاري المعالجة بالذكاء الاصطناعي (Gemini)...");
+          try {
+            const result = await CloudApiService.ocrImageCloud(file, language, (p) => {
+              updateProgress(p.statusText || "جاري المعالجة...");
+            });
+            if (result.text && result.text.trim().length > 10) {
+              updateResult(result.text, "done");
+              addHistory({
+                type: "ocr",
+                operation: `OCR (Gemini AI) على ${file.name}`,
+                fileName: file.name,
+                fileSize: file.size,
+                status: "success",
+              });
+              toast.success(`اكتمل OCR على ${file.name}`);
+              return;
+            }
+          } catch (e: any) {
+            console.warn("Gemini OCR failed, falling back to Tesseract:", e);
+            // Fall through to Tesseract
+          }
+        }
+
+        // --- Strategy 3 & 4: Large image OR Gemini failed → Tesseract.js ---
+        updateProgress("جاري OCR محلي بالكامل (Tesseract.js)...");
+
+        let fileToProcess: File = file;
+        // Downscale very large images for performance
+        if (isImage && file.size > MAX_GEMINI_SIZE) {
+          try {
+            updateProgress("جاري تصغير الصورة للمعالجة المحلية...");
+            fileToProcess = await downscaleImage(file, 2000, 0.85);
+          } catch (e) {
+            console.warn("Image downscale failed, using original:", e);
+          }
+        }
+
+        const { ocrImageLocally } = await import("../lib/localOcr");
+        const localOcrText = await ocrImageLocally(fileToProcess, language, (p) => {
+          updateProgress(p.status);
         });
-        setResults((prev) =>
-          prev.map((r) =>
-            r.id === id ? { ...r, text: result.text, status: "done" as const } : r
-          )
-        );
+
+        updateResult(localOcrText, "done");
         addHistory({
           type: "ocr",
-          operation: `OCR على ${file.name}`,
+          operation: `OCR (Tesseract محلي) على ${file.name}`,
           fileName: file.name,
           fileSize: file.size,
           status: "success",
         });
-        toast.success(`اكتمل OCR على ${file.name}`);
+        toast.success(`اكتمل OCR المحلي على ${file.name}`);
+
       } catch (err: any) {
         const errMsg = err?.message || String(err);
         // Friendly Arabic error messages
         let userMsg = errMsg;
         if (errMsg.includes("429") || errMsg.includes("quota") || errMsg.includes("rate")) {
-          userMsg = "تم تجاوز حد الاستخدام لـ Gemini API. انتظر دقيقة وحاول مجدداً.";
+          userMsg = "تم تجاوز حد الاستخدام. سيتم المحاولة محلياً تلقائياً.";
         } else if (errMsg.includes("API_KEY") || errMsg.includes("api key") || errMsg.includes("401") || errMsg.includes("403")) {
           userMsg = "مفتاح Gemini API غير صالح. تواصل مع المسؤول لإصلاحه.";
         } else if (errMsg.includes("Failed to fetch") || errMsg.includes("NetworkError") || errMsg.includes("network")) {

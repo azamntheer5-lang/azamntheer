@@ -473,8 +473,8 @@ export const CloudApiService = {
       });
 
       try {
-        const { runLocalOcr } = await import("../lib/localOcr");
-        const text = await runLocalOcr(file, language, (p) => {
+        const { ocrImageLocally } = await import("../lib/localOcr");
+        const text = await ocrImageLocally(file, language, (p) => {
           onProgress({
             uploadProgress: 50 + Math.round(p.progress * 50),
             downloadProgress: 0,
