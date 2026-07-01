@@ -50,7 +50,7 @@ export const Scanner: React.FC<ScannerProps> = ({
   const [viewMode, setViewMode] = useState<"capture" | "editor" | "gallery">("capture");
 
   // Filter & Adjust States for the page currently being edited
-  const [activeFilter, setActiveFilter] = useState<"original" | "magic" | "bw" | "gray" | "contrast">("magic");
+  const [activeFilter, setActiveFilter] = useState<"original" | "magic" | "bw" | "gray" | "contrast">("original");
   const [brightness, setBrightness] = useState<number>(10);
   const [contrast, setContrast] = useState<number>(20);
   
@@ -63,30 +63,36 @@ export const Scanner: React.FC<ScannerProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const editCanvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Initialize camera list
+  // Initialize camera list and start camera immediately when source is selected
   useEffect(() => {
     if (source === "camera") {
+      // Start camera IMMEDIATELY with default constraints.
+      // Don't wait for enumerateDevices — on mobile, deviceId is empty until
+      // permission is granted, so the old code never started the camera.
+      startCamera();
+
+      // After camera starts (permission granted), enumerate devices for switcher
       navigator.mediaDevices.enumerateDevices()
         .then(devs => {
           const videoDevs = devs.filter(d => d.kind === "videoinput");
           setDevices(videoDevs);
-          if (videoDevs.length > 0) {
+          if (videoDevs.length > 0 && videoDevs[0].deviceId) {
             setSelectedDeviceId(videoDevs[0].deviceId);
           }
         })
         .catch(err => {
           console.error("Error listing cameras:", err);
-          setCameraError("لم يتم العثور على كاميرات متصلة أو تم رفض الإذن.");
         });
     }
     return () => stopCamera();
   }, [source]);
 
-  // Handle camera start
+  // Restart camera when user switches device from the dropdown
   useEffect(() => {
-    if (source === "camera" && selectedDeviceId) {
+    if (source === "camera" && selectedDeviceId && cameraActive) {
       startCamera();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDeviceId]);
 
   const startCamera = async () => {
@@ -145,18 +151,18 @@ export const Scanner: React.FC<ScannerProps> = ({
       id: Math.random().toString(36).substring(2, 9),
       originalDataUrl: dataUrl,
       processedDataUrl: dataUrl,
-      filter: "magic",
-      brightness: 10,
-      contrast: 20,
+      filter: "original",
+      brightness: 0,
+      contrast: 0,
       rotation: 0,
       cropRect: null
     };
 
     setScannedPages(prev => [...prev, newPage]);
     setCurrentPageId(newPage.id);
-    setActiveFilter("magic");
-    setBrightness(10);
-    setContrast(20);
+    setActiveFilter("original");
+    setBrightness(0);
+    setContrast(0);
     setViewMode("editor");
     stopCamera();
   };
@@ -173,17 +179,17 @@ export const Scanner: React.FC<ScannerProps> = ({
           id: Math.random().toString(36).substring(2, 9),
           originalDataUrl: event.target.result,
           processedDataUrl: event.target.result,
-          filter: "magic",
-          brightness: 10,
-          contrast: 20,
+          filter: "original",
+          brightness: 0,
+          contrast: 0,
           rotation: 0,
           cropRect: null
         };
         setScannedPages(prev => [...prev, newPage]);
         setCurrentPageId(newPage.id);
-        setActiveFilter("magic");
-        setBrightness(10);
-        setContrast(20);
+        setActiveFilter("original");
+        setBrightness(0);
+        setContrast(0);
         setViewMode("editor");
       }
     };

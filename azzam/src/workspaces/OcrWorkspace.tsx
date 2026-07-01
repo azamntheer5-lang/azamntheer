@@ -10,6 +10,76 @@ import { useToast } from "../context/ToastContext";
 import { useHistoryStore } from "../store/historyStore";
 import { downloadText } from "../lib/utils";
 
+/**
+ * Downscale an image File to max dimension `maxSize` and re-encode as JPEG.
+ * Returns a new File with reduced size. Used before sending to Gemini API
+ * which has a ~20MB inline data limit.
+ */
+async function downscaleImage(file: File, maxSize: number, quality: number): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > maxSize || height > maxSize) {
+        if (width > height) {
+          height = Math.round((height * maxSize) / width);
+          width = maxSize;
+        } else {
+          width = Math.round((width * maxSize) / height);
+          height = maxSize;
+        }
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return reject(new Error("Canvas not supported"));
+      ctx.drawImage(img, 0, 0, width, height);
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) return reject(new Error("Failed to compress image"));
+          const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+          const newFile = new File([blob], file.name.replace(/\.[^.]+$/, "") + "." + ext, {
+            type: "image/jpeg",
+            lastModified: Date.now(),
+          });
+          resolve(newFile);
+        },
+        "image/jpeg",
+        quality
+      );
+    };
+    img.onerror = () => reject(new Error("Failed to load image"));
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+/**
+ * Extract text from a PDF file locally using pdfjs-dist.
+ * Used as a fast path for large PDFs that have embedded text (not scanned).
+ * Scanned PDFs will return empty text → caller falls back to Gemini OCR.
+ */
+async function extractPdfTextLocally(file: File): Promise<string> {
+  const { pdfjsLib, copyBytesForPdfjs } = await import("../lib/pdfjs");
+  const arrayBuffer = await file.arrayBuffer();
+  const bytes = new Uint8Array(arrayBuffer);
+  const loadingTask = pdfjsLib.getDocument({ data: copyBytesForPdfjs(bytes) });
+  const pdfDoc = await loadingTask.promise;
+  const maxPages = Math.min(pdfDoc.numPages, 50);
+  const parts: string[] = [];
+  for (let i = 1; i <= maxPages; i++) {
+    const page = await pdfDoc.getPage(i);
+    const content = await page.getTextContent();
+    const pageText = content.items
+      .map((item: any) => (typeof item.str === "string" ? item.str : ""))
+      .join(" ");
+    parts.push(pageText);
+    try { page.cleanup(); } catch {}
+  }
+  try { (pdfDoc as any).destroy?.(); } catch {}
+  return parts.join("\n\n");
+}
+
 interface OcrResult {
   id: string;
   fileName: string;
@@ -68,7 +138,49 @@ export const OcrWorkspace: React.FC = () => {
       setActiveResultId(id);
 
       try {
-        const result = await CloudApiService.ocrImageCloud(file, language, (p) => {
+        // For large files (>4MB), downscale images client-side before sending.
+        // Gemini API has a ~20MB limit for inline data; base64 adds 33% overhead,
+        // so a 15MB file becomes 20MB → API rejects it.
+        // We downscale to max 2000px and compress to JPEG quality 0.85.
+        const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4MB threshold
+        let fileToProcess: File = file;
+
+        if (file.size > MAX_FILE_SIZE && file.type.startsWith("image/")) {
+          try {
+            fileToProcess = await downscaleImage(file, 2000, 0.85);
+          } catch (e) {
+            console.warn("Image downscale failed, using original:", e);
+          }
+        }
+
+        // For large PDFs, extract text locally first (pdfjs) and skip Gemini
+        // if we already got meaningful text. Only send to Gemini if local
+        // extraction failed (e.g. scanned PDF).
+        if (file.type === "application/pdf" && file.size > MAX_FILE_SIZE) {
+          try {
+            const localText = await extractPdfTextLocally(fileToProcess);
+            if (localText && localText.trim().length > 50) {
+              setResults((prev) =>
+                prev.map((r) =>
+                  r.id === id ? { ...r, text: localText, status: "done" as const } : r
+                )
+              );
+              addHistory({
+                type: "ocr",
+                operation: `OCR (محلي) على ${file.name}`,
+                fileName: file.name,
+                fileSize: file.size,
+                status: "success",
+              });
+              toast.success(`اكتمل استخراج النص محلياً من ${file.name}`);
+              return;
+            }
+          } catch (e) {
+            console.warn("Local PDF text extraction failed, falling back to Gemini:", e);
+          }
+        }
+
+        const result = await CloudApiService.ocrImageCloud(fileToProcess, language, (p) => {
           // could surface progress to UI; we keep it simple
         });
         setResults((prev) =>
